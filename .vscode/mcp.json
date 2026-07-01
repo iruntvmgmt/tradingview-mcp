@@ -1,0 +1,14 @@
+{
+  "servers": {
+    "tradingview": {
+      "type": "command",
+      "command": "/Users/matt/.local/bin/uv",
+      "args": [
+        "--directory",
+        "/Users/matt/tradingview-mcp",
+        "run",
+        "tradingview-mcp"
+      ]
+    }
+  }
+}

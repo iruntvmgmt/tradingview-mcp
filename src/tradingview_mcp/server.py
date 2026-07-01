@@ -11,8 +11,10 @@ No business logic lives here. All computation is in core/services/*.
 from __future__ import annotations
 
 import argparse
+import asyncio
+import json
 import os
-from typing import Optional
+from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
@@ -75,6 +77,17 @@ from tradingview_mcp.core.errors import (
     BatchExecutionError,
     ErrorCode,
     make_error,
+)
+
+# ── TV Desktop imports ────────────────────────────────────────────────────
+from tradingview_mcp.core.services.cdp_connection import CDPConnectionManager
+from tradingview_mcp.core.services.chart_controller import TVChartController
+from tradingview_mcp.core.services.backtest_controller import TVBacktestController
+from tradingview_mcp.core.services.recon import ReconRunner, RECON_FINDINGS_PATH, run_recon
+from tradingview_mcp.core.services.errors import (
+    ReconRequired,
+    BackendConfigurationError,
+    ConnectionSetupError,
 )
 
 try:
@@ -908,56 +921,292 @@ def futures_watchlist() -> dict:
     return get_futures_watchlist()
 
 
-# ── Resource ───────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# TV Desktop Controller Tools
+# ═══════════════════════════════════════════════════════════════════════════════
 
-@mcp.resource("exchanges://list")
-def exchanges_list() -> str:
-    """List available exchanges from the coinlist directory."""
-    try:
-        current_dir = os.path.dirname(__file__)
-        coinlist_dir = os.path.join(current_dir, "coinlist")
-        if os.path.exists(coinlist_dir):
-            exchanges = [
-                f[:-4].upper()
-                for f in os.listdir(coinlist_dir)
-                if f.endswith(".txt")
-            ]
-            if exchanges:
-                return f"Available exchanges: {', '.join(sorted(exchanges))}"
-    except Exception:
-        pass
-    return "Common exchanges: KUCOIN, BINANCE, BYBIT, MEXC, BITGET, OKX, COINBASE, GATEIO, HUOBI, BITFINEX, KRAKEN, BITSTAMP, BIST, EGX, NASDAQ, TWSE, TPEX"
+# ── Global state ──────────────────────────────────────────────────────────
+_tv_cdp: CDPConnectionManager | None = None
+_tv_chart: TVChartController | None = None
+_tv_backtest: TVBacktestController | None = None
+_tv_recon: dict[str, Any] | None = None
 
 
-# ── Entry point ────────────────────────────────────────────────────────────────
+def _load_recon_or_raise() -> dict[str, Any]:
+    """Load recon_findings.json or raise ReconRequired."""
+    global _tv_recon
+    if _tv_recon is not None:
+        return _tv_recon
+    path = RECON_FINDINGS_PATH
+    if not os.path.exists(path):
+        raise ReconRequired(
+            "recon_findings.json not found. Run tv_recon_run() first to "
+            "discover TradingView Desktop capabilities."
+        )
+    with open(path) as f:
+        _tv_recon = json.load(f)
+    if _tv_recon.get("schema_version") != 1:
+        raise ReconRequired(
+            f"Unsupported recon schema_version {_tv_recon.get('schema_version')}. "
+            "Run tv_recon_run() to regenerate."
+        )
+    return _tv_recon
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="TradingView Screener MCP server")
-    parser.add_argument(
-        "transport",
-        choices=["stdio", "streamable-http"],
-        default="stdio",
-        nargs="?",
-        help="Transport (default stdio)",
+
+@mcp.tool()
+async def tv_recon_run(port: int = 8315) -> str:
+    """Run Phase 0 recon against TradingView Desktop — discovers which
+    capabilities are available and how to control them (DOM / JS / Network).
+
+    **You must follow the on-screen instructions during the network tap phase.**
+
+    Args:
+        port: CDP remote debugging port (default 8315)
+    """
+    global _tv_recon
+    old_findings = {}
+    if os.path.exists(RECON_FINDINGS_PATH):
+        with open(RECON_FINDINGS_PATH) as f:
+            old_findings = json.load(f)
+
+    findings = await run_recon(port=port)
+    _tv_recon = findings
+
+    summary = [
+        f"✅ Recon complete — {len(findings.get('capabilities', {}))} capabilities classified.",
+    ]
+
+    # Diff against previous run
+    if old_findings:
+        diff = ReconRunner.diff_findings(old_findings, findings)
+        summary.append(f"\nChanges from previous recon:\n{diff}")
+
+    # Show classified paths
+    for cap, entry in findings.get("capabilities", {}).items():
+        path = entry.get("path", "?")
+        verified = "✅" if entry.get("verified") else "⬜"
+        summary.append(f"  {verified} {cap}: {path}")
+
+    return "\n".join(summary)
+
+
+@mcp.tool()
+async def tv_desktop_launch(port: int = 8315) -> str:
+    """Launch TradingView Desktop with CDP remote debugging enabled.
+
+    Args:
+        port: CDP remote debugging port (default 8315)
+    """
+    global _tv_cdp, _tv_chart, _tv_backtest
+    if _tv_cdp and _tv_cdp.is_connected:
+        return "⚠️  Already connected. Call tv_disconnect() first if you want to re-launch."
+
+    recon = _load_recon_or_raise()
+    _tv_cdp = CDPConnectionManager()
+    _tv_cdp.launch(port=port)
+    await _tv_cdp.connect(port=port)
+    target = await _tv_cdp.select_main_renderer_target()
+
+    _tv_chart = TVChartController(_tv_cdp, recon, allow_unverified=True)
+    _tv_backtest = TVBacktestController(_tv_cdp, recon, allow_unverified=True)
+
+    return (
+        f"✅ TradingView Desktop launched and connected.\n"
+        f"   CDP port: {port}\n"
+        f"   Renderer target: {target}\n"
+        f"   Chart controller: {'ready' if _tv_chart else 'error'}\n"
+        f"   Backtest controller: {'ready' if _tv_backtest else 'error'}"
     )
-    parser.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8000")))
-    args = parser.parse_args()
 
-    if os.environ.get("DEBUG_MCP"):
-        import sys
-        print(f"[DEBUG_MCP] pkg cwd={os.getcwd()} argv={sys.argv} file={__file__}", file=sys.stderr, flush=True)
 
-    if args.transport == "stdio":
-        mcp.run()
-    else:
+@mcp.tool()
+async def tv_set_symbol(symbol: str) -> str:
+    """Change the active chart symbol in TradingView Desktop.
+
+    Args:
+        symbol: TradingView symbol (e.g. XAUUSD, BTCUSDT, AAPL)
+    """
+    _ensure_connected()
+    await _tv_chart.set_symbol(symbol)
+    return f"✅ Symbol changed to {symbol}"
+
+
+@mcp.tool()
+async def tv_set_timeframe(timeframe: str) -> str:
+    """Change the chart timeframe.
+
+    Args:
+        timeframe: One of 1m, 5m, 15m, 30m, 1h, 2h, 4h, 1D, 1W, 1M
+    """
+    _ensure_connected()
+    await _tv_chart.set_timeframe(timeframe)
+    return f"✅ Timeframe changed to {timeframe}"
+
+
+@mcp.tool()
+async def tv_apply_script(pine_code: str, name: str = "SMC Strategy") -> str:
+    """Apply a Pine Script indicator or strategy to the chart.
+
+    Args:
+        pine_code: The full Pine Script source code
+        name: A label for the script (default "SMC Strategy")
+    """
+    _ensure_connected()
+    await _tv_chart.add_indicator(pine_code, name)
+    return f"✅ Script '{name}' applied to chart. Backtest will run automatically if it's a strategy."
+
+
+@mcp.tool()
+async def tv_remove_indicator(name: str) -> str:
+    """Remove an indicator or strategy from the chart.
+
+    Args:
+        name: Name of the indicator to remove
+    """
+    _ensure_connected()
+    await _tv_chart.remove_indicator(name)
+    return f"✅ Indicator '{name}' removed."
+
+
+@mcp.tool()
+async def tv_get_chart_data(limit: int = 500) -> str:
+    """Read OHLCV data from the active chart.
+
+    Args:
+        limit: Maximum number of candles to return (default 500)
+    """
+    _ensure_connected()
+    data = await _tv_chart.get_ohlcv(limit)
+    return json.dumps(data, indent=2, default=str)
+
+
+@mcp.tool()
+async def tv_run_backtest(name: str = "SMC Strategy") -> str:
+    """Run the Strategy Tester for an applied strategy and wait for results.
+
+    Args:
+        name: Strategy name (default "SMC Strategy")
+    """
+    _ensure_connected()
+    await _tv_backtest.run_strategy(name)
+    try:
+        await _tv_backtest.wait_for_complete(timeout_s=120)
+    except Exception:
+        pass  # Return whatever we have even if timeout
+    summary = await _tv_backtest.get_performance_summary()
+    return json.dumps(summary, indent=2, default=str)
+
+
+@mcp.tool()
+async def tv_get_backtest_summary() -> str:
+    """Get the Strategy Tester performance summary (net profit, win rate, etc.)."""
+    _ensure_connected()
+    summary = await _tv_backtest.get_performance_summary()
+    return json.dumps(summary, indent=2, default=str)
+
+
+@mcp.tool()
+async def tv_get_backtest_trades() -> str:
+    """Get the full trade log from the Strategy Tester Trades List tab."""
+    _ensure_connected()
+    trades = await _tv_backtest.get_trade_list()
+    return json.dumps(trades, indent=2, default=str)
+
+
+@mcp.tool()
+async def tv_get_backtest_equity_curve() -> str:
+    """Get equity curve data points (may return null if rendered as canvas)."""
+    _ensure_connected()
+    curve = await _tv_backtest.get_equity_curve()
+    return json.dumps(curve, indent=2, default=str) if curve else "⚠️  Equity curve unavailable (rendered as canvas, not a data table)."
+
+
+@mcp.tool()
+async def tv_screenshot() -> str:
+    """Capture the current chart as a PNG screenshot.
+
+    Returns a base64-encoded PNG string.
+    """
+    _ensure_connected()
+    import base64
+    png_bytes = await _tv_chart.screenshot()
+    b64 = base64.b64encode(png_bytes).decode("ascii")
+    return f"data:image/png;base64,{b64}"
+
+
+@mcp.tool()
+async def tv_diagnostics() -> str:
+    """Run diagnostics on the TradingView Desktop connection — checks
+    CDP status, target selection, and all backend health checks."""
+    global _tv_cdp, _tv_chart, _tv_backtest, _tv_recon
+
+    lines = ["🔍 TV Desktop Diagnostics\n"]
+
+    # CDP status
+    if _tv_cdp:
+        lines.append(f"CDP connected: {_tv_cdp.is_connected}")
+        lines.append(f"CDP launched:  {_tv_cdp.is_launched}")
+        lines.append(f"CDP port:      {_tv_cdp.port}")
         try:
-            mcp.settings.host = args.host
-            mcp.settings.port = args.port
-        except Exception:
-            pass
-        mcp.run(transport="streamable-http")
+            targets = await _tv_cdp.list_targets()
+            lines.append(f"CDP targets:   {len(targets)} found")
+            for t in targets[:5]:
+                lines.append(f"  [{t['type']}] {t['title'][:60]}")
+        except Exception as e:
+            lines.append(f"CDP targets:   error — {e}")
+    else:
+        lines.append("CDP: Not connected. Run tv_desktop_launch() first.")
+
+    # Recon status
+    if _tv_recon:
+        ver = _tv_recon.get("tv_desktop_version", "unknown")
+        sv = _tv_recon.get("schema_version")
+        caps = _tv_recon.get("capabilities", {})
+        lines.append(f"\nRecon: v{sv}, TV version: {ver}")
+        for cap, entry in caps.items():
+            v = "✅" if entry.get("verified") else "⬜"
+            p = entry.get("path", "?")
+            lines.append(f"  {v} {cap}: {p}")
+    else:
+        lines.append("\nRecon: Not loaded. Run tv_recon_run() first.")
+
+    # Controller health
+    if _tv_chart:
+        try:
+            health = await _tv_chart.health_check()
+            lines.append(f"\nChart controller health:")
+            for k, v in health.items():
+                lines.append(f"  {'✅' if v else '❌'} {k}")
+        except Exception as e:
+            lines.append(f"\nChart controller: error — {e}")
+
+    if _tv_backtest:
+        try:
+            bt_ok = await _tv_backtest.health_check()
+            lines.append(f"\nBacktest controller: {'✅' if bt_ok else '❌'}")
+        except Exception as e:
+            lines.append(f"\nBacktest controller: error — {e}")
+
+    return "\n".join(lines)
 
 
-if __name__ == "__main__":
-    main()
+@mcp.tool()
+async def tv_disconnect() -> str:
+    """Disconnect from TradingView Desktop and clean up resources."""
+    global _tv_cdp, _tv_chart, _tv_backtest
+    if _tv_cdp:
+        await _tv_cdp.disconnect_async()
+    _tv_cdp = None
+    _tv_chart = None
+    _tv_backtest = None
+    return "✅ Disconnected from TradingView Desktop."
+
+
+def _ensure_connected() -> None:
+    """Raise ConnectionSetupError if not connected to TV Desktop."""
+    if _tv_cdp is None or not _tv_cdp.is_connected:
+        raise ConnectionSetupError(
+            "Not connected to TradingView Desktop. Run tv_desktop_launch() first."
+        )
+    if _tv_chart is None:
+        raise ConnectionSetupError("Chart controller not initialized. Run tv_desktop_launch() first.")

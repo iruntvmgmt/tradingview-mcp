@@ -1,0 +1,1728 @@
+// This work is licensed under a Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) https://creativecommons.org/licenses/by-nc-sa/4.0/
+// © LuxAlgo
+
+//@version=5
+//@strategy_alert_message {{strategy.order.alert_message}}
+strategy('Smart Money Concepts [LuxAlgo] Strategy Engine', 'LuxAlgo - SMC Strategy Engine', overlay = true, max_labels_count = 500, max_lines_count = 500, max_boxes_count = 500, pyramiding = 0, initial_capital = 100, commission_type = strategy.commission.cash_per_contract, commission_value = 0.01, slippage = 1, process_orders_on_close = true)
+//---------------------------------------------------------------------------------------------------------------------}
+//CONSTANTS & STRINGS & INPUTS
+//---------------------------------------------------------------------------------------------------------------------{
+BULLISH_LEG                     = 1
+BEARISH_LEG                     = 0
+
+BULLISH                         = +1
+BEARISH                         = -1
+
+GREEN                           = #089981
+RED                             = #F23645
+BLUE                            = #2157f3
+GRAY                            = #878b94
+MONO_BULLISH                    = #b2b5be
+MONO_BEARISH                    = #5d606b
+
+HISTORICAL                      = 'Historical'
+PRESENT                         = 'Present'
+
+COLORED                         = 'Colored'
+MONOCHROME                      = 'Monochrome'
+
+ALL                             = 'All'
+BOS                             = 'BOS'
+CHOCH                           = 'CHoCH'
+
+TINY                            = size.tiny
+SMALL                           = size.small
+NORMAL                          = size.normal
+
+ATR                             = 'Atr'
+RANGE                           = 'Cumulative Mean Range'
+
+CLOSE                           = 'Close'
+HIGHLOW                         = 'High/Low'
+
+SOLID                           = '⎯⎯⎯'
+DASHED                          = '----'
+DOTTED                          = '····'
+
+SMART_GROUP                     = 'Smart Money Concepts'
+INTERNAL_GROUP                  = 'Real Time Internal Structure'
+SWING_GROUP                     = 'Real Time Swing Structure'
+BLOCKS_GROUP                    = 'Order Blocks'
+EQUAL_GROUP                     = 'EQH/EQL'
+GAPS_GROUP                      = 'Fair Value Gaps'
+LEVELS_GROUP                    = 'Highs & Lows MTF'
+ZONES_GROUP                     = 'Premium & Discount Zones'
+TRADE_GROUP                     = 'Trade Engine'
+SQZ_GROUP                       = 'Squeeze Momentum Filter'
+RSI_GROUP                       = 'RSI Entry Filter'
+STOCH_GROUP                     = 'Stochastic Edge Filter'
+MA_GROUP                        = 'Triple MA Trend'
+CHOP_GROUP                      = 'Chop Detection Filter'
+BBREG_GROUP                     = 'BB Regression Trend Filter'
+AUTOMATION_GROUP                = 'Automation'
+VALIDATION_GROUP                = 'Validation'
+
+ENTRY_ALL                       = 'All Entry Models'
+ENTRY_INTERNAL_BOS              = 'Internal BOS'
+ENTRY_INTERNAL_CHOCH            = 'Internal CHoCH'
+ENTRY_SWING_BOS                 = 'Swing BOS'
+ENTRY_SWING_CHOCH               = 'Swing CHoCH'
+ENTRY_INTERNAL_OB_RETEST        = 'Internal OB Retest'
+ENTRY_SWING_OB_RETEST           = 'Swing OB Retest'
+ENTRY_FVG_CREATION              = 'FVG Creation'
+ENTRY_FVG_RETEST                = 'FVG Retest'
+ENTRY_EQ_SWEEP                  = 'EQH/EQL Sweep'
+ENTRY_SWEEP_CHOCH               = 'Sweep + CHoCH'
+ENTRY_CHOCH_OB_RETEST           = 'CHoCH + OB Retest'
+ENTRY_CHOCH_FVG_RETEST          = 'CHoCH + FVG Retest'
+ENTRY_BB_REG_REJECTION          = 'BB Regression Rejection'
+ENTRY_CUSTOM                    = 'Custom Toggle Basket'
+
+RISK_ATR                        = 'ATR Stop'
+RISK_STRUCTURE                  = 'Structure Stop'
+
+MA_EMA                          = 'EMA'
+MA_SMA                          = 'SMA'
+MA_WMA                          = 'WMA'
+MA_RMA                          = 'RMA'
+MA_HMA                          = 'HMA'
+
+MA_FILTER_STACK_SLOPE           = 'Stack + Slope'
+MA_FILTER_STACK                 = 'Stack Only'
+MA_FILTER_PRICE_FAST            = 'Price vs Fast MA'
+MA_FILTER_PRICE_MID             = 'Price vs Mid MA'
+MA_FILTER_PRICE_SLOW            = 'Price vs Slow MA'
+MA_FILTER_FAST_MID              = 'Fast vs Mid MA'
+MA_FILTER_FAST_SLOW             = 'Fast vs Slow MA'
+MA_FILTER_MID_SLOW              = 'Mid vs Slow MA'
+MA_FILTER_SLOPE_ONLY            = 'All Slopes Only'
+
+CHOP_FILTER_MA_SPREAD           = 'MA Spread'
+CHOP_FILTER_MA_SPREAD_EXPANDING = 'MA Spread Expanding'
+CHOP_FILTER_NO_MID_RANGE        = 'Avoid Middle Of Range'
+CHOP_FILTER_ROOM_TO_EDGE        = 'Room To Range Edge'
+CHOP_FILTER_ADX                 = 'ADX Trend Strength'
+CHOP_FILTER_STACK_ALIGNMENT     = 'MA Stack Alignment'
+CHOP_FILTER_COMBO_BALANCED      = 'Balanced Combo'
+CHOP_FILTER_COMBO_STRICT        = 'Strict Combo'
+
+BBREG_FILTER_BASIS_SLOPE        = 'Basis Slope'
+BBREG_FILTER_BASIS_DIRECTION    = 'Basis Direction'
+BBREG_FILTER_PRICE_BASIS        = 'Price vs Basis'
+BBREG_FILTER_SLOPE_PRICE        = 'Slope + Price vs Basis'
+BBREG_FILTER_SLOPE_EXPANSION    = 'Slope + Band Expansion'
+BBREG_FILTER_SLOPE_NOT_EXTENDED = 'Slope + Not Overextended'
+BBREG_FILTER_AVOID_REJECTION    = 'Avoid Band Rejection'
+BBREG_FILTER_FULL_CONTEXT       = 'Slope + Price + No Rejection'
+
+SQZ_SOFT                        = 'Soft'
+SQZ_STRONG                      = 'Strong'
+SQZ_TREND_CONTINUATION          = 'Trend Continuation'
+SQZ_MOMENTUM_TURN               = 'CRSI Momentum Turn'
+SQZ_MOMENTUM_DIRECTION          = 'CRSI Momentum Direction'
+SQZ_HISTOGRAM_RISING            = 'Histogram Rising/Falling'
+SQZ_HISTOGRAM_ACCELERATION      = 'Histogram Acceleration'
+SQZ_HISTOGRAM_ZERO_CROSS        = 'Histogram Zero Cross'
+SQZ_HISTOGRAM_OPPOSITE_TURN     = 'Histogram Turn From Opposite'
+SQZ_RELEASE_DIRECTION           = 'Release + Histogram Direction'
+
+RSI_RECOVERY                    = 'Recovery From Extreme'
+RSI_EXTREME_REVERSAL            = 'Extreme Reversal Cross'
+RSI_AVOID_MIDLINE_CHOP          = 'Avoid Midline Chop'
+RSI_DIRECTION                   = 'Directional RSI'
+RSI_PULLBACK_TREND              = 'Trend Pullback Zone'
+RSI_RECOVERY_DIRECTION          = 'Recovery + Direction'
+
+STOCH_KD_PULLBACK               = 'K/D Pullback'
+STOCH_KD_DIRECTION              = 'K/D Direction'
+STOCH_SCORE_THRESHOLD           = 'Score Threshold'
+STOCH_MTF_ALIGNMENT             = 'MTF Alignment'
+STOCH_SCORE_KD_DIRECTION        = 'Score + K/D Direction'
+STOCH_RECENT_ELITE_PULSE        = 'Recent Elite Pulse'
+STOCH_ADAPTIVE_BAND_REVERSAL    = 'Adaptive Band Reversal'
+
+modeTooltip                     = 'Allows to display historical Structure or only the recent ones'
+styleTooltip                    = 'Indicator color theme'
+showTrendTooltip                = 'Display additional candles with a color reflecting the current trend detected by structure'
+showInternalsTooltip            = 'Display internal market structure'
+internalFilterConfluenceTooltip = 'Filter non significant internal structure breakouts'
+showStructureTooltip            = 'Display swing market Structure'
+showSwingsTooltip               = 'Display swing point as labels on the chart'
+showHighLowSwingsTooltip        = 'Highlight most recent strong and weak high/low points on the chart'
+showInternalOrderBlocksTooltip  = 'Display internal order blocks on the chart\n\nNumber of internal order blocks to display on the chart'
+showSwingOrderBlocksTooltip     = 'Display swing order blocks on the chart\n\nNumber of internal swing blocks to display on the chart'
+orderBlockFilterTooltip         = 'Method used to filter out volatile order blocks \n\nIt is recommended to use the cumulative mean range method when a low amount of data is available'
+orderBlockMitigationTooltip     = 'Select what values to use for order block mitigation'
+showEqualHighsLowsTooltip       = 'Display equal highs and equal lows on the chart'
+equalHighsLowsLengthTooltip     = 'Number of bars used to confirm equal highs and equal lows'
+equalHighsLowsThresholdTooltip  = 'Sensitivity threshold in a range (0, 1) used for the detection of equal highs & lows\n\nLower values will return fewer but more pertinent results'
+showFairValueGapsTooltip        = 'Display fair values gaps on the chart'
+fairValueGapsThresholdTooltip   = 'Filter out non significant fair value gaps'
+fairValueGapsTimeframeTooltip   = 'Fair value gaps timeframe'
+fairValueGapsExtendTooltip      = 'Determine how many bars to extend the Fair Value Gap boxes on chart'
+showPremiumDiscountZonesTooltip = 'Display premium, discount, and equilibrium zones on chart'
+
+modeInput                       = input.string( HISTORICAL, 'Mode',                     group = SMART_GROUP,    tooltip = modeTooltip, options = [HISTORICAL, PRESENT])
+styleInput                      = input.string( COLORED,    'Style',                    group = SMART_GROUP,    tooltip = styleTooltip,options = [COLORED, MONOCHROME])
+showTrendInput                  = input(        false,      'Color Candles',            group = SMART_GROUP,    tooltip = showTrendTooltip)
+
+showInternalsInput              = input(        true,       'Show Internal Structure',  group = INTERNAL_GROUP, tooltip = showInternalsTooltip)
+showInternalBullInput           = input.string( ALL,        'Bullish Structure',        group = INTERNAL_GROUP, inline = 'ibull', options = [ALL,BOS,CHOCH])
+internalBullColorInput          = input(        GREEN,      '',                         group = INTERNAL_GROUP, inline = 'ibull')
+showInternalBearInput           = input.string( ALL,        'Bearish Structure' ,       group = INTERNAL_GROUP, inline = 'ibear', options = [ALL,BOS,CHOCH])
+internalBearColorInput          = input(        RED,        '',                         group = INTERNAL_GROUP, inline = 'ibear')
+internalFilterConfluenceInput   = input(        false,      'Confluence Filter',        group = INTERNAL_GROUP, tooltip = internalFilterConfluenceTooltip)
+internalStructureSize           = input.string( TINY,       'Internal Label Size',      group = INTERNAL_GROUP, options = [TINY,SMALL,NORMAL])
+
+showStructureInput              = input(        true,       'Show Swing Structure',     group = SWING_GROUP,    tooltip = showStructureTooltip)
+showSwingBullInput              = input.string( ALL,        'Bullish Structure',        group = SWING_GROUP,    inline = 'bull',    options = [ALL,BOS,CHOCH])
+swingBullColorInput             = input(        GREEN,      '',                         group = SWING_GROUP,    inline = 'bull')
+showSwingBearInput              = input.string( ALL,        'Bearish Structure',        group = SWING_GROUP,    inline = 'bear',    options = [ALL,BOS,CHOCH])
+swingBearColorInput             = input(        RED,        '',                         group = SWING_GROUP,    inline = 'bear')
+swingStructureSize              = input.string( SMALL,      'Swing Label Size',         group = SWING_GROUP,    options = [TINY,SMALL,NORMAL])
+showSwingsInput                 = input(        false,      'Show Swings Points',       group = SWING_GROUP,    tooltip = showSwingsTooltip,inline = 'swings')
+swingsLengthInput               = input.int(    50,         '',                         group = SWING_GROUP,    minval = 10,                inline = 'swings')
+showHighLowSwingsInput          = input(        true,       'Show Strong/Weak High/Low',group = SWING_GROUP,    tooltip = showHighLowSwingsTooltip)
+
+showInternalOrderBlocksInput    = input(        true,       'Internal Order Blocks' ,   group = BLOCKS_GROUP,   tooltip = showInternalOrderBlocksTooltip,   inline = 'iob')
+internalOrderBlocksSizeInput    = input.int(    5,          '',                         group = BLOCKS_GROUP,   minval = 1, maxval = 20,                    inline = 'iob')
+showSwingOrderBlocksInput       = input(        false,      'Swing Order Blocks',       group = BLOCKS_GROUP,   tooltip = showSwingOrderBlocksTooltip,      inline = 'ob')
+swingOrderBlocksSizeInput       = input.int(    5,          '',                         group = BLOCKS_GROUP,   minval = 1, maxval = 20,                    inline = 'ob') 
+orderBlockFilterInput           = input.string( 'Atr',      'Order Block Filter',       group = BLOCKS_GROUP,   tooltip = orderBlockFilterTooltip,          options = [ATR, RANGE])
+orderBlockMitigationInput       = input.string( HIGHLOW,    'Order Block Mitigation',   group = BLOCKS_GROUP,   tooltip = orderBlockMitigationTooltip,      options = [CLOSE,HIGHLOW])
+internalBullishOrderBlockColor  = input.color(color.new(#3179f5, 80), 'Internal Bullish OB',    group = BLOCKS_GROUP)
+internalBearishOrderBlockColor  = input.color(color.new(#f77c80, 80), 'Internal Bearish OB',    group = BLOCKS_GROUP)
+swingBullishOrderBlockColor     = input.color(color.new(#1848cc, 80), 'Bullish OB',             group = BLOCKS_GROUP)
+swingBearishOrderBlockColor     = input.color(color.new(#b22833, 80), 'Bearish OB',             group = BLOCKS_GROUP)
+
+showEqualHighsLowsInput         = input(        true,       'Equal High/Low',           group = EQUAL_GROUP,    tooltip = showEqualHighsLowsTooltip)
+equalHighsLowsLengthInput       = input.int(    3,          'Bars Confirmation',        group = EQUAL_GROUP,    tooltip = equalHighsLowsLengthTooltip,      minval = 1)
+equalHighsLowsThresholdInput    = input.float(  0.1,        'Threshold',                group = EQUAL_GROUP,    tooltip = equalHighsLowsThresholdTooltip,   minval = 0, maxval = 0.5, step = 0.1)
+equalHighsLowsSizeInput         = input.string( TINY,       'Label Size',               group = EQUAL_GROUP,    options = [TINY,SMALL,NORMAL])
+
+showFairValueGapsInput          = input(        true,      'Fair Value Gaps',          group = GAPS_GROUP,     tooltip = showFairValueGapsTooltip)
+fairValueGapsThresholdInput     = input(        true,       'Auto Threshold',           group = GAPS_GROUP,     tooltip = fairValueGapsThresholdTooltip)
+fairValueGapsTimeframeInput     = input.timeframe('',       'Timeframe',                group = GAPS_GROUP,     tooltip = fairValueGapsTimeframeTooltip)
+fairValueGapsBullColorInput     = input.color(color.new(#00ff68, 70), 'Bullish FVG' , group = GAPS_GROUP)
+fairValueGapsBearColorInput     = input.color(color.new(#ff0008, 70), 'Bearish FVG' , group = GAPS_GROUP)
+fairValueGapsExtendInput        = input.int(    1,          'Extend FVG',               group = GAPS_GROUP,     tooltip = fairValueGapsExtendTooltip,       minval = 0)
+
+showDailyLevelsInput            = input(        false,      'Daily',    group = LEVELS_GROUP,   inline = 'daily')
+dailyLevelsStyleInput           = input.string( SOLID,      '',         group = LEVELS_GROUP,   inline = 'daily',   options = [SOLID,DASHED,DOTTED])
+dailyLevelsColorInput           = input(        BLUE,       '',         group = LEVELS_GROUP,   inline = 'daily')
+showWeeklyLevelsInput           = input(        false,      'Weekly',   group = LEVELS_GROUP,   inline = 'weekly')
+weeklyLevelsStyleInput          = input.string( SOLID,      '',         group = LEVELS_GROUP,   inline = 'weekly',  options = [SOLID,DASHED,DOTTED])
+weeklyLevelsColorInput          = input(        BLUE,       '',         group = LEVELS_GROUP,   inline = 'weekly')
+showMonthlyLevelsInput          = input(        false,      'Monthly',   group = LEVELS_GROUP,   inline = 'monthly')
+monthlyLevelsStyleInput         = input.string( SOLID,      '',         group = LEVELS_GROUP,   inline = 'monthly', options = [SOLID,DASHED,DOTTED])
+monthlyLevelsColorInput         = input(        BLUE,       '',         group = LEVELS_GROUP,   inline = 'monthly')
+
+showPremiumDiscountZonesInput   = input(        false,      'Premium/Discount Zones',   group = ZONES_GROUP , tooltip = showPremiumDiscountZonesTooltip)
+premiumZoneColorInput           = input.color(  RED,        'Premium Zone',             group = ZONES_GROUP)
+equilibriumZoneColorInput       = input.color(  GRAY,       'Equilibrium Zone',         group = ZONES_GROUP)
+discountZoneColorInput          = input.color(  GREEN,      'Discount Zone',            group = ZONES_GROUP)
+
+tradeEngineInput                = input.bool(   true,       'Enable Strategy Engine',   group = TRADE_GROUP)
+entryModelInput                 = input.string( ENTRY_INTERNAL_CHOCH, 'Entry Model',    group = TRADE_GROUP, options = [ENTRY_ALL, ENTRY_INTERNAL_BOS, ENTRY_INTERNAL_CHOCH, ENTRY_SWING_BOS, ENTRY_SWING_CHOCH, ENTRY_INTERNAL_OB_RETEST, ENTRY_SWING_OB_RETEST, ENTRY_FVG_CREATION, ENTRY_FVG_RETEST, ENTRY_EQ_SWEEP, ENTRY_SWEEP_CHOCH, ENTRY_CHOCH_OB_RETEST, ENTRY_CHOCH_FVG_RETEST, ENTRY_BB_REG_REJECTION, ENTRY_CUSTOM])
+tradeLongsInput                 = input.bool(   true,       'Trade Longs',              group = TRADE_GROUP)
+tradeShortsInput                = input.bool(   true,       'Trade Shorts',             group = TRADE_GROUP)
+usePremiumDiscountFilterInput   = input.bool(   false,      'Filter Longs In Discount / Shorts In Premium', group = TRADE_GROUP)
+requireSwingBiasInput           = input.bool(   false,      'Require Swing Bias For Internal Entries', group = TRADE_GROUP)
+setupMemoryBarsInput            = input.int(    10,         'Combo Setup Memory Bars',  group = TRADE_GROUP, minval = 1, maxval = 100)
+customInternalBOSInput          = input.bool(   false,      'Custom: Internal BOS',     group = TRADE_GROUP)
+customInternalCHoCHInput        = input.bool(   false,      'Custom: Internal CHoCH',   group = TRADE_GROUP)
+customSwingBOSInput             = input.bool(   false,      'Custom: Swing BOS',        group = TRADE_GROUP)
+customSwingCHoCHInput           = input.bool(   false,      'Custom: Swing CHoCH',      group = TRADE_GROUP)
+customInternalOBInput           = input.bool(   false,      'Custom: Internal OB Retest', group = TRADE_GROUP)
+customSwingOBInput              = input.bool(   false,      'Custom: Swing OB Retest',  group = TRADE_GROUP)
+customFVGCreationInput          = input.bool(   false,      'Custom: FVG Creation',     group = TRADE_GROUP)
+customFVGRetestInput            = input.bool(   false,      'Custom: FVG Retest',       group = TRADE_GROUP)
+customEQSweepInput              = input.bool(   false,      'Custom: EQH/EQL Sweep',    group = TRADE_GROUP)
+customSweepCHoCHInput           = input.bool(   false,      'Custom: Sweep + CHoCH',    group = TRADE_GROUP)
+customCHoCHOBInput              = input.bool(   false,      'Custom: CHoCH + OB Retest', group = TRADE_GROUP)
+customCHoCHFVGInput             = input.bool(   false,      'Custom: CHoCH + FVG Retest', group = TRADE_GROUP)
+customBBRegRejectionInput       = input.bool(   false,      'Custom: BB Regression Rejection', group = TRADE_GROUP)
+riskModelInput                  = input.string( RISK_ATR,   'Stop Model',               group = TRADE_GROUP, options = [RISK_ATR, RISK_STRUCTURE])
+atrLengthInput                  = input.int(    14,         'ATR Length',               group = TRADE_GROUP, minval = 1)
+atrStopMultInput                = input.float(  1.5,        'ATR Stop Multiple',        group = TRADE_GROUP, minval = 0.1, step = 0.1)
+rewardRiskInput                 = input.float(  5.0,        'Reward/Risk Target',       group = TRADE_GROUP, minval = 0.25, step = 0.25, tooltip = 'The staged-exit default is designed around a 5R target, breakeven at 1R, and delayed trailing from 2R.')
+riskPercentInput                = input.float(  10.0,       'Account Risk %',           group = TRADE_GROUP, minval = 0.01, maxval = 50.0, step = 0.25, tooltip = 'Maximum planned loss at the initial stop. Values above 10% are extreme and consecutive losses can rapidly destroy the account.')
+brokerContractSizeInput         = input.float(  100.0,      'Broker Units Per 1.00 Lot', group = TRADE_GROUP, minval = 0.000001, step = 1.0, tooltip = 'Coinexx XAUUSD contract size from the supplied specification: 100 XAU per 1.00 lot.')
+marginPerLotInput               = input.float(  831.15,     'Estimated Margin Per Lot', group = TRADE_GROUP, minval = 0.0, step = 0.01, tooltip = 'Approximate Coinexx initial margin in USD per 1.00 XAUUSD lot. Update this when the broker specification changes.')
+maxMarginPercentInput           = input.float(  90.0,       'Max Margin % Of Equity',   group = TRADE_GROUP, minval = 1.0, maxval = 100.0, step = 1.0)
+quantityStepInput               = input.float(  0.01,       'Broker Lot Step',          group = TRADE_GROUP, minval = 0.000001, step = 0.01)
+minimumQuantityInput            = input.float(  0.01,       'Minimum Broker Lots',      group = TRADE_GROUP, minval = 0.000001, step = 0.01)
+useBreakEvenInput               = input.bool(   true,       'Move Stop To Breakeven',   group = TRADE_GROUP, inline = 'exit1')
+breakEvenTriggerRiskInput       = input.float(  1.0,        'At R',                     group = TRADE_GROUP, inline = 'exit1', minval = 0.1, step = 0.1)
+breakEvenOffsetInput            = input.float(  0.10,       'BE Price Offset',           group = TRADE_GROUP, inline = 'exit2', minval = 0.0, step = 0.01, tooltip = 'Positive XAUUSD price offset intended to help cover commission. Spread and slippage can still produce a net loss.')
+useStagedTrailInput             = input.bool(   true,       'Use Delayed Trail',         group = TRADE_GROUP, inline = 'exit3')
+trailActivationRiskInput        = input.float(  2.0,        'Start At R',                group = TRADE_GROUP, inline = 'exit3', minval = 0.1, step = 0.1)
+trailDistanceRiskInput          = input.float(  1.0,        'Trail Distance R',          group = TRADE_GROUP, inline = 'exit4', minval = 0.1, step = 0.1)
+maxStructureAgeInput            = input.int(    100,        'Max Structure Stop Age',   group = TRADE_GROUP, minval = 1)
+maxStructureAtrInput            = input.float(  5.0,        'Max Structure Stop ATR',   group = TRADE_GROUP, minval = 0.1, step = 0.1)
+setupMaxAgeInput                = input.int(    100,        'Max Zone Setup Age',       group = TRADE_GROUP, minval = 1)
+
+automationBotIdInput            = input.string( 'smc-strategy-engine', 'Bot ID',         group = AUTOMATION_GROUP)
+automationAccountInput          = input.string( 'paper',               'Account ID',     group = AUTOMATION_GROUP)
+automationConfirmedOnlyInput    = input.bool(   true,       'Confirmed Bars Only',     group = AUTOMATION_GROUP)
+automationConfirmedHtfInput     = input.bool(   true,       'Confirmed HTF Values',    group = AUTOMATION_GROUP)
+
+validationStartInput            = input.time(   timestamp('01 Jan 2020 00:00 +0000'), 'Start Date', group = VALIDATION_GROUP)
+validationEndInput              = input.time(   timestamp('31 Dec 2099 23:59 +0000'), 'End Date',   group = VALIDATION_GROUP)
+
+useSqzFilterInput               = input.bool(   false,      'Use Squeeze Filter',       group = SQZ_GROUP, inline = 'sqz0')
+sqzFilterModeInput              = input.string( SQZ_SOFT,   '',                         group = SQZ_GROUP, inline = 'sqz0', options = [SQZ_SOFT, SQZ_STRONG, SQZ_TREND_CONTINUATION, SQZ_MOMENTUM_TURN, SQZ_MOMENTUM_DIRECTION, SQZ_HISTOGRAM_RISING, SQZ_HISTOGRAM_ACCELERATION, SQZ_HISTOGRAM_ZERO_CROSS, SQZ_HISTOGRAM_OPPOSITE_TURN, SQZ_RELEASE_DIRECTION])
+showSqzFilterTableInput         = input.bool(   true,       'Show Filter Table',        group = SQZ_GROUP)
+sqzRequireRecentReleaseInput    = input.bool(   false,      'Require Recent Squeeze Release', group = SQZ_GROUP, inline = 'sqz1')
+sqzReleaseWindowInput           = input.int(    8,          'Bars',                     group = SQZ_GROUP, inline = 'sqz1', minval = 1)
+sqzBBLenInput                   = input.int(    20,         'BB Length',                group = SQZ_GROUP, inline = 'sqz2', minval = 1)
+sqzBBMultInput                  = input.float(  2.0,        'BB Mult',                  group = SQZ_GROUP, inline = 'sqz2', minval = 0.1, step = 0.1)
+sqzKCLenInput                   = input.int(    20,         'KC Length',                group = SQZ_GROUP, inline = 'sqz3', minval = 1)
+sqzKCMultInput                  = input.float(  1.5,        'KC Mult',                  group = SQZ_GROUP, inline = 'sqz3', minval = 0.1, step = 0.1)
+sqzMomLenInput                  = input.int(    20,         'Momentum Length',          group = SQZ_GROUP, inline = 'sqz4', minval = 1)
+sqzTrendLenInput                = input.int(    50,         'Trend EMA Length',         group = SQZ_GROUP, inline = 'sqz4', minval = 1)
+sqzRiskLookbackInput            = input.int(    50,         'Range Lookback',           group = SQZ_GROUP, inline = 'sqz5', minval = 10)
+sqzMinRoomAtrInput              = input.float(  1.2,        'Min Room ATR',             group = SQZ_GROUP, inline = 'sqz5', minval = 0.1, step = 0.1)
+sqzLateLongZoneInput            = input.float(  0.82,       'Late Long Zone',           group = SQZ_GROUP, inline = 'sqz6', minval = 0.5, maxval = 1.0, step = 0.01)
+sqzLateShortZoneInput           = input.float(  0.18,       'Late Short Zone',          group = SQZ_GROUP, inline = 'sqz6', minval = 0.0, maxval = 0.5, step = 0.01)
+sqzUseHtfInput                  = input.bool(   true,       'Use HTF Alignment',        group = SQZ_GROUP, inline = 'sqz7')
+sqzHtfTfInput                   = input.timeframe('60',     '',                         group = SQZ_GROUP, inline = 'sqz7')
+sqzRequireZeroSideInput         = input.bool(   false,      'CRSI Mode: Require Zero Side', group = SQZ_GROUP, inline = 'sqz8')
+sqzConfirmedOnlyInput           = input.bool(   true,       'Confirmed Bars Only',      group = SQZ_GROUP, inline = 'sqz8')
+
+useRSIFilterInput               = input.bool(   false,      'Use RSI Filter',           group = RSI_GROUP, inline = 'rsi0')
+rsiFilterModeInput              = input.string( RSI_RECOVERY, '',                       group = RSI_GROUP, inline = 'rsi0', options = [RSI_RECOVERY, RSI_EXTREME_REVERSAL, RSI_AVOID_MIDLINE_CHOP, RSI_DIRECTION, RSI_PULLBACK_TREND, RSI_RECOVERY_DIRECTION])
+rsiSourceInput                  = input.source( close,      'Source',                   group = RSI_GROUP)
+rsiLengthInput                  = input.int(    14,         'Length',                   group = RSI_GROUP, minval = 1, inline = 'rsi1')
+rsiExtremeLookbackInput         = input.int(    8,          'Extreme Lookback',         group = RSI_GROUP, minval = 1, inline = 'rsi1')
+rsiOversoldInput                = input.float(  35.0,       'Oversold',                 group = RSI_GROUP, minval = 0.0, maxval = 50.0, step = 0.5, inline = 'rsi2')
+rsiOverboughtInput              = input.float(  65.0,       'Overbought',               group = RSI_GROUP, minval = 50.0, maxval = 100.0, step = 0.5, inline = 'rsi2')
+rsiMidlineInput                 = input.float(  50.0,       'Midline',                  group = RSI_GROUP, minval = 1.0, maxval = 99.0, step = 0.5, inline = 'rsi3')
+rsiChopBandInput                = input.float(  5.0,        'Chop Band',                group = RSI_GROUP, minval = 0.0, maxval = 25.0, step = 0.5, inline = 'rsi3')
+
+useStochFilterInput             = input.bool(   false,      'Use Stochastic Edge Filter', group = STOCH_GROUP, inline = 'stoch0')
+stochFilterModeInput            = input.string( STOCH_SCORE_THRESHOLD, '',              group = STOCH_GROUP, inline = 'stoch0', options = [STOCH_KD_PULLBACK, STOCH_KD_DIRECTION, STOCH_SCORE_THRESHOLD, STOCH_MTF_ALIGNMENT, STOCH_SCORE_KD_DIRECTION, STOCH_RECENT_ELITE_PULSE, STOCH_ADAPTIVE_BAND_REVERSAL])
+stochLengthInput                = input.int(    14,         '%K Length',                group = STOCH_GROUP, minval = 1, inline = 'stoch1')
+stochSmoothKInput               = input.int(    3,          'Smooth K',                 group = STOCH_GROUP, minval = 1, inline = 'stoch1')
+stochSmoothDInput               = input.int(    3,          'Smooth D',                 group = STOCH_GROUP, minval = 1, inline = 'stoch1')
+stochLowerInput                 = input.float(  20.0,       'Oversold',                 group = STOCH_GROUP, minval = 0.0, maxval = 50.0, step = 1.0, inline = 'stoch2')
+stochUpperInput                 = input.float(  80.0,       'Overbought',               group = STOCH_GROUP, minval = 50.0, maxval = 100.0, step = 1.0, inline = 'stoch2')
+stochReversalZoneInput          = input.float(  35.0,       'Pullback Zone',            group = STOCH_GROUP, minval = 20.0, maxval = 50.0, step = 1.0)
+stochBandLookbackInput          = input.int(    80,         'Adaptive Band Lookback',   group = STOCH_GROUP, minval = 20, maxval = 500, inline = 'stoch3')
+stochBandPctInput               = input.int(    12,         'Percentile',               group = STOCH_GROUP, minval = 1, maxval = 35, inline = 'stoch3')
+stochMinLongScoreInput          = input.int(    64,         'Min Long Score',           group = STOCH_GROUP, minval = 1, maxval = 100, inline = 'stoch4')
+stochMinShortScoreInput         = input.int(    64,         'Min Short Score',          group = STOCH_GROUP, minval = 1, maxval = 100, inline = 'stoch4')
+stochPulseMemoryInput           = input.int(    8,          'Pulse Memory Bars',        group = STOCH_GROUP, minval = 1, maxval = 100)
+stochUseMtfInput                = input.bool(   true,       'Use MTF Alignment',        group = STOCH_GROUP, inline = 'stoch5')
+stochTf1Input                   = input.timeframe('5',      '',                         group = STOCH_GROUP, inline = 'stoch5')
+stochTf2Input                   = input.timeframe('15',     '',                         group = STOCH_GROUP, inline = 'stoch5')
+stochTf3Input                   = input.timeframe('60',     '',                         group = STOCH_GROUP, inline = 'stoch5')
+stochUseVwapInput               = input.bool(   true,       'Use VWAP In Score',        group = STOCH_GROUP, inline = 'stoch6')
+stochRequireVolumeInput         = input.bool(   false,      'Require Volume Expansion', group = STOCH_GROUP, inline = 'stoch6')
+stochVolumeLengthInput          = input.int(    20,         'Volume SMA',               group = STOCH_GROUP, minval = 1)
+stochAdxTrendMinInput           = input.float(  18.0,       'Trend ADX Min',            group = STOCH_GROUP, minval = 1.0, step = 0.5, inline = 'stoch7')
+stochAdxChopMaxInput            = input.float(  14.0,       'Chop ADX Max',             group = STOCH_GROUP, minval = 1.0, step = 0.5, inline = 'stoch7')
+
+showTripleMAInput               = input.bool(   true,       'Show Triple MA',           group = MA_GROUP, inline = 'ma0')
+useTripleMAFilterInput          = input.bool(   false,      'Use As Entry Filter',      group = MA_GROUP, inline = 'ma0')
+showTripleMAFillInput           = input.bool(   true,       'Show MA Ribbon Fill',      group = MA_GROUP)
+tripleMAFilterModeInput         = input.string( MA_FILTER_STACK_SLOPE, 'Filter Mode',   group = MA_GROUP, options = [MA_FILTER_STACK_SLOPE, MA_FILTER_STACK, MA_FILTER_PRICE_FAST, MA_FILTER_PRICE_MID, MA_FILTER_PRICE_SLOW, MA_FILTER_FAST_MID, MA_FILTER_FAST_SLOW, MA_FILTER_MID_SLOW, MA_FILTER_SLOPE_ONLY])
+tripleMATypeInput               = input.string( MA_EMA,     'Type',                     group = MA_GROUP, options = [MA_EMA, MA_SMA, MA_WMA, MA_RMA, MA_HMA])
+tripleMASourceInput             = input.source( close,      'Source',                   group = MA_GROUP)
+fastMALengthInput               = input.int(    9,          'Fast',                     group = MA_GROUP, minval = 1, inline = 'ma1')
+midMALengthInput                = input.int(    21,         'Mid',                      group = MA_GROUP, minval = 1, inline = 'ma1')
+slowMALengthInput               = input.int(    50,         'Slow',                     group = MA_GROUP, minval = 1, inline = 'ma1')
+maBullColorInput                = input.color(  GREEN,      'Bull',                     group = MA_GROUP, inline = 'ma2')
+maBearColorInput                = input.color(  RED,        'Bear',                     group = MA_GROUP, inline = 'ma2')
+maNeutralColorInput             = input.color(  GRAY,       'Neutral',                  group = MA_GROUP, inline = 'ma2')
+maInnerFillTransparencyInput    = input.int(    82,         'Fast/Mid Fill Transparency', group = MA_GROUP, minval = 0, maxval = 100)
+maOuterFillTransparencyInput    = input.int(    90,         'Mid/Slow Fill Transparency', group = MA_GROUP, minval = 0, maxval = 100)
+
+useChopFilterInput              = input.bool(   false,      'Use Chop Filter',          group = CHOP_GROUP, inline = 'chop0')
+chopFilterModeInput             = input.string( CHOP_FILTER_COMBO_BALANCED, '',         group = CHOP_GROUP, inline = 'chop0', options = [CHOP_FILTER_MA_SPREAD, CHOP_FILTER_MA_SPREAD_EXPANDING, CHOP_FILTER_NO_MID_RANGE, CHOP_FILTER_ROOM_TO_EDGE, CHOP_FILTER_ADX, CHOP_FILTER_STACK_ALIGNMENT, CHOP_FILTER_COMBO_BALANCED, CHOP_FILTER_COMBO_STRICT])
+chopMinMASpreadAtrInput         = input.float(  0.50,       'Min MA Spread ATR',        group = CHOP_GROUP, minval = 0.0, step = 0.05)
+chopMiddleLowInput              = input.float(  0.40,       'Middle Range Low',         group = CHOP_GROUP, minval = 0.0, maxval = 1.0, step = 0.01, inline = 'chop1')
+chopMiddleHighInput             = input.float(  0.60,       'High',                     group = CHOP_GROUP, minval = 0.0, maxval = 1.0, step = 0.01, inline = 'chop1')
+chopMinRoomAtrInput             = input.float(  1.20,       'Min Room ATR',             group = CHOP_GROUP, minval = 0.0, step = 0.1)
+chopADXLengthInput              = input.int(    14,         'ADX Length',               group = CHOP_GROUP, minval = 1, inline = 'chop2')
+chopMinADXInput                 = input.float(  18.0,       'Min ADX',                  group = CHOP_GROUP, minval = 0.0, step = 0.5, inline = 'chop2')
+
+useBBRegFilterInput             = input.bool(   false,      'Use BB Regression Filter', group = BBREG_GROUP, inline = 'bbreg0')
+bbRegFilterModeInput            = input.string( BBREG_FILTER_SLOPE_PRICE, '',           group = BBREG_GROUP, inline = 'bbreg0', options = [BBREG_FILTER_BASIS_SLOPE, BBREG_FILTER_BASIS_DIRECTION, BBREG_FILTER_PRICE_BASIS, BBREG_FILTER_SLOPE_PRICE, BBREG_FILTER_SLOPE_EXPANSION, BBREG_FILTER_SLOPE_NOT_EXTENDED, BBREG_FILTER_AVOID_REJECTION, BBREG_FILTER_FULL_CONTEXT])
+showBBRegInput                  = input.bool(   false,      'Show BB Regression Bands', group = BBREG_GROUP, inline = 'bbregv')
+showBBRegRejectionLabelsInput   = input.bool(   true,       'Show Rejection Triangles', group = BBREG_GROUP, inline = 'bbregv')
+bbRegLengthInput                = input.int(    100,        'Length',                   group = BBREG_GROUP, minval = 1, inline = 'bbreg1')
+bbRegMultInput                  = input.float(  2.0,        'Multiplier',               group = BBREG_GROUP, minval = 0.1, step = 0.1, inline = 'bbreg1')
+bbRegSourceInput                = input.source( close,      'Source',                   group = BBREG_GROUP)
+bbRegBasisTypeInput             = input.string( MA_SMA,     'Basis Type',               group = BBREG_GROUP, options = [MA_EMA, MA_SMA, MA_WMA, MA_RMA, MA_HMA])
+bbRegMinSlopeAtrInput           = input.float(  0.00,       'Min Slope ATR',            group = BBREG_GROUP, minval = 0.0, step = 0.01)
+bbRegOverextensionAtrInput      = input.float(  1.0,        'Overextension ATR',        group = BBREG_GROUP, minval = 0.0, step = 0.1)
+bbRegAvoidRejectionBarsInput    = input.int(    3,          'Avoid Rejection Bars',     group = BBREG_GROUP, minval = 0)
+bbRegRejectionCooldownInput     = input.int(    7,          'Triangle Cooldown',        group = BBREG_GROUP, minval = 0)
+bbRegBullColorInput             = input.color(  GREEN,      'Bull',                     group = BBREG_GROUP, inline = 'bbreg2')
+bbRegBearColorInput             = input.color(  RED,        'Bear',                     group = BBREG_GROUP, inline = 'bbreg2')
+bbRegBandColorInput             = input.color(  color.new(BLUE,70), 'Bands',            group = BBREG_GROUP, inline = 'bbreg2')
+
+//---------------------------------------------------------------------------------------------------------------------}
+//DATA STRUCTURES & VARIABLES
+//---------------------------------------------------------------------------------------------------------------------{
+// @type                            UDT representing alerts as bool fields
+// @field internalBullishBOS        internal structure custom alert
+// @field internalBearishBOS        internal structure custom alert
+// @field internalBullishCHoCH      internal structure custom alert
+// @field internalBearishCHoCH      internal structure custom alert
+// @field swingBullishBOS           swing structure custom alert
+// @field swingBearishBOS           swing structure custom alert
+// @field swingBullishCHoCH         swing structure custom alert
+// @field swingBearishCHoCH         swing structure custom alert
+// @field internalBullishOrderBlock internal order block custom alert
+// @field internalBearishOrderBlock internal order block custom alert
+// @field swingBullishOrderBlock    swing order block custom alert
+// @field swingBearishOrderBlock    swing order block custom alert
+// @field equalHighs                equal high low custom alert
+// @field equalLows                 equal high low custom alert
+// @field bullishFairValueGap       fair value gap custom alert
+// @field bearishFairValueGap       fair value gap custom alert
+type alerts
+    bool internalBullishBOS         = false
+    bool internalBearishBOS         = false
+    bool internalBullishCHoCH       = false
+    bool internalBearishCHoCH       = false
+    bool swingBullishBOS            = false
+    bool swingBearishBOS            = false
+    bool swingBullishCHoCH          = false
+    bool swingBearishCHoCH          = false
+    bool internalBullishOrderBlock  = false
+    bool internalBearishOrderBlock  = false
+    bool swingBullishOrderBlock     = false
+    bool swingBearishOrderBlock     = false
+    bool equalHighs                 = false
+    bool equalLows                  = false
+    bool bullishFairValueGap        = false
+    bool bearishFairValueGap        = false
+
+// @type                            UDT representing last swing extremes (top & bottom)
+// @field top                       last top swing price
+// @field bottom                    last bottom swing price
+// @field barTime                   last swing bar time
+// @field barIndex                  last swing bar index
+// @field lastTopTime               last top swing time
+// @field lastBottomTime            last bottom swing time
+type trailingExtremes
+    float top
+    float bottom
+    int barTime
+    int barIndex
+    int lastTopTime
+    int lastBottomTime
+
+// @type                            UDT representing Fair Value Gaps
+// @field top                       top price
+// @field bottom                    bottom price
+// @field bias                      bias (BULLISH or BEARISH)
+// @field barTime                   gap creation time
+// @field topBox                    top box
+// @field bottomBox                 bottom box
+type fairValueGap
+    float top
+    float bottom
+    int bias
+    int barTime
+    box topBox
+    box bottomBox
+    bool consumed
+    int createdBarIndex
+
+// @type                            UDT representing trend bias
+// @field bias                      BULLISH or BEARISH
+type trend
+    int bias    
+
+// @type                            UDT representing Equal Highs Lows display
+// @field l_ine                     displayed line
+// @field l_abel                    displayed label
+type equalDisplay
+    line l_ine      = na
+    label l_abel    = na
+
+// @type                            UDT representing a pivot point (swing point) 
+// @field currentLevel              current price level
+// @field lastLevel                 last price level
+// @field crossed                   true if price level is crossed
+// @field barTime                   bar time
+// @field barIndex                  bar index    
+type pivot
+    float currentLevel
+    float lastLevel
+    bool crossed
+    int barTime     = time
+    int barIndex    = bar_index
+
+// @type                            UDT representing an order block
+// @field barHigh                   bar high
+// @field barLow                    bar low
+// @field barTime                   bar time
+// @field bias                      BULLISH or BEARISH
+type orderBlock
+    float barHigh
+    float barLow
+    int barTime    
+    int bias
+    bool consumed
+    int createdBarIndex
+
+// @variable                        current swing pivot high    
+var pivot swingHigh                 = pivot.new(na,na,false)
+// @variable                        current swing pivot low
+var pivot swingLow                  = pivot.new(na,na,false)
+// @variable                        current internal pivot high
+var pivot internalHigh              = pivot.new(na,na,false)
+// @variable                        current internal pivot low
+var pivot internalLow               = pivot.new(na,na,false)
+// @variable                        current equal high pivot
+var pivot equalHigh                 = pivot.new(na,na,false)
+// @variable                        current equal low pivot
+var pivot equalLow                  = pivot.new(na,na,false)
+// @variable                        swing trend bias
+var trend swingTrend                = trend.new(0)
+// @variable                        internal trend bias
+var trend internalTrend             = trend.new(0)
+// @variable                        equal high display
+var equalDisplay equalHighDisplay   = equalDisplay.new()
+// @variable                        equal low display
+var equalDisplay equalLowDisplay    = equalDisplay.new()
+// @variable                        storage for fairValueGap UDTs
+var array<fairValueGap> fairValueGaps = array.new<fairValueGap>()
+// @variable                        storage for parsed highs
+var array<float> parsedHighs        = array.new<float>()
+// @variable                        storage for parsed lows
+var array<float> parsedLows         = array.new<float>()
+// @variable                        storage for raw highs
+var array<float> highs              = array.new<float>()
+// @variable                        storage for raw lows
+var array<float> lows               = array.new<float>()
+// @variable                        storage for bar time values
+var array<int> times                = array.new<int>()
+// @variable                        last trailing swing high and low
+var trailingExtremes trailing       = trailingExtremes.new()
+// @variable                                storage for orderBlock UDTs (swing order blocks)
+var array<orderBlock> swingOrderBlocks      = array.new<orderBlock>()
+// @variable                                storage for orderBlock UDTs (internal order blocks)
+var array<orderBlock> internalOrderBlocks   = array.new<orderBlock>()
+// @variable                                storage for swing order blocks boxes
+var array<box> swingOrderBlocksBoxes        = array.new<box>()
+// @variable                                storage for internal order blocks boxes
+var array<box> internalOrderBlocksBoxes     = array.new<box>()
+// @variable                        color for swing bullish structures
+var swingBullishColor               = styleInput == MONOCHROME ? MONO_BULLISH : swingBullColorInput
+// @variable                        color for swing bearish structures
+var swingBearishColor               = styleInput == MONOCHROME ? MONO_BEARISH : swingBearColorInput
+// @variable                        color for bullish fair value gaps
+var fairValueGapBullishColor        = styleInput == MONOCHROME ? color.new(MONO_BULLISH,70) : fairValueGapsBullColorInput
+// @variable                        color for bearish fair value gaps
+var fairValueGapBearishColor        = styleInput == MONOCHROME ? color.new(MONO_BEARISH,70) : fairValueGapsBearColorInput
+// @variable                        color for premium zone
+var premiumZoneColor                = styleInput == MONOCHROME ? MONO_BEARISH : premiumZoneColorInput
+// @variable                        color for discount zone
+var discountZoneColor               = styleInput == MONOCHROME ? MONO_BULLISH : discountZoneColorInput 
+// @variable                        bar index on current script iteration
+varip int currentBarIndex           = bar_index
+// @variable                        bar index on last script iteration
+varip int lastBarIndex              = bar_index
+// @variable                        alerts in current bar
+alerts currentAlerts                = alerts.new()
+// @variable                        time at start of chart
+var initialTime                     = time
+
+// we create the needed boxes for displaying order blocks at the first execution
+if barstate.isfirst
+    if showSwingOrderBlocksInput
+        for index = 1 to swingOrderBlocksSizeInput
+            swingOrderBlocksBoxes.push(box.new(na,na,na,na,xloc = xloc.bar_time,extend = extend.right))
+    if showInternalOrderBlocksInput
+        for index = 1 to internalOrderBlocksSizeInput
+            internalOrderBlocksBoxes.push(box.new(na,na,na,na,xloc = xloc.bar_time,extend = extend.right))
+
+// @variable                        source to use in bearish order blocks mitigation
+bearishOrderBlockMitigationSource   = orderBlockMitigationInput == CLOSE ? close : high
+// @variable                        source to use in bullish order blocks mitigation
+bullishOrderBlockMitigationSource   = orderBlockMitigationInput == CLOSE ? close : low
+// @variable                        default volatility measure
+atrMeasure                          = ta.atr(200)
+// @variable                        parsed volatility measure by user settings
+volatilityMeasure                   = orderBlockFilterInput == ATR ? atrMeasure : ta.cum(ta.tr)/bar_index
+// @variable                        true if current bar is a high volatility bar
+highVolatilityBar                   = (high - low) >= (2 * volatilityMeasure)
+// @variable                        parsed high
+parsedHigh                          = highVolatilityBar ? low : high
+// @variable                        parsed low
+parsedLow                           = highVolatilityBar ? high : low
+
+// we store current values into the arrays at each bar
+parsedHighs.push(parsedHigh)
+parsedLows.push(parsedLow)
+highs.push(high)
+lows.push(low)
+times.push(time)
+
+//---------------------------------------------------------------------------------------------------------------------}
+//USER-DEFINED FUNCTIONS
+//---------------------------------------------------------------------------------------------------------------------{
+// @function            Get the value of the current leg, it can be 0 (bearish) or 1 (bullish)
+// @returns             int
+leg(int size) =>
+    var leg     = 0    
+    newLegHigh  = high[size] > ta.highest( size)
+    newLegLow   = low[size]  < ta.lowest(  size)
+    
+    if newLegHigh
+        leg := BEARISH_LEG
+    else if newLegLow
+        leg := BULLISH_LEG
+    leg
+
+// @function            Identify whether the current value is the start of a new leg (swing)
+// @param leg           (int) Current leg value
+// @returns             bool
+startOfNewLeg(int leg)      => ta.change(leg) != 0
+
+// @function            Identify whether the current level is the start of a new bearish leg (swing)
+// @param leg           (int) Current leg value
+// @returns             bool
+startOfBearishLeg(int leg)  => ta.change(leg) == -1
+
+// @function            Identify whether the current level is the start of a new bullish leg (swing)
+// @param leg           (int) Current leg value
+// @returns             bool
+startOfBullishLeg(int leg)  => ta.change(leg) == +1
+
+// @function            create a new label
+// @param labelTime     bar time coordinate
+// @param labelPrice    price coordinate
+// @param tag           text to display
+// @param labelColor    text color
+// @param labelStyle    label style
+// @returns             label ID
+drawLabel(int labelTime, float labelPrice, string tag, color labelColor, string labelStyle) =>    
+    var label l_abel = na
+
+    if modeInput == PRESENT
+        l_abel.delete()
+
+    l_abel := label.new(chart.point.new(labelTime,na,labelPrice),tag,xloc.bar_time,color=color(na),textcolor=labelColor,style = labelStyle,size = size.small)
+
+// @function            create a new line and label representing an EQH or EQL
+// @param p_ivot        starting pivot
+// @param level         price level of current pivot
+// @param size          how many bars ago was the current pivot detected
+// @param equalHigh     true for EQH, false for EQL
+// @returns             label ID
+drawEqualHighLow(pivot p_ivot, float level, int size, bool equalHigh) =>
+    equalDisplay e_qualDisplay = equalHigh ? equalHighDisplay : equalLowDisplay
+    
+    string tag          = 'EQL'
+    color equalColor    = swingBullishColor
+    string labelStyle   = label.style_label_up
+
+    if equalHigh
+        tag         := 'EQH'
+        equalColor  := swingBearishColor
+        labelStyle  := label.style_label_down
+
+    if modeInput == PRESENT
+        line.delete(    e_qualDisplay.l_ine)
+        label.delete(   e_qualDisplay.l_abel)
+        
+    e_qualDisplay.l_ine     := line.new(chart.point.new(p_ivot.barTime,na,p_ivot.currentLevel), chart.point.new(time[size],na,level), xloc = xloc.bar_time, color = equalColor, style = line.style_dotted)
+    labelPosition           = math.round(0.5*(p_ivot.barIndex + bar_index - size))
+    e_qualDisplay.l_abel    := label.new(chart.point.new(na,labelPosition,level), tag, xloc.bar_index, color = color(na), textcolor = equalColor, style = labelStyle, size = equalHighsLowsSizeInput)
+
+// @function            store current structure and trailing swing points, and also display swing points and equal highs/lows
+// @param size          (int) structure size
+// @param equalHighLow  (bool) true for displaying current highs/lows
+// @param internal      (bool) true for getting internal structures
+// @returns             label ID
+getCurrentStructure(int size,bool equalHighLow = false, bool internal = false) =>        
+    currentLeg              = leg(size)
+    newPivot                = startOfNewLeg(currentLeg)
+    pivotLow                = startOfBullishLeg(currentLeg)
+    pivotHigh               = startOfBearishLeg(currentLeg)
+
+    if newPivot
+        if pivotLow
+            pivot p_ivot    = equalHighLow ? equalLow : internal ? internalLow : swingLow    
+
+            if equalHighLow and math.abs(p_ivot.currentLevel - low[size]) < equalHighsLowsThresholdInput * atrMeasure                
+                drawEqualHighLow(p_ivot, low[size], size, false)
+                currentAlerts.equalLows := true
+
+            p_ivot.lastLevel    := p_ivot.currentLevel
+            p_ivot.currentLevel := low[size]
+            p_ivot.crossed      := false
+            p_ivot.barTime      := time[size]
+            p_ivot.barIndex     := bar_index[size]
+
+            if not equalHighLow and not internal
+                trailing.bottom         := p_ivot.currentLevel
+                trailing.barTime        := p_ivot.barTime
+                trailing.barIndex       := p_ivot.barIndex
+                trailing.lastBottomTime := p_ivot.barTime
+
+            if showSwingsInput and not internal and not equalHighLow
+                drawLabel(time[size], p_ivot.currentLevel, p_ivot.currentLevel < p_ivot.lastLevel ? 'LL' : 'HL', swingBullishColor, label.style_label_up)            
+        else
+            pivot p_ivot = equalHighLow ? equalHigh : internal ? internalHigh : swingHigh
+
+            if equalHighLow and math.abs(p_ivot.currentLevel - high[size]) < equalHighsLowsThresholdInput * atrMeasure
+                drawEqualHighLow(p_ivot,high[size],size,true)
+                currentAlerts.equalHighs := true               
+
+            p_ivot.lastLevel    := p_ivot.currentLevel
+            p_ivot.currentLevel := high[size]
+            p_ivot.crossed      := false
+            p_ivot.barTime      := time[size]
+            p_ivot.barIndex     := bar_index[size]
+
+            if not equalHighLow and not internal
+                trailing.top            := p_ivot.currentLevel
+                trailing.barTime        := p_ivot.barTime
+                trailing.barIndex       := p_ivot.barIndex
+                trailing.lastTopTime    := p_ivot.barTime
+
+            if showSwingsInput and not internal and not equalHighLow
+                drawLabel(time[size], p_ivot.currentLevel, p_ivot.currentLevel > p_ivot.lastLevel ? 'HH' : 'LH', swingBearishColor, label.style_label_down)
+                
+// @function                draw line and label representing a structure
+// @param p_ivot            base pivot point
+// @param tag               test to display
+// @param structureColor    base color
+// @param lineStyle         line style
+// @param labelStyle        label style
+// @param labelSize         text size
+// @returns                 label ID
+drawStructure(pivot p_ivot, string tag, color structureColor, string lineStyle, string labelStyle, string labelSize) =>    
+    var line l_ine      = line.new(na,na,na,na,xloc = xloc.bar_time)
+    var label l_abel    = label.new(na,na)
+
+    if modeInput == PRESENT
+        l_ine.delete()
+        l_abel.delete()
+
+    l_ine   := line.new(chart.point.new(p_ivot.barTime,na,p_ivot.currentLevel), chart.point.new(time,na,p_ivot.currentLevel), xloc.bar_time, color=structureColor, style=lineStyle)
+    l_abel  := label.new(chart.point.new(na,math.round(0.5*(p_ivot.barIndex+bar_index)),p_ivot.currentLevel), tag, xloc.bar_index, color=color(na), textcolor=structureColor, style=labelStyle, size = labelSize)
+
+// @function            delete order blocks
+// @param internal      true for internal order blocks
+// @returns             orderBlock ID
+deleteOrderBlocks(bool internal = false) =>
+    array<orderBlock> orderBlocks = internal ? internalOrderBlocks : swingOrderBlocks
+
+    for [index,eachOrderBlock] in orderBlocks
+        bool crossedOderBlock = false
+        
+        if bearishOrderBlockMitigationSource > eachOrderBlock.barHigh and eachOrderBlock.bias == BEARISH
+            crossedOderBlock := true
+            if internal
+                currentAlerts.internalBearishOrderBlock := true
+            else
+                currentAlerts.swingBearishOrderBlock    := true
+        else if bullishOrderBlockMitigationSource < eachOrderBlock.barLow and eachOrderBlock.bias == BULLISH
+            crossedOderBlock := true
+            if internal
+                currentAlerts.internalBullishOrderBlock := true
+            else
+                currentAlerts.swingBullishOrderBlock    := true
+        if crossedOderBlock                    
+            orderBlocks.remove(index)            
+
+// @function            fetch and store order blocks
+// @param p_ivot        base pivot point
+// @param internal      true for internal order blocks
+// @param bias          BULLISH or BEARISH
+// @returns             void
+storeOrdeBlock(pivot p_ivot,bool internal = false,int bias) =>
+    if (not internal and showSwingOrderBlocksInput) or (internal and showInternalOrderBlocksInput)
+
+        array<float> a_rray = na
+        int parsedIndex = na
+
+        if bias == BEARISH
+            a_rray      := parsedHighs.slice(p_ivot.barIndex,bar_index)
+            parsedIndex := p_ivot.barIndex + a_rray.indexof(a_rray.max())  
+        else
+            a_rray      := parsedLows.slice(p_ivot.barIndex,bar_index)
+            parsedIndex := p_ivot.barIndex + a_rray.indexof(a_rray.min())                        
+
+        orderBlock o_rderBlock          = orderBlock.new(parsedHighs.get(parsedIndex), parsedLows.get(parsedIndex), times.get(parsedIndex),bias,false,bar_index)
+        array<orderBlock> orderBlocks   = internal ? internalOrderBlocks : swingOrderBlocks
+        
+        if orderBlocks.size() >= 100
+            orderBlocks.pop()
+        orderBlocks.unshift(o_rderBlock)
+
+// @function            draw order blocks as boxes
+// @param internal      true for internal order blocks
+// @returns             void
+drawOrderBlocks(bool internal = false) =>        
+    array<orderBlock> orderBlocks = internal ? internalOrderBlocks : swingOrderBlocks
+    orderBlocksSize = orderBlocks.size()
+
+    if orderBlocksSize > 0        
+        maxOrderBlocks                      = internal ? internalOrderBlocksSizeInput : swingOrderBlocksSizeInput
+        array<orderBlock> parsedOrdeBlocks  = orderBlocks.slice(0, math.min(maxOrderBlocks,orderBlocksSize))
+        array<box> b_oxes                   = internal ? internalOrderBlocksBoxes : swingOrderBlocksBoxes        
+
+        for [index,eachOrderBlock] in parsedOrdeBlocks
+            orderBlockColor = styleInput == MONOCHROME ? (eachOrderBlock.bias == BEARISH ? color.new(MONO_BEARISH,80) : color.new(MONO_BULLISH,80)) : internal ? (eachOrderBlock.bias == BEARISH ? internalBearishOrderBlockColor : internalBullishOrderBlockColor) : (eachOrderBlock.bias == BEARISH ? swingBearishOrderBlockColor : swingBullishOrderBlockColor)
+
+            box b_ox        = b_oxes.get(index)
+            b_ox.set_top_left_point(    chart.point.new(eachOrderBlock.barTime,na,eachOrderBlock.barHigh))
+            b_ox.set_bottom_right_point(chart.point.new(last_bar_time,na,eachOrderBlock.barLow))        
+            b_ox.set_border_color(      internal ? na : orderBlockColor)
+            b_ox.set_bgcolor(           orderBlockColor)
+
+// @function            detect and draw structures, also detect and store order blocks
+// @param internal      true for internal structures or order blocks
+// @returns             void
+displayStructure(bool internal = false) =>
+    var bullishBar = true
+    var bearishBar = true
+
+    if internalFilterConfluenceInput
+        bullishBar := high - math.max(close, open) > math.min(close, open - low)
+        bearishBar := high - math.max(close, open) < math.min(close, open - low)
+    
+    pivot p_ivot    = internal ? internalHigh : swingHigh
+    trend t_rend    = internal ? internalTrend : swingTrend
+
+    lineStyle       = internal ? line.style_dashed : line.style_solid
+    labelSize       = internal ? internalStructureSize : swingStructureSize
+
+    extraCondition  = internal ? internalHigh.currentLevel != swingHigh.currentLevel and bullishBar : true
+    bullishColor    = styleInput == MONOCHROME ? MONO_BULLISH : internal ? internalBullColorInput : swingBullColorInput
+
+    if ta.crossover(close,p_ivot.currentLevel) and not p_ivot.crossed and extraCondition
+        string tag = t_rend.bias == BEARISH ? CHOCH : BOS
+
+        if internal
+            currentAlerts.internalBullishCHoCH  := tag == CHOCH
+            currentAlerts.internalBullishBOS    := tag == BOS
+        else
+            currentAlerts.swingBullishCHoCH     := tag == CHOCH
+            currentAlerts.swingBullishBOS       := tag == BOS
+
+        p_ivot.crossed  := true
+        t_rend.bias     := BULLISH
+
+        displayCondition = internal ? showInternalsInput and (showInternalBullInput == ALL or (showInternalBullInput == BOS and tag != CHOCH) or (showInternalBullInput == CHOCH and tag == CHOCH)) : showStructureInput and (showSwingBullInput == ALL or (showSwingBullInput == BOS and tag != CHOCH) or (showSwingBullInput == CHOCH and tag == CHOCH))
+
+        if displayCondition                        
+            drawStructure(p_ivot,tag,bullishColor,lineStyle,label.style_label_down,labelSize)
+
+        if (internal and showInternalOrderBlocksInput) or (not internal and showSwingOrderBlocksInput)
+            storeOrdeBlock(p_ivot,internal,BULLISH)
+
+    p_ivot          := internal ? internalLow : swingLow    
+    extraCondition  := internal ? internalLow.currentLevel != swingLow.currentLevel and bearishBar : true
+    bearishColor    = styleInput == MONOCHROME ? MONO_BEARISH : internal ? internalBearColorInput : swingBearColorInput
+
+    if ta.crossunder(close,p_ivot.currentLevel) and not p_ivot.crossed and extraCondition
+        string tag = t_rend.bias == BULLISH ? CHOCH : BOS
+
+        if internal
+            currentAlerts.internalBearishCHoCH  := tag == CHOCH
+            currentAlerts.internalBearishBOS    := tag == BOS
+        else
+            currentAlerts.swingBearishCHoCH     := tag == CHOCH
+            currentAlerts.swingBearishBOS       := tag == BOS
+
+        p_ivot.crossed := true
+        t_rend.bias := BEARISH
+
+        displayCondition = internal ? showInternalsInput and (showInternalBearInput == ALL or (showInternalBearInput == BOS and tag != CHOCH) or (showInternalBearInput == CHOCH and tag == CHOCH)) : showStructureInput and (showSwingBearInput == ALL or (showSwingBearInput == BOS and tag != CHOCH) or (showSwingBearInput == CHOCH and tag == CHOCH))
+        
+        if displayCondition                        
+            drawStructure(p_ivot,tag,bearishColor,lineStyle,label.style_label_up,labelSize)
+
+        if (internal and showInternalOrderBlocksInput) or (not internal and showSwingOrderBlocksInput)
+            storeOrdeBlock(p_ivot,internal,BEARISH)
+
+// @function            draw one fair value gap box (each fair value gap has two boxes)
+// @param leftTime      left time coordinate
+// @param rightTime     right time coordinate
+// @param topPrice      top price level
+// @param bottomPrice   bottom price level
+// @param boxColor      box color
+// @returns             box ID
+fairValueGapBox(leftTime,rightTime,topPrice,bottomPrice,boxColor) => box.new(chart.point.new(leftTime,na,topPrice),chart.point.new(rightTime + fairValueGapsExtendInput * (time-time[1]),na,bottomPrice), xloc=xloc.bar_time, border_color = boxColor, bgcolor = boxColor)
+
+// @function            delete fair value gaps
+// @returns             fairValueGap ID
+deleteFairValueGaps() =>
+    for [index,eachFairValueGap] in fairValueGaps
+        if (low < eachFairValueGap.bottom and eachFairValueGap.bias == BULLISH) or (high > eachFairValueGap.top and eachFairValueGap.bias == BEARISH)
+            eachFairValueGap.topBox.delete()
+            eachFairValueGap.bottomBox.delete()
+            fairValueGaps.remove(index)
+    
+// @function            draw fair value gaps
+// @returns             fairValueGap ID
+drawFairValueGaps() => 
+    [lastClose, lastOpen, lastTime, currentHigh, currentLow, currentTime, last2High, last2Low] = request.security(syminfo.tickerid, fairValueGapsTimeframeInput, [close[2], open[2], time[2], high[1], low[1], time[1], high[3], low[3]], gaps = barmerge.gaps_off, lookahead = barmerge.lookahead_on)
+
+    barDeltaPercent     = (lastClose - lastOpen) / (lastOpen * 100)
+    newTimeframe        = timeframe.change(fairValueGapsTimeframeInput)
+    threshold           = fairValueGapsThresholdInput ? ta.cum(math.abs(newTimeframe ? barDeltaPercent : 0)) / bar_index * 2 : 0
+
+    bullishFairValueGap = currentLow > last2High and lastClose > last2High and barDeltaPercent > threshold and newTimeframe
+    bearishFairValueGap = currentHigh < last2Low and lastClose < last2Low and -barDeltaPercent > threshold and newTimeframe
+
+    if bullishFairValueGap
+        currentAlerts.bullishFairValueGap := true
+        fairValueGaps.unshift(fairValueGap.new(currentLow,last2High,BULLISH,currentTime,fairValueGapBox(lastTime,currentTime,currentLow,math.avg(currentLow,last2High),fairValueGapBullishColor),fairValueGapBox(lastTime,currentTime,math.avg(currentLow,last2High),last2High,fairValueGapBullishColor),false,bar_index))
+    if bearishFairValueGap
+        currentAlerts.bearishFairValueGap := true
+        fairValueGaps.unshift(fairValueGap.new(currentHigh,last2Low,BEARISH,currentTime,fairValueGapBox(lastTime,currentTime,currentHigh,math.avg(currentHigh,last2Low),fairValueGapBearishColor),fairValueGapBox(lastTime,currentTime,math.avg(currentHigh,last2Low),last2Low,fairValueGapBearishColor),false,bar_index))
+
+// @function            get line style from string
+// @param style         line style
+// @returns             string
+getStyle(string style) =>
+    switch style
+        SOLID => line.style_solid
+        DASHED => line.style_dashed
+        DOTTED => line.style_dotted
+
+// @function            draw MultiTimeFrame levels
+// @param timeframe     base timeframe
+// @param sameTimeframe true if chart timeframe is same as base timeframe
+// @param style         line style
+// @param levelColor    line and text color
+// @returns             void
+drawLevels(string timeframe, bool sameTimeframe, string style, color levelColor) =>
+    [topLevel, bottomLevel, leftTime, rightTime] = request.security(syminfo.tickerid, timeframe, [high[1], low[1], time[1], time],lookahead = barmerge.lookahead_on)
+
+    float parsedTop         = sameTimeframe ? high : topLevel
+    float parsedBottom      = sameTimeframe ? low : bottomLevel    
+
+    int parsedLeftTime      = sameTimeframe ? time : leftTime
+    int parsedRightTime     = sameTimeframe ? time : rightTime
+
+    int parsedTopTime       = time
+    int parsedBottomTime    = time
+
+    if not sameTimeframe
+        int leftIndex               = times.binary_search_rightmost(parsedLeftTime)
+        int rightIndex              = times.binary_search_rightmost(parsedRightTime)
+
+        array<int> timeArray        = times.slice(leftIndex,rightIndex)
+        array<float> topArray       = highs.slice(leftIndex,rightIndex)
+        array<float> bottomArray    = lows.slice(leftIndex,rightIndex)
+
+        parsedTopTime               := timeArray.size() > 0 ? timeArray.get(topArray.indexof(topArray.max())) : initialTime
+        parsedBottomTime            := timeArray.size() > 0 ? timeArray.get(bottomArray.indexof(bottomArray.min())) : initialTime
+
+    var line topLine        = line.new(na, na, na, na, xloc = xloc.bar_time, color = levelColor, style = getStyle(style))
+    var line bottomLine     = line.new(na, na, na, na, xloc = xloc.bar_time, color = levelColor, style = getStyle(style))
+    var label topLabel      = label.new(na, na, xloc = xloc.bar_time, text = str.format('P{0}H',timeframe), color=color(na), textcolor = levelColor, size = size.small, style = label.style_label_left)
+    var label bottomLabel   = label.new(na, na, xloc = xloc.bar_time, text = str.format('P{0}L',timeframe), color=color(na), textcolor = levelColor, size = size.small, style = label.style_label_left)
+
+    topLine.set_first_point(    chart.point.new(parsedTopTime,na,parsedTop))
+    topLine.set_second_point(   chart.point.new(last_bar_time + 20 * (time-time[1]),na,parsedTop))   
+    topLabel.set_point(         chart.point.new(last_bar_time + 20 * (time-time[1]),na,parsedTop))
+
+    bottomLine.set_first_point( chart.point.new(parsedBottomTime,na,parsedBottom))    
+    bottomLine.set_second_point(chart.point.new(last_bar_time + 20 * (time-time[1]),na,parsedBottom))
+    bottomLabel.set_point(      chart.point.new(last_bar_time + 20 * (time-time[1]),na,parsedBottom))
+
+// @function            true if chart timeframe is higher than provided timeframe
+// @param timeframe     timeframe to check
+// @returns             bool
+higherTimeframe(string timeframe) => timeframe.in_seconds() > timeframe.in_seconds(timeframe)
+
+// @function            update trailing swing points
+// @returns             int
+updateTrailingExtremes() =>
+    trailing.top            := math.max(high,trailing.top)
+    trailing.lastTopTime    := trailing.top == high ? time : trailing.lastTopTime
+    trailing.bottom         := math.min(low,trailing.bottom)
+    trailing.lastBottomTime := trailing.bottom == low ? time : trailing.lastBottomTime
+
+// @function            draw trailing swing points
+// @returns             void
+drawHighLowSwings() =>
+    var line topLine        = line.new(na, na, na, na, color = swingBearishColor, xloc = xloc.bar_time)
+    var line bottomLine     = line.new(na, na, na, na, color = swingBullishColor, xloc = xloc.bar_time)
+    var label topLabel      = label.new(na, na, color=color(na), textcolor = swingBearishColor, xloc = xloc.bar_time, style = label.style_label_down, size = size.tiny)
+    var label bottomLabel   = label.new(na, na, color=color(na), textcolor = swingBullishColor, xloc = xloc.bar_time, style = label.style_label_up, size = size.tiny)
+
+    rightTimeBar            = last_bar_time + 20 * (time - time[1])
+
+    topLine.set_first_point(    chart.point.new(trailing.lastTopTime, na, trailing.top))
+    topLine.set_second_point(   chart.point.new(rightTimeBar, na, trailing.top))
+    topLabel.set_point(         chart.point.new(rightTimeBar, na, trailing.top))
+    topLabel.set_text(          swingTrend.bias == BEARISH ? 'Strong High' : 'Weak High')
+
+    bottomLine.set_first_point( chart.point.new(trailing.lastBottomTime, na, trailing.bottom))
+    bottomLine.set_second_point(chart.point.new(rightTimeBar, na, trailing.bottom))
+    bottomLabel.set_point(      chart.point.new(rightTimeBar, na, trailing.bottom))
+    bottomLabel.set_text(       swingTrend.bias == BULLISH ? 'Strong Low' : 'Weak Low')
+
+// @function            draw a zone with a label and a box
+// @param labelLevel    price level for label
+// @param labelIndex    bar index for label
+// @param top           top price level for box
+// @param bottom        bottom price level for box
+// @param tag           text to display
+// @param zoneColor     base color
+// @param style         label style
+// @returns             void
+drawZone(float labelLevel, int labelIndex, float top, float bottom, string tag, color zoneColor, string style) =>
+    var label l_abel    = label.new(na,na,text = tag, color=color(na),textcolor = zoneColor, style = style, size = size.small)
+    var box b_ox        = box.new(na,na,na,na,bgcolor = color.new(zoneColor,80),border_color = color(na), xloc = xloc.bar_time)
+
+    b_ox.set_top_left_point(    chart.point.new(trailing.barTime,na,top))
+    b_ox.set_bottom_right_point(chart.point.new(last_bar_time,na,bottom))
+
+    l_abel.set_point(           chart.point.new(na,labelIndex,labelLevel))
+
+// @function            draw premium/discount zones
+// @returns             void
+drawPremiumDiscountZones() =>
+    drawZone(trailing.top, math.round(0.5*(trailing.barIndex + last_bar_index)), trailing.top, 0.95*trailing.top + 0.05*trailing.bottom, 'Premium', premiumZoneColor, label.style_label_down)
+
+    equilibriumLevel = math.avg(trailing.top, trailing.bottom)
+    drawZone(equilibriumLevel, last_bar_index, 0.525*trailing.top + 0.475*trailing.bottom, 0.525*trailing.bottom + 0.475*trailing.top, 'Equilibrium', equilibriumZoneColorInput, label.style_label_left)
+
+    drawZone(trailing.bottom, math.round(0.5*(trailing.barIndex + last_bar_index)), 0.95*trailing.bottom + 0.05*trailing.top, trailing.bottom, 'Discount', discountZoneColor, label.style_label_up)
+
+// @function            true when current bar overlaps an order block with matching bias
+// @param orderBlocks   order block array
+// @param bias          BULLISH or BEARISH
+// @returns             bool
+orderBlockRetest(array<orderBlock> orderBlocks, int bias) =>
+    bool touched = false
+    if orderBlocks.size() > 0
+        for [index,eachOrderBlock] in orderBlocks
+            setupFresh = bar_index - eachOrderBlock.createdBarIndex <= setupMaxAgeInput
+            if not touched and not eachOrderBlock.consumed and setupFresh and eachOrderBlock.bias == bias and time > eachOrderBlock.barTime and low <= eachOrderBlock.barHigh and high >= eachOrderBlock.barLow
+                touched := true
+                eachOrderBlock.consumed := true
+    touched
+
+// @function            true when current bar overlaps a fair value gap with matching bias after creation
+// @param bias          BULLISH or BEARISH
+// @returns             bool
+fairValueGapRetest(int bias) =>
+    bool touched = false
+    if fairValueGaps.size() > 0
+        for [index,eachFairValueGap] in fairValueGaps
+            setupFresh = bar_index - eachFairValueGap.createdBarIndex <= setupMaxAgeInput
+            if not touched and not eachFairValueGap.consumed and setupFresh and eachFairValueGap.bias == bias and time > eachFairValueGap.barTime and low <= eachFairValueGap.top and high >= eachFairValueGap.bottom
+                touched := true
+                eachFairValueGap.consumed := true
+    touched
+
+// @function            squeeze momentum baseline used by the CRSI/WaveTrend filters
+// @param length        momentum length
+// @returns             float
+sqzMomentum(simple int length) =>
+    rangeMid = math.avg(ta.highest(high,length), ta.lowest(low,length))
+    baseline = math.avg(rangeMid, ta.sma(close,length))
+    ta.linreg(close - baseline,length,0)
+
+// @function            squeeze trend up context
+// @param length        EMA length
+// @returns             bool
+sqzTrendUp(simple int length) =>
+    emaValue = ta.ema(close,length)
+    close > emaValue and emaValue > emaValue[1]
+
+// @function            squeeze trend down context
+// @param length        EMA length
+// @returns             bool
+sqzTrendDown(simple int length) =>
+    emaValue = ta.ema(close,length)
+    close < emaValue and emaValue < emaValue[1]
+
+// @function            smoothed stochastic %K
+// @param length        stochastic length
+// @param smoothing     smoothing length
+// @returns             float
+stochKValue(simple int length, simple int smoothing) =>
+    ta.sma(ta.stoch(close,high,low,length),smoothing)
+
+// @function            smoothed stochastic %D
+// @param length        stochastic length
+// @param smoothK       K smoothing length
+// @param smoothD       D smoothing length
+// @returns             float
+stochDValue(simple int length, simple int smoothK, simple int smoothD) =>
+    ta.sma(stochKValue(length,smoothK),smoothD)
+
+// @function            selected moving average
+// @param source        source series
+// @param length        moving average length
+// @param maType        moving average type
+// @returns             float
+maValue(series float source, simple int length, simple string maType) =>
+    switch maType
+        MA_SMA => ta.sma(source,length)
+        MA_WMA => ta.wma(source,length)
+        MA_RMA => ta.rma(source,length)
+        MA_HMA => ta.hma(source,length)
+        => ta.ema(source,length)
+
+// @function            build the broker-neutral JSON contract used by strategy order-fill alerts
+// @returns             string
+automationMessage(string eventType, string action, string reason, string positionSide, string signalName, float signalPrice, float stopPrice, float targetPrice, float requestedQuantity) =>
+    eventId = automationBotIdInput + ':' + syminfo.tickerid + ':' + timeframe.period + ':' + str.tostring(time) + ':' + action
+    '{"version":"3","event_id":"' + eventId + '","bot_id":"' + automationBotIdInput + '","account_id":"' + automationAccountInput + '","event":"' + eventType + '","action":"' + action + '","reason":"' + reason + '","position_side":"' + positionSide + '","signal":"' + signalName + '","ticker":"' + syminfo.ticker + '","ticker_id":"' + syminfo.tickerid + '","exchange":"' + syminfo.prefix + '","timeframe":"' + timeframe.period + '","signal_bar_time":' + str.tostring(time) + ',"signal_bar_index":' + str.tostring(bar_index) + ',"signal_price":' + str.tostring(signalPrice,format.mintick) + ',"stop_price":' + str.tostring(stopPrice,format.mintick) + ',"target_price":' + str.tostring(targetPrice,format.mintick) + ',"requested_quantity":' + str.tostring(requestedQuantity) + ',"quantity_unit":"broker_lots","broker_contract_size":' + str.tostring(brokerContractSizeInput) + ',"fill_price":"{{strategy.order.price}}","fill_quantity":"{{strategy.order.contracts}}","fill_quantity_unit":"strategy_contracts","market_position":"{{strategy.market_position}}","market_position_size":"{{strategy.market_position_size}}","order_id":"{{strategy.order.id}}","fill_time":"{{timenow}}"}'
+
+//---------------------------------------------------------------------------------------------------------------------}
+//MUTABLE VARIABLES & EXECUTION
+//---------------------------------------------------------------------------------------------------------------------{
+parsedOpen  = showTrendInput ? open : na
+candleColor = internalTrend.bias == BULLISH ? swingBullishColor : swingBearishColor
+plotcandle(parsedOpen,high,low,close,color = candleColor, wickcolor = candleColor, bordercolor = candleColor)
+
+fastMA      = maValue(tripleMASourceInput,fastMALengthInput,tripleMATypeInput)
+midMA       = maValue(tripleMASourceInput,midMALengthInput,tripleMATypeInput)
+slowMA      = maValue(tripleMASourceInput,slowMALengthInput,tripleMATypeInput)
+maBullTrend = fastMA > midMA and midMA > slowMA and fastMA > fastMA[1] and midMA > midMA[1] and slowMA > slowMA[1]
+maBearTrend = fastMA < midMA and midMA < slowMA and fastMA < fastMA[1] and midMA < midMA[1] and slowMA < slowMA[1]
+maBullStack = fastMA > midMA and midMA > slowMA
+maBearStack = fastMA < midMA and midMA < slowMA
+maBullSlope = fastMA > fastMA[1] and midMA > midMA[1] and slowMA > slowMA[1]
+maBearSlope = fastMA < fastMA[1] and midMA < midMA[1] and slowMA < slowMA[1]
+maPriceAboveFast = close > fastMA
+maPriceBelowFast = close < fastMA
+maPriceAboveMid = close > midMA
+maPriceBelowMid = close < midMA
+maPriceAboveSlow = close > slowMA
+maPriceBelowSlow = close < slowMA
+maFastAboveMid = fastMA > midMA
+maFastBelowMid = fastMA < midMA
+maFastAboveSlow = fastMA > slowMA
+maFastBelowSlow = fastMA < slowMA
+maMidAboveSlow = midMA > slowMA
+maMidBelowSlow = midMA < slowMA
+maTrendColor = maBullTrend ? maBullColorInput : maBearTrend ? maBearColorInput : maNeutralColorInput
+maRibbonColor = maBullStack ? maBullColorInput : maBearStack ? maBearColorInput : maNeutralColorInput
+maInnerFillColor = showTripleMAInput and showTripleMAFillInput ? color.new(maRibbonColor, maInnerFillTransparencyInput) : na
+maOuterFillColor = showTripleMAInput and showTripleMAFillInput ? color.new(maRibbonColor, maOuterFillTransparencyInput) : na
+
+fastMAPlot = plot(showTripleMAInput ? fastMA : na, 'Fast MA', color = maTrendColor, linewidth = 1)
+midMAPlot = plot(showTripleMAInput ? midMA : na, 'Mid MA', color = maTrendColor, linewidth = 2)
+slowMAPlot = plot(showTripleMAInput ? slowMA : na, 'Slow MA', color = maTrendColor, linewidth = 3)
+fill(fastMAPlot, midMAPlot, color = maInnerFillColor, title = 'Fast/Mid MA Ribbon')
+fill(midMAPlot, slowMAPlot, color = maOuterFillColor, title = 'Mid/Slow MA Ribbon')
+
+bbRegBasis = maValue(bbRegSourceInput,bbRegLengthInput,bbRegBasisTypeInput)
+bbRegDev = bbRegMultInput * ta.stdev(bbRegSourceInput,bbRegLengthInput)
+bbRegUpper = bbRegBasis + bbRegDev
+bbRegLower = bbRegBasis - bbRegDev
+bbRegBasisSlope = ta.linreg(bbRegBasis,bbRegLengthInput,0) - ta.linreg(bbRegBasis,bbRegLengthInput,1)
+bbRegDevSlope = ta.linreg(bbRegDev,bbRegLengthInput,0) - ta.linreg(bbRegDev,bbRegLengthInput,1)
+bbRegAtr = ta.atr(atrLengthInput)
+bbRegSlopeAtr = bbRegAtr > 0 ? math.abs(bbRegBasisSlope) / bbRegAtr : 0.0
+bbRegBullishBasis = bbRegBasis > bbRegBasis[2]
+bbRegBearishBasis = bbRegBasis < bbRegBasis[2]
+bbRegBasisSlopeStrong = bbRegSlopeAtr >= bbRegMinSlopeAtrInput
+bbRegUpperExtended = close > bbRegUpper
+bbRegLowerExtended = close < bbRegLower
+bbRegCompression = bbRegDevSlope < 0
+bbRegBullRegime = bbRegBasisSlope > 0 and bbRegBasisSlopeStrong and close > bbRegBasis
+bbRegBearRegime = bbRegBasisSlope < 0 and bbRegBasisSlopeStrong and close < bbRegBasis
+bbRegRegimeColor = bbRegUpperExtended or bbRegLowerExtended ? color.orange : bbRegBullRegime ? bbRegBullColorInput : bbRegBearRegime ? bbRegBearColorInput : bbRegCompression ? GRAY : bbRegBandColorInput
+
+bbRegBasisPlot = plot(showBBRegInput ? bbRegBasis : na, 'BB Reg Basis', color = bbRegRegimeColor, linewidth = 2)
+bbRegUpperPlot = plot(showBBRegInput ? bbRegUpper : na, 'BB Reg Upper', color = bbRegBandColorInput)
+bbRegLowerPlot = plot(showBBRegInput ? bbRegLower : na, 'BB Reg Lower', color = bbRegBandColorInput)
+fill(bbRegUpperPlot, bbRegLowerPlot, color = showBBRegInput ? color.new(bbRegRegimeColor,90) : na, title = 'BB Reg Fill')
+
+var int bbRegRejectionStart = 0
+bbRegUpperRejection = barstate.isconfirmed and ta.crossunder(high,bbRegUpper) and bar_index - bbRegRejectionStart > bbRegRejectionCooldownInput
+bbRegLowerRejection = barstate.isconfirmed and ta.crossover(low,bbRegLower) and bar_index - bbRegRejectionStart > bbRegRejectionCooldownInput
+
+if showBBRegRejectionLabelsInput and bbRegUpperRejection
+    label.new(bar_index - 1, high[1], '▼', color = color.new(color.black,100), textcolor = chart.fg_color, style = label.style_label_down, size = size.small)
+    bbRegRejectionStart := bar_index
+
+if showBBRegRejectionLabelsInput and bbRegLowerRejection
+    label.new(bar_index - 1, low[1], '▲', color = color.new(color.black,100), textcolor = chart.fg_color, style = label.style_label_up, size = size.small)
+    bbRegRejectionStart := bar_index
+
+if showHighLowSwingsInput or showPremiumDiscountZonesInput
+    updateTrailingExtremes()
+
+    if showHighLowSwingsInput
+        drawHighLowSwings()
+
+    if showPremiumDiscountZonesInput
+        drawPremiumDiscountZones()
+
+if showFairValueGapsInput
+    deleteFairValueGaps()
+
+getCurrentStructure(swingsLengthInput,false)
+getCurrentStructure(5,false,true)
+
+if showEqualHighsLowsInput
+    getCurrentStructure(equalHighsLowsLengthInput,true)
+
+if showInternalsInput or showInternalOrderBlocksInput or showTrendInput
+    displayStructure(true)
+
+if showStructureInput or showSwingOrderBlocksInput or showHighLowSwingsInput
+    displayStructure()
+
+if showInternalOrderBlocksInput
+    deleteOrderBlocks(true)
+
+if showSwingOrderBlocksInput
+    deleteOrderBlocks()
+
+if showFairValueGapsInput
+    drawFairValueGaps()
+
+if barstate.islastconfirmedhistory or barstate.islast
+    if showInternalOrderBlocksInput        
+        drawOrderBlocks(true)
+        
+    if showSwingOrderBlocksInput        
+        drawOrderBlocks()
+
+lastBarIndex    := currentBarIndex
+currentBarIndex := bar_index
+newBar          = currentBarIndex != lastBarIndex
+
+if barstate.islastconfirmedhistory or (barstate.isrealtime and newBar)
+    if showDailyLevelsInput and not higherTimeframe('D')
+        drawLevels('D',timeframe.isdaily,dailyLevelsStyleInput,dailyLevelsColorInput)
+
+    if showWeeklyLevelsInput and not higherTimeframe('W')
+        drawLevels('W',timeframe.isweekly,weeklyLevelsStyleInput,weeklyLevelsColorInput)
+
+    if showMonthlyLevelsInput and not higherTimeframe('M')
+        drawLevels('M',timeframe.ismonthly,monthlyLevelsStyleInput,monthlyLevelsColorInput)
+
+//---------------------------------------------------------------------------------------------------------------------}
+//TRADE ENGINE
+//---------------------------------------------------------------------------------------------------------------------{
+engineAtr                   = ta.atr(atrLengthInput)
+engineEquilibrium           = math.avg(trailing.top,trailing.bottom)
+engineDiscountOk            = not usePremiumDiscountFilterInput or (not na(engineEquilibrium) and close <= engineEquilibrium)
+enginePremiumOk             = not usePremiumDiscountFilterInput or (not na(engineEquilibrium) and close >= engineEquilibrium)
+engineLongBiasOk            = not requireSwingBiasInput or swingTrend.bias == BULLISH
+engineShortBiasOk           = not requireSwingBiasInput or swingTrend.bias == BEARISH
+
+sqzBBBasis                  = ta.sma(close,sqzBBLenInput)
+sqzBBDev                    = sqzBBMultInput * ta.stdev(close,sqzBBLenInput)
+sqzUpperBB                  = sqzBBBasis + sqzBBDev
+sqzLowerBB                  = sqzBBBasis - sqzBBDev
+sqzKCBasis                  = ta.sma(close,sqzKCLenInput)
+sqzRangeMa                  = ta.sma(ta.tr(true),sqzKCLenInput)
+sqzUpperKC                  = sqzKCBasis + sqzRangeMa * sqzKCMultInput
+sqzLowerKC                  = sqzKCBasis - sqzRangeMa * sqzKCMultInput
+sqzOn                       = sqzLowerBB > sqzLowerKC and sqzUpperBB < sqzUpperKC
+sqzRelease                  = sqzOn[1] and not sqzOn
+sqzBarsSinceRelease         = ta.barssince(sqzRelease)
+sqzRecentRelease            = not na(sqzBarsSinceRelease) and sqzBarsSinceRelease <= sqzReleaseWindowInput
+sqzMomentumValue            = sqzMomentum(sqzMomLenInput)
+sqzMomentumUp               = sqzMomentumValue > nz(sqzMomentumValue[1])
+sqzMomentumDown             = sqzMomentumValue < nz(sqzMomentumValue[1])
+sqzMomentumSlope            = sqzMomentumValue - nz(sqzMomentumValue[1])
+sqzMomentumSlopeUp          = sqzMomentumSlope > nz(sqzMomentumSlope[1])
+sqzMomentumSlopeDown        = sqzMomentumSlope < nz(sqzMomentumSlope[1])
+sqzMomentumTurnUp           = sqzMomentumUp and sqzMomentumValue[1] <= nz(sqzMomentumValue[2])
+sqzMomentumTurnDown         = sqzMomentumDown and sqzMomentumValue[1] >= nz(sqzMomentumValue[2])
+sqzMomentumBull             = sqzMomentumValue >= 0
+sqzMomentumCrossUp          = ta.crossover(sqzMomentumValue,0)
+sqzMomentumCrossDown        = ta.crossunder(sqzMomentumValue,0)
+sqzTrendUpValue             = sqzTrendUp(sqzTrendLenInput)
+sqzTrendDownValue           = sqzTrendDown(sqzTrendLenInput)
+sqzRangeHigh                = ta.highest(high,sqzRiskLookbackInput)
+sqzRangeLow                 = ta.lowest(low,sqzRiskLookbackInput)
+sqzRangeSpan                = math.max(sqzRangeHigh - sqzRangeLow, syminfo.mintick)
+sqzRangePosition            = math.max(0.0, math.min(1.0, (close - sqzRangeLow) / sqzRangeSpan))
+sqzRoomUpAtr                = engineAtr > 0 ? (sqzRangeHigh - close) / engineAtr : 0.0
+sqzRoomDownAtr              = engineAtr > 0 ? (close - sqzRangeLow) / engineAtr : 0.0
+sqzLongRoomOk               = sqzRoomUpAtr >= sqzMinRoomAtrInput and sqzRangePosition < sqzLateLongZoneInput
+sqzShortRoomOk              = sqzRoomDownAtr >= sqzMinRoomAtrInput and sqzRangePosition > sqzLateShortZoneInput
+sqzHtfMomentum              = automationConfirmedHtfInput ? request.security(syminfo.tickerid,sqzHtfTfInput,sqzMomentum(sqzMomLenInput)[1],barmerge.gaps_off,barmerge.lookahead_on) : request.security(syminfo.tickerid,sqzHtfTfInput,sqzMomentum(sqzMomLenInput),barmerge.gaps_off,barmerge.lookahead_off)
+sqzHtfTrendUp               = automationConfirmedHtfInput ? request.security(syminfo.tickerid,sqzHtfTfInput,sqzTrendUp(sqzTrendLenInput)[1],barmerge.gaps_off,barmerge.lookahead_on) : request.security(syminfo.tickerid,sqzHtfTfInput,sqzTrendUp(sqzTrendLenInput),barmerge.gaps_off,barmerge.lookahead_off)
+sqzHtfTrendDown             = automationConfirmedHtfInput ? request.security(syminfo.tickerid,sqzHtfTfInput,sqzTrendDown(sqzTrendLenInput)[1],barmerge.gaps_off,barmerge.lookahead_on) : request.security(syminfo.tickerid,sqzHtfTfInput,sqzTrendDown(sqzTrendLenInput),barmerge.gaps_off,barmerge.lookahead_off)
+sqzHtfLongAligned           = not sqzUseHtfInput or (sqzHtfMomentum >= 0 and sqzHtfTrendUp)
+sqzHtfShortAligned          = not sqzUseHtfInput or (sqzHtfMomentum <= 0 and sqzHtfTrendDown)
+sqzReleaseGate              = not sqzRequireRecentReleaseInput or sqzRecentRelease
+sqzSignalAllowed            = not sqzConfirmedOnlyInput or barstate.isconfirmed
+sqzLongSoft                 = sqzMomentumBull and sqzMomentumUp and sqzLongRoomOk and sqzReleaseGate
+sqzShortSoft                = not sqzMomentumBull and sqzMomentumDown and sqzShortRoomOk and sqzReleaseGate
+sqzLongStrong               = sqzLongSoft and sqzTrendUpValue and sqzHtfLongAligned
+sqzShortStrong              = sqzShortSoft and sqzTrendDownValue and sqzHtfShortAligned
+sqzLongTrendContinuation    = sqzLongStrong and close > sqzBBBasis
+sqzShortTrendContinuation   = sqzShortStrong and close < sqzBBBasis
+sqzLongMomentumTurn         = sqzSignalAllowed and sqzMomentumTurnUp and (not sqzRequireZeroSideInput or sqzMomentumValue >= 0)
+sqzShortMomentumTurn        = sqzSignalAllowed and sqzMomentumTurnDown and (not sqzRequireZeroSideInput or sqzMomentumValue <= 0)
+sqzLongMomentumDirection    = sqzSignalAllowed and sqzMomentumUp and (not sqzRequireZeroSideInput or sqzMomentumValue >= 0)
+sqzShortMomentumDirection   = sqzSignalAllowed and sqzMomentumDown and (not sqzRequireZeroSideInput or sqzMomentumValue <= 0)
+sqzLongHistogramRising      = sqzSignalAllowed and sqzMomentumUp
+sqzShortHistogramFalling    = sqzSignalAllowed and sqzMomentumDown
+sqzLongHistogramAccel       = sqzSignalAllowed and sqzMomentumUp and sqzMomentumSlopeUp
+sqzShortHistogramAccel      = sqzSignalAllowed and sqzMomentumDown and sqzMomentumSlopeDown
+sqzLongHistogramZeroCross   = sqzSignalAllowed and sqzMomentumCrossUp
+sqzShortHistogramZeroCross  = sqzSignalAllowed and sqzMomentumCrossDown
+sqzLongOppositeTurn         = sqzSignalAllowed and sqzMomentumTurnUp and sqzMomentumValue[1] < 0
+sqzShortOppositeTurn        = sqzSignalAllowed and sqzMomentumTurnDown and sqzMomentumValue[1] > 0
+sqzLongReleaseDirection     = sqzSignalAllowed and sqzRecentRelease and sqzMomentumUp and sqzMomentumValue >= 0
+sqzShortReleaseDirection    = sqzSignalAllowed and sqzRecentRelease and sqzMomentumDown and sqzMomentumValue <= 0
+sqzSelectedLongOk           = switch sqzFilterModeInput
+    SQZ_SOFT                        => sqzLongSoft
+    SQZ_STRONG                      => sqzLongStrong
+    SQZ_TREND_CONTINUATION          => sqzLongTrendContinuation
+    SQZ_MOMENTUM_TURN               => sqzLongMomentumTurn
+    SQZ_MOMENTUM_DIRECTION          => sqzLongMomentumDirection
+    SQZ_HISTOGRAM_RISING            => sqzLongHistogramRising
+    SQZ_HISTOGRAM_ACCELERATION      => sqzLongHistogramAccel
+    SQZ_HISTOGRAM_ZERO_CROSS        => sqzLongHistogramZeroCross
+    SQZ_HISTOGRAM_OPPOSITE_TURN     => sqzLongOppositeTurn
+    => sqzLongReleaseDirection
+sqzSelectedShortOk          = switch sqzFilterModeInput
+    SQZ_SOFT                        => sqzShortSoft
+    SQZ_STRONG                      => sqzShortStrong
+    SQZ_TREND_CONTINUATION          => sqzShortTrendContinuation
+    SQZ_MOMENTUM_TURN               => sqzShortMomentumTurn
+    SQZ_MOMENTUM_DIRECTION          => sqzShortMomentumDirection
+    SQZ_HISTOGRAM_RISING            => sqzShortHistogramFalling
+    SQZ_HISTOGRAM_ACCELERATION      => sqzShortHistogramAccel
+    SQZ_HISTOGRAM_ZERO_CROSS        => sqzShortHistogramZeroCross
+    SQZ_HISTOGRAM_OPPOSITE_TURN     => sqzShortOppositeTurn
+    => sqzShortReleaseDirection
+sqzLongFilterOk             = not useSqzFilterInput or sqzSelectedLongOk
+sqzShortFilterOk            = not useSqzFilterInput or sqzSelectedShortOk
+rsiValue                    = ta.rsi(rsiSourceInput,rsiLengthInput)
+rsiRising                   = rsiValue > nz(rsiValue[1])
+rsiFalling                  = rsiValue < nz(rsiValue[1])
+rsiRecentlyOversold         = ta.lowest(rsiValue,rsiExtremeLookbackInput) <= rsiOversoldInput
+rsiRecentlyOverbought       = ta.highest(rsiValue,rsiExtremeLookbackInput) >= rsiOverboughtInput
+rsiLowerChop                = rsiMidlineInput - rsiChopBandInput
+rsiUpperChop                = rsiMidlineInput + rsiChopBandInput
+rsiOutsideChop              = rsiValue < rsiLowerChop or rsiValue > rsiUpperChop
+rsiLongRecovery             = rsiRecentlyOversold and rsiRising and rsiValue > rsiOversoldInput
+rsiShortRecovery            = rsiRecentlyOverbought and rsiFalling and rsiValue < rsiOverboughtInput
+rsiLongExtremeReversal      = ta.crossover(rsiValue,rsiOversoldInput)
+rsiShortExtremeReversal     = ta.crossunder(rsiValue,rsiOverboughtInput)
+rsiLongDirection            = rsiValue > rsiMidlineInput and rsiRising
+rsiShortDirection           = rsiValue < rsiMidlineInput and rsiFalling
+rsiLongPullbackTrend        = rsiValue > rsiMidlineInput and rsiValue < rsiOverboughtInput
+rsiShortPullbackTrend       = rsiValue < rsiMidlineInput and rsiValue > rsiOversoldInput
+rsiSelectedLongOk           = switch rsiFilterModeInput
+    RSI_RECOVERY                    => rsiLongRecovery
+    RSI_EXTREME_REVERSAL            => rsiLongExtremeReversal
+    RSI_AVOID_MIDLINE_CHOP          => rsiOutsideChop
+    RSI_DIRECTION                   => rsiLongDirection
+    RSI_PULLBACK_TREND              => rsiLongPullbackTrend
+    => rsiLongRecovery and rsiLongDirection
+rsiSelectedShortOk          = switch rsiFilterModeInput
+    RSI_RECOVERY                    => rsiShortRecovery
+    RSI_EXTREME_REVERSAL            => rsiShortExtremeReversal
+    RSI_AVOID_MIDLINE_CHOP          => rsiOutsideChop
+    RSI_DIRECTION                   => rsiShortDirection
+    RSI_PULLBACK_TREND              => rsiShortPullbackTrend
+    => rsiShortRecovery and rsiShortDirection
+rsiLongFilterOk             = not useRSIFilterInput or rsiSelectedLongOk
+rsiShortFilterOk            = not useRSIFilterInput or rsiSelectedShortOk
+stochK                      = stochKValue(stochLengthInput,stochSmoothKInput)
+stochD                      = stochDValue(stochLengthInput,stochSmoothKInput,stochSmoothDInput)
+stochKDSpread               = math.abs(stochK - stochD)
+stochKSlope                 = stochK - nz(stochK[1])
+stochMomentumExpansion      = stochKDSpread > ta.sma(stochKDSpread,20) and math.abs(stochKSlope) > ta.sma(math.abs(stochKSlope),20)
+stochDynamicUpper           = ta.percentile_nearest_rank(stochK,stochBandLookbackInput,100 - stochBandPctInput)
+stochDynamicLower           = ta.percentile_nearest_rank(stochK,stochBandLookbackInput,stochBandPctInput)
+stochBullCross              = ta.crossover(stochK,stochD)
+stochBearCross              = ta.crossunder(stochK,stochD)
+stochOversoldReset          = ta.lowest(stochK,8) <= stochLowerInput
+stochOverboughtReset        = ta.highest(stochK,8) >= stochUpperInput
+stochLongPullback           = stochBullCross and (stochOversoldReset or stochK <= stochReversalZoneInput)
+stochShortPullback          = stochBearCross and (stochOverboughtReset or stochK >= 100.0 - stochReversalZoneInput)
+stochLongDirection          = stochK > stochD and stochK > 50
+stochShortDirection         = stochK < stochD and stochK < 50
+stochLongAdaptiveReversal   = stochBullCross and stochK <= stochDynamicLower
+stochShortAdaptiveReversal  = stochBearCross and stochK >= stochDynamicUpper
+stochEmaFast                = ta.ema(close,21)
+stochEmaSlow                = ta.ema(close,55)
+stochEmaBias                = ta.ema(close,200)
+stochBullTrend              = stochEmaFast > stochEmaSlow and close > stochEmaBias and stochEmaBias > stochEmaBias[5]
+stochBearTrend              = stochEmaFast < stochEmaSlow and close < stochEmaBias and stochEmaBias < stochEmaBias[5]
+stochVwapValue              = ta.vwap(hlc3)
+stochVwapLongOk             = not stochUseVwapInput or close > stochVwapValue
+stochVwapShortOk            = not stochUseVwapInput or close < stochVwapValue
+stochVolumeSma              = ta.sma(volume,stochVolumeLengthInput)
+stochVolumeOk               = volume > stochVolumeSma * 1.05
+stochSignalVolumeOk         = not stochRequireVolumeInput or stochVolumeOk
+[stochDIPlus, stochDIMinus, stochAdxValue] = ta.dmi(14,14)
+stochTrendStrengthOk        = stochAdxValue >= stochAdxTrendMinInput
+stochChop                   = stochAdxValue <= stochAdxChopMaxInput
+stochTf1K                   = automationConfirmedHtfInput ? request.security(syminfo.tickerid,stochTf1Input,stochKValue(stochLengthInput,stochSmoothKInput)[1],barmerge.gaps_off,barmerge.lookahead_on) : request.security(syminfo.tickerid,stochTf1Input,stochKValue(stochLengthInput,stochSmoothKInput),barmerge.gaps_off,barmerge.lookahead_off)
+stochTf1D                   = automationConfirmedHtfInput ? request.security(syminfo.tickerid,stochTf1Input,stochDValue(stochLengthInput,stochSmoothKInput,stochSmoothDInput)[1],barmerge.gaps_off,barmerge.lookahead_on) : request.security(syminfo.tickerid,stochTf1Input,stochDValue(stochLengthInput,stochSmoothKInput,stochSmoothDInput),barmerge.gaps_off,barmerge.lookahead_off)
+stochTf2K                   = automationConfirmedHtfInput ? request.security(syminfo.tickerid,stochTf2Input,stochKValue(stochLengthInput,stochSmoothKInput)[1],barmerge.gaps_off,barmerge.lookahead_on) : request.security(syminfo.tickerid,stochTf2Input,stochKValue(stochLengthInput,stochSmoothKInput),barmerge.gaps_off,barmerge.lookahead_off)
+stochTf2D                   = automationConfirmedHtfInput ? request.security(syminfo.tickerid,stochTf2Input,stochDValue(stochLengthInput,stochSmoothKInput,stochSmoothDInput)[1],barmerge.gaps_off,barmerge.lookahead_on) : request.security(syminfo.tickerid,stochTf2Input,stochDValue(stochLengthInput,stochSmoothKInput,stochSmoothDInput),barmerge.gaps_off,barmerge.lookahead_off)
+stochTf3K                   = automationConfirmedHtfInput ? request.security(syminfo.tickerid,stochTf3Input,stochKValue(stochLengthInput,stochSmoothKInput)[1],barmerge.gaps_off,barmerge.lookahead_on) : request.security(syminfo.tickerid,stochTf3Input,stochKValue(stochLengthInput,stochSmoothKInput),barmerge.gaps_off,barmerge.lookahead_off)
+stochTf3D                   = automationConfirmedHtfInput ? request.security(syminfo.tickerid,stochTf3Input,stochDValue(stochLengthInput,stochSmoothKInput,stochSmoothDInput)[1],barmerge.gaps_off,barmerge.lookahead_on) : request.security(syminfo.tickerid,stochTf3Input,stochDValue(stochLengthInput,stochSmoothKInput,stochSmoothDInput),barmerge.gaps_off,barmerge.lookahead_off)
+stochTf1Bull                = stochTf1K > stochTf1D and stochTf1K > 50
+stochTf2Bull                = stochTf2K > stochTf2D and stochTf2K > 50
+stochTf3Bull                = stochTf3K > stochTf3D or stochTf3K > 50
+stochTf1Bear                = stochTf1K < stochTf1D and stochTf1K < 50
+stochTf2Bear                = stochTf2K < stochTf2D and stochTf2K < 50
+stochTf3Bear                = stochTf3K < stochTf3D or stochTf3K < 50
+stochMtfBullCount           = (stochTf1Bull ? 1 : 0) + (stochTf2Bull ? 1 : 0) + (stochTf3Bull ? 1 : 0)
+stochMtfBearCount           = (stochTf1Bear ? 1 : 0) + (stochTf2Bear ? 1 : 0) + (stochTf3Bear ? 1 : 0)
+stochMtfBullOk              = not stochUseMtfInput or stochMtfBullCount >= 2
+stochMtfBearOk              = not stochUseMtfInput or stochMtfBearCount >= 2
+stochLongScore              = 0
+stochLongScore             += stochBullTrend ? 20 : close > stochEmaBias ? 10 : 0
+stochLongScore             += stochTrendStrengthOk and stochDIPlus > stochDIMinus ? 10 : 0
+stochLongScore             += stochMtfBullOk ? 15 : 0
+stochLongScore             += stochLongPullback ? 18 : stochBullCross ? 10 : 0
+stochLongScore             += stochVwapLongOk ? 8 : 0
+stochLongScore             += stochVolumeOk ? 8 : 0
+stochLongScore             += not stochChop ? 8 : 0
+stochLongScore             += stochMomentumExpansion and stochKSlope > 0 ? 6 : 0
+stochShortScore             = 0
+stochShortScore            += stochBearTrend ? 20 : close < stochEmaBias ? 10 : 0
+stochShortScore            += stochTrendStrengthOk and stochDIMinus > stochDIPlus ? 10 : 0
+stochShortScore            += stochMtfBearOk ? 15 : 0
+stochShortScore            += stochShortPullback ? 18 : stochBearCross ? 10 : 0
+stochShortScore            += stochVwapShortOk ? 8 : 0
+stochShortScore            += stochVolumeOk ? 8 : 0
+stochShortScore            += not stochChop ? 8 : 0
+stochShortScore            += stochMomentumExpansion and stochKSlope < 0 ? 6 : 0
+stochLongScoreOk            = stochLongScore >= stochMinLongScoreInput
+stochShortScoreOk           = stochShortScore >= stochMinShortScoreInput
+stochEliteLongPulse         = barstate.isconfirmed and stochLongScoreOk and stochLongPullback and stochMtfBullOk and stochVwapLongOk and stochSignalVolumeOk and not stochChop
+stochEliteShortPulse        = barstate.isconfirmed and stochShortScoreOk and stochShortPullback and stochMtfBearOk and stochVwapShortOk and stochSignalVolumeOk and not stochChop
+stochRecentLongPulse        = not na(ta.barssince(stochEliteLongPulse)) and ta.barssince(stochEliteLongPulse) <= stochPulseMemoryInput
+stochRecentShortPulse       = not na(ta.barssince(stochEliteShortPulse)) and ta.barssince(stochEliteShortPulse) <= stochPulseMemoryInput
+stochSelectedLongOk         = switch stochFilterModeInput
+    STOCH_KD_PULLBACK               => stochLongPullback
+    STOCH_KD_DIRECTION              => stochLongDirection
+    STOCH_SCORE_THRESHOLD           => stochLongScoreOk
+    STOCH_MTF_ALIGNMENT             => stochMtfBullOk
+    STOCH_SCORE_KD_DIRECTION        => stochLongScoreOk and stochLongDirection
+    STOCH_RECENT_ELITE_PULSE        => stochRecentLongPulse
+    => stochLongAdaptiveReversal
+stochSelectedShortOk        = switch stochFilterModeInput
+    STOCH_KD_PULLBACK               => stochShortPullback
+    STOCH_KD_DIRECTION              => stochShortDirection
+    STOCH_SCORE_THRESHOLD           => stochShortScoreOk
+    STOCH_MTF_ALIGNMENT             => stochMtfBearOk
+    STOCH_SCORE_KD_DIRECTION        => stochShortScoreOk and stochShortDirection
+    STOCH_RECENT_ELITE_PULSE        => stochRecentShortPulse
+    => stochShortAdaptiveReversal
+stochLongFilterOk           = not useStochFilterInput or stochSelectedLongOk
+stochShortFilterOk          = not useStochFilterInput or stochSelectedShortOk
+maSelectedLongOk            = tripleMAFilterModeInput == MA_FILTER_STACK_SLOPE ? maBullTrend : tripleMAFilterModeInput == MA_FILTER_STACK ? maBullStack : tripleMAFilterModeInput == MA_FILTER_PRICE_FAST ? maPriceAboveFast : tripleMAFilterModeInput == MA_FILTER_PRICE_MID ? maPriceAboveMid : tripleMAFilterModeInput == MA_FILTER_PRICE_SLOW ? maPriceAboveSlow : tripleMAFilterModeInput == MA_FILTER_FAST_MID ? maFastAboveMid : tripleMAFilterModeInput == MA_FILTER_FAST_SLOW ? maFastAboveSlow : tripleMAFilterModeInput == MA_FILTER_MID_SLOW ? maMidAboveSlow : maBullSlope
+maSelectedShortOk           = tripleMAFilterModeInput == MA_FILTER_STACK_SLOPE ? maBearTrend : tripleMAFilterModeInput == MA_FILTER_STACK ? maBearStack : tripleMAFilterModeInput == MA_FILTER_PRICE_FAST ? maPriceBelowFast : tripleMAFilterModeInput == MA_FILTER_PRICE_MID ? maPriceBelowMid : tripleMAFilterModeInput == MA_FILTER_PRICE_SLOW ? maPriceBelowSlow : tripleMAFilterModeInput == MA_FILTER_FAST_MID ? maFastBelowMid : tripleMAFilterModeInput == MA_FILTER_FAST_SLOW ? maFastBelowSlow : tripleMAFilterModeInput == MA_FILTER_MID_SLOW ? maMidBelowSlow : maBearSlope
+maLongFilterOk              = not useTripleMAFilterInput or maSelectedLongOk
+maShortFilterOk             = not useTripleMAFilterInput or maSelectedShortOk
+chopMASpreadAtr             = engineAtr > 0 ? math.abs(fastMA - slowMA) / engineAtr : 0.0
+chopMASpreadOk              = chopMASpreadAtr >= chopMinMASpreadAtrInput
+chopMASpreadExpandingOk     = chopMASpreadOk and math.abs(fastMA - slowMA) > math.abs(fastMA[1] - slowMA[1])
+chopRangeHigh               = ta.highest(high,sqzRiskLookbackInput)
+chopRangeLow                = ta.lowest(low,sqzRiskLookbackInput)
+chopRangeSpan               = math.max(chopRangeHigh - chopRangeLow, syminfo.mintick)
+chopRangePosition           = math.max(0.0, math.min(1.0, (close - chopRangeLow) / chopRangeSpan))
+chopAvoidMiddleOk           = chopRangePosition < chopMiddleLowInput or chopRangePosition > chopMiddleHighInput
+chopLongRoomOk              = engineAtr > 0 ? (chopRangeHigh - close) / engineAtr >= chopMinRoomAtrInput : false
+chopShortRoomOk             = engineAtr > 0 ? (close - chopRangeLow) / engineAtr >= chopMinRoomAtrInput : false
+[chopPlusDI, chopMinusDI, chopADXValue] = ta.dmi(chopADXLengthInput,chopADXLengthInput)
+chopADXOk                   = chopADXValue >= chopMinADXInput
+chopLongStackOk             = maBullStack or maFastAboveMid
+chopShortStackOk            = maBearStack or maFastBelowMid
+chopBalancedLongOk          = chopMASpreadOk and chopAvoidMiddleOk and chopLongRoomOk
+chopBalancedShortOk         = chopMASpreadOk and chopAvoidMiddleOk and chopShortRoomOk
+chopStrictLongOk            = chopMASpreadExpandingOk and chopAvoidMiddleOk and chopLongRoomOk and chopADXOk and chopLongStackOk
+chopStrictShortOk           = chopMASpreadExpandingOk and chopAvoidMiddleOk and chopShortRoomOk and chopADXOk and chopShortStackOk
+chopSelectedLongOk          = chopFilterModeInput == CHOP_FILTER_MA_SPREAD ? chopMASpreadOk : chopFilterModeInput == CHOP_FILTER_MA_SPREAD_EXPANDING ? chopMASpreadExpandingOk : chopFilterModeInput == CHOP_FILTER_NO_MID_RANGE ? chopAvoidMiddleOk : chopFilterModeInput == CHOP_FILTER_ROOM_TO_EDGE ? chopLongRoomOk : chopFilterModeInput == CHOP_FILTER_ADX ? chopADXOk : chopFilterModeInput == CHOP_FILTER_STACK_ALIGNMENT ? chopLongStackOk : chopFilterModeInput == CHOP_FILTER_COMBO_BALANCED ? chopBalancedLongOk : chopStrictLongOk
+chopSelectedShortOk         = chopFilterModeInput == CHOP_FILTER_MA_SPREAD ? chopMASpreadOk : chopFilterModeInput == CHOP_FILTER_MA_SPREAD_EXPANDING ? chopMASpreadExpandingOk : chopFilterModeInput == CHOP_FILTER_NO_MID_RANGE ? chopAvoidMiddleOk : chopFilterModeInput == CHOP_FILTER_ROOM_TO_EDGE ? chopShortRoomOk : chopFilterModeInput == CHOP_FILTER_ADX ? chopADXOk : chopFilterModeInput == CHOP_FILTER_STACK_ALIGNMENT ? chopShortStackOk : chopFilterModeInput == CHOP_FILTER_COMBO_BALANCED ? chopBalancedShortOk : chopStrictShortOk
+chopLongFilterOk            = not useChopFilterInput or chopSelectedLongOk
+chopShortFilterOk           = not useChopFilterInput or chopSelectedShortOk
+bbRegLongSlopeOk            = bbRegBasisSlope > 0 and bbRegBasisSlopeStrong
+bbRegShortSlopeOk           = bbRegBasisSlope < 0 and bbRegBasisSlopeStrong
+bbRegLongDirectionOk        = bbRegBullishBasis
+bbRegShortDirectionOk       = bbRegBearishBasis
+bbRegLongPriceOk            = close > bbRegBasis
+bbRegShortPriceOk           = close < bbRegBasis
+bbRegBandExpansionOk        = bbRegDevSlope > 0
+bbRegLongNotExtendedOk      = engineAtr > 0 ? close <= bbRegUpper + bbRegOverextensionAtrInput * engineAtr : close <= bbRegUpper
+bbRegShortNotExtendedOk     = engineAtr > 0 ? close >= bbRegLower - bbRegOverextensionAtrInput * engineAtr : close >= bbRegLower
+bbRegBarsSinceUpperReject   = ta.barssince(bbRegUpperRejection)
+bbRegBarsSinceLowerReject   = ta.barssince(bbRegLowerRejection)
+bbRegRecentUpperReject      = not na(bbRegBarsSinceUpperReject) and bbRegBarsSinceUpperReject <= bbRegAvoidRejectionBarsInput
+bbRegRecentLowerReject      = not na(bbRegBarsSinceLowerReject) and bbRegBarsSinceLowerReject <= bbRegAvoidRejectionBarsInput
+bbRegLongNoRejectionOk      = not bbRegRecentUpperReject
+bbRegShortNoRejectionOk     = not bbRegRecentLowerReject
+bbRegSelectedLongOk         = switch bbRegFilterModeInput
+    BBREG_FILTER_BASIS_SLOPE        => bbRegLongSlopeOk
+    BBREG_FILTER_BASIS_DIRECTION    => bbRegLongDirectionOk
+    BBREG_FILTER_PRICE_BASIS        => bbRegLongPriceOk
+    BBREG_FILTER_SLOPE_PRICE        => bbRegLongSlopeOk and bbRegLongPriceOk
+    BBREG_FILTER_SLOPE_EXPANSION    => bbRegLongSlopeOk and bbRegBandExpansionOk
+    BBREG_FILTER_SLOPE_NOT_EXTENDED => bbRegLongSlopeOk and bbRegLongNotExtendedOk
+    BBREG_FILTER_AVOID_REJECTION    => bbRegLongNoRejectionOk
+    => bbRegLongSlopeOk and bbRegLongPriceOk and bbRegLongNoRejectionOk
+bbRegSelectedShortOk        = switch bbRegFilterModeInput
+    BBREG_FILTER_BASIS_SLOPE        => bbRegShortSlopeOk
+    BBREG_FILTER_BASIS_DIRECTION    => bbRegShortDirectionOk
+    BBREG_FILTER_PRICE_BASIS        => bbRegShortPriceOk
+    BBREG_FILTER_SLOPE_PRICE        => bbRegShortSlopeOk and bbRegShortPriceOk
+    BBREG_FILTER_SLOPE_EXPANSION    => bbRegShortSlopeOk and bbRegBandExpansionOk
+    BBREG_FILTER_SLOPE_NOT_EXTENDED => bbRegShortSlopeOk and bbRegShortNotExtendedOk
+    BBREG_FILTER_AVOID_REJECTION    => bbRegShortNoRejectionOk
+    => bbRegShortSlopeOk and bbRegShortPriceOk and bbRegShortNoRejectionOk
+bbRegLongFilterOk           = not useBBRegFilterInput or bbRegSelectedLongOk
+bbRegShortFilterOk          = not useBBRegFilterInput or bbRegSelectedShortOk
+
+internalBullishOBRetest     = orderBlockRetest(internalOrderBlocks,BULLISH)
+internalBearishOBRetest     = orderBlockRetest(internalOrderBlocks,BEARISH)
+swingBullishOBRetest        = orderBlockRetest(swingOrderBlocks,BULLISH)
+swingBearishOBRetest        = orderBlockRetest(swingOrderBlocks,BEARISH)
+bullishFVGRetest            = fairValueGapRetest(BULLISH)
+bearishFVGRetest            = fairValueGapRetest(BEARISH)
+
+equalHighSweep              = not equalHigh.crossed and not na(equalHigh.currentLevel) and time > equalHigh.barTime and high > equalHigh.currentLevel and close < equalHigh.currentLevel
+equalLowSweep               = not equalLow.crossed and not na(equalLow.currentLevel) and time > equalLow.barTime and low < equalLow.currentLevel and close > equalLow.currentLevel
+bullishCHoCHSignal          = currentAlerts.internalBullishCHoCH or currentAlerts.swingBullishCHoCH
+bearishCHoCHSignal          = currentAlerts.internalBearishCHoCH or currentAlerts.swingBearishCHoCH
+bullishCHoCHRecent          = not na(ta.barssince(bullishCHoCHSignal)) and ta.barssince(bullishCHoCHSignal) <= setupMemoryBarsInput
+bearishCHoCHRecent          = not na(ta.barssince(bearishCHoCHSignal)) and ta.barssince(bearishCHoCHSignal) <= setupMemoryBarsInput
+equalLowSweepRecent         = not na(ta.barssince(equalLowSweep)) and ta.barssince(equalLowSweep) <= setupMemoryBarsInput
+equalHighSweepRecent        = not na(ta.barssince(equalHighSweep)) and ta.barssince(equalHighSweep) <= setupMemoryBarsInput
+
+if equalHighSweep
+    equalHigh.crossed := true
+if equalLowSweep
+    equalLow.crossed := true
+
+longInternalBOSEntry        = tradeLongsInput and engineLongBiasOk and currentAlerts.internalBullishBOS
+shortInternalBOSEntry       = tradeShortsInput and engineShortBiasOk and currentAlerts.internalBearishBOS
+longInternalCHoCHEntry      = tradeLongsInput and engineLongBiasOk and currentAlerts.internalBullishCHoCH
+shortInternalCHoCHEntry     = tradeShortsInput and engineShortBiasOk and currentAlerts.internalBearishCHoCH
+longSwingBOSEntry           = tradeLongsInput and currentAlerts.swingBullishBOS
+shortSwingBOSEntry          = tradeShortsInput and currentAlerts.swingBearishBOS
+longSwingCHoCHEntry         = tradeLongsInput and currentAlerts.swingBullishCHoCH
+shortSwingCHoCHEntry        = tradeShortsInput and currentAlerts.swingBearishCHoCH
+longInternalOBEntry         = tradeLongsInput and engineLongBiasOk and engineDiscountOk and internalBullishOBRetest
+shortInternalOBEntry        = tradeShortsInput and engineShortBiasOk and enginePremiumOk and internalBearishOBRetest
+longSwingOBEntry            = tradeLongsInput and engineDiscountOk and swingBullishOBRetest
+shortSwingOBEntry           = tradeShortsInput and enginePremiumOk and swingBearishOBRetest
+longFVGCreationEntry        = tradeLongsInput and engineDiscountOk and currentAlerts.bullishFairValueGap
+shortFVGCreationEntry       = tradeShortsInput and enginePremiumOk and currentAlerts.bearishFairValueGap
+longFVGRetestEntry          = tradeLongsInput and engineDiscountOk and bullishFVGRetest
+shortFVGRetestEntry         = tradeShortsInput and enginePremiumOk and bearishFVGRetest
+longEQSweepEntry            = tradeLongsInput and engineDiscountOk and equalLowSweep
+shortEQSweepEntry           = tradeShortsInput and enginePremiumOk and equalHighSweep
+longSweepCHoCHEntry         = tradeLongsInput and engineDiscountOk and equalLowSweepRecent and bullishCHoCHSignal
+shortSweepCHoCHEntry        = tradeShortsInput and enginePremiumOk and equalHighSweepRecent and bearishCHoCHSignal
+longCHoCHOBEntry            = tradeLongsInput and engineDiscountOk and bullishCHoCHRecent and (internalBullishOBRetest or swingBullishOBRetest)
+shortCHoCHOBEntry           = tradeShortsInput and enginePremiumOk and bearishCHoCHRecent and (internalBearishOBRetest or swingBearishOBRetest)
+longCHoCHFVGEntry           = tradeLongsInput and engineDiscountOk and bullishCHoCHRecent and bullishFVGRetest
+shortCHoCHFVGEntry          = tradeShortsInput and enginePremiumOk and bearishCHoCHRecent and bearishFVGRetest
+longBBRegRejectionEntry     = tradeLongsInput and bbRegLowerRejection
+shortBBRegRejectionEntry    = tradeShortsInput and bbRegUpperRejection
+
+customLongEntry             = (customInternalBOSInput and longInternalBOSEntry) or (customInternalCHoCHInput and longInternalCHoCHEntry) or (customSwingBOSInput and longSwingBOSEntry) or (customSwingCHoCHInput and longSwingCHoCHEntry) or (customInternalOBInput and longInternalOBEntry) or (customSwingOBInput and longSwingOBEntry) or (customFVGCreationInput and longFVGCreationEntry) or (customFVGRetestInput and longFVGRetestEntry) or (customEQSweepInput and longEQSweepEntry) or (customSweepCHoCHInput and longSweepCHoCHEntry) or (customCHoCHOBInput and longCHoCHOBEntry) or (customCHoCHFVGInput and longCHoCHFVGEntry) or (customBBRegRejectionInput and longBBRegRejectionEntry)
+customShortEntry            = (customInternalBOSInput and shortInternalBOSEntry) or (customInternalCHoCHInput and shortInternalCHoCHEntry) or (customSwingBOSInput and shortSwingBOSEntry) or (customSwingCHoCHInput and shortSwingCHoCHEntry) or (customInternalOBInput and shortInternalOBEntry) or (customSwingOBInput and shortSwingOBEntry) or (customFVGCreationInput and shortFVGCreationEntry) or (customFVGRetestInput and shortFVGRetestEntry) or (customEQSweepInput and shortEQSweepEntry) or (customSweepCHoCHInput and shortSweepCHoCHEntry) or (customCHoCHOBInput and shortCHoCHOBEntry) or (customCHoCHFVGInput and shortCHoCHFVGEntry) or (customBBRegRejectionInput and shortBBRegRejectionEntry)
+allLongEntry                = longInternalBOSEntry or longInternalCHoCHEntry or longSwingBOSEntry or longSwingCHoCHEntry or longInternalOBEntry or longSwingOBEntry or longFVGCreationEntry or longFVGRetestEntry or longEQSweepEntry or longSweepCHoCHEntry or longCHoCHOBEntry or longCHoCHFVGEntry or longBBRegRejectionEntry
+allShortEntry               = shortInternalBOSEntry or shortInternalCHoCHEntry or shortSwingBOSEntry or shortSwingCHoCHEntry or shortInternalOBEntry or shortSwingOBEntry or shortFVGCreationEntry or shortFVGRetestEntry or shortEQSweepEntry or shortSweepCHoCHEntry or shortCHoCHOBEntry or shortCHoCHFVGEntry or shortBBRegRejectionEntry
+
+rawLongEntry                = switch entryModelInput
+    ENTRY_ALL                       => allLongEntry
+    ENTRY_INTERNAL_BOS              => longInternalBOSEntry
+    ENTRY_INTERNAL_CHOCH            => longInternalCHoCHEntry
+    ENTRY_SWING_BOS                 => longSwingBOSEntry
+    ENTRY_SWING_CHOCH               => longSwingCHoCHEntry
+    ENTRY_INTERNAL_OB_RETEST        => longInternalOBEntry
+    ENTRY_SWING_OB_RETEST           => longSwingOBEntry
+    ENTRY_FVG_CREATION              => longFVGCreationEntry
+    ENTRY_FVG_RETEST                => longFVGRetestEntry
+    ENTRY_EQ_SWEEP                  => longEQSweepEntry
+    ENTRY_SWEEP_CHOCH               => longSweepCHoCHEntry
+    ENTRY_CHOCH_OB_RETEST           => longCHoCHOBEntry
+    ENTRY_CHOCH_FVG_RETEST          => longCHoCHFVGEntry
+    ENTRY_BB_REG_REJECTION          => longBBRegRejectionEntry
+    => customLongEntry
+rawShortEntry               = switch entryModelInput
+    ENTRY_ALL                       => allShortEntry
+    ENTRY_INTERNAL_BOS              => shortInternalBOSEntry
+    ENTRY_INTERNAL_CHOCH            => shortInternalCHoCHEntry
+    ENTRY_SWING_BOS                 => shortSwingBOSEntry
+    ENTRY_SWING_CHOCH               => shortSwingCHoCHEntry
+    ENTRY_INTERNAL_OB_RETEST        => shortInternalOBEntry
+    ENTRY_SWING_OB_RETEST           => shortSwingOBEntry
+    ENTRY_FVG_CREATION              => shortFVGCreationEntry
+    ENTRY_FVG_RETEST                => shortFVGRetestEntry
+    ENTRY_EQ_SWEEP                  => shortEQSweepEntry
+    ENTRY_SWEEP_CHOCH               => shortSweepCHoCHEntry
+    ENTRY_CHOCH_OB_RETEST           => shortCHoCHOBEntry
+    ENTRY_CHOCH_FVG_RETEST          => shortCHoCHFVGEntry
+    ENTRY_BB_REG_REJECTION          => shortBBRegRejectionEntry
+    => customShortEntry
+
+automationTimingOk          = not automationConfirmedOnlyInput or barstate.isconfirmed
+validationDateOk            = time >= validationStartInput and time <= validationEndInput
+longEntry                   = tradeEngineInput and validationDateOk and automationTimingOk and rawLongEntry and engineDiscountOk and sqzLongFilterOk and rsiLongFilterOk and stochLongFilterOk and maLongFilterOk and chopLongFilterOk and bbRegLongFilterOk
+shortEntry                  = tradeEngineInput and validationDateOk and automationTimingOk and rawShortEntry and enginePremiumOk and sqzShortFilterOk and rsiShortFilterOk and stochShortFilterOk and maShortFilterOk and chopShortFilterOk and bbRegShortFilterOk
+longEntryPriceEstimate      = close + syminfo.mintick
+shortEntryPriceEstimate     = close - syminfo.mintick
+atrLongStop                 = longEntryPriceEstimate - atrStopMultInput * engineAtr
+atrShortStop                = shortEntryPriceEstimate + atrStopMultInput * engineAtr
+longStructureAgeOk          = not na(internalLow.barIndex) and bar_index - internalLow.barIndex <= maxStructureAgeInput
+shortStructureAgeOk         = not na(internalHigh.barIndex) and bar_index - internalHigh.barIndex <= maxStructureAgeInput
+longStructureDistanceOk     = not na(internalLow.currentLevel) and longEntryPriceEstimate - internalLow.currentLevel <= maxStructureAtrInput * engineAtr
+shortStructureDistanceOk    = not na(internalHigh.currentLevel) and internalHigh.currentLevel - shortEntryPriceEstimate <= maxStructureAtrInput * engineAtr
+longStructureStopOk         = longStructureAgeOk and longStructureDistanceOk and internalLow.currentLevel < longEntryPriceEstimate
+shortStructureStopOk        = shortStructureAgeOk and shortStructureDistanceOk and internalHigh.currentLevel > shortEntryPriceEstimate
+longStop                    = riskModelInput == RISK_STRUCTURE and longStructureStopOk ? internalLow.currentLevel : atrLongStop
+shortStop                   = riskModelInput == RISK_STRUCTURE and shortStructureStopOk ? internalHigh.currentLevel : atrShortStop
+longRisk                    = math.max(longEntryPriceEstimate - longStop, syminfo.mintick)
+shortRisk                   = math.max(shortStop - shortEntryPriceEstimate, syminfo.mintick)
+longTarget                  = longEntryPriceEstimate + longRisk * rewardRiskInput
+shortTarget                 = shortEntryPriceEstimate - shortRisk * rewardRiskInput
+pointValue                  = math.max(syminfo.pointvalue, syminfo.mintick)
+riskCash                    = math.max(strategy.equity, 0) * riskPercentInput * 0.01
+longBrokerLotsByRisk        = riskCash / math.max(longRisk * brokerContractSizeInput, syminfo.mintick)
+shortBrokerLotsByRisk       = riskCash / math.max(shortRisk * brokerContractSizeInput, syminfo.mintick)
+maxMarginCash               = math.max(strategy.equity, 0) * maxMarginPercentInput * 0.01
+maxBrokerLotsByMargin       = marginPerLotInput > 0 ? maxMarginCash / marginPerLotInput : 1e10
+longBrokerLotsUnrounded     = math.min(longBrokerLotsByRisk,maxBrokerLotsByMargin)
+shortBrokerLotsUnrounded    = math.min(shortBrokerLotsByRisk,maxBrokerLotsByMargin)
+longBrokerLots              = math.floor(longBrokerLotsUnrounded / quantityStepInput) * quantityStepInput
+shortBrokerLots             = math.floor(shortBrokerLotsUnrounded / quantityStepInput) * quantityStepInput
+longQuantity                = longBrokerLots * brokerContractSizeInput / pointValue
+shortQuantity               = shortBrokerLots * brokerContractSizeInput / pointValue
+longQuantityOk              = longBrokerLots >= minimumQuantityInput
+shortQuantityOk             = shortBrokerLots >= minimumQuantityInput
+longComment                 = str.format('{0} Long', entryModelInput)
+shortComment                = str.format('{0} Short', entryModelInput)
+longEntryAction             = strategy.position_size < 0 ? 'reverse_to_long' : 'enter_long'
+shortEntryAction            = strategy.position_size > 0 ? 'reverse_to_short' : 'enter_short'
+longEntryMessage            = automationMessage('entry',longEntryAction,'signal','long',longComment,longEntryPriceEstimate,longStop,longTarget,longBrokerLots)
+shortEntryMessage           = automationMessage('entry',shortEntryAction,'signal','short',shortComment,shortEntryPriceEstimate,shortStop,shortTarget,shortBrokerLots)
+longExitMessage             = automationMessage('exit','exit_long','exit','long',longComment,longEntryPriceEstimate,longStop,longTarget,longBrokerLots)
+shortExitMessage            = automationMessage('exit','exit_short','exit','short',shortComment,shortEntryPriceEstimate,shortStop,shortTarget,shortBrokerLots)
+longStopMessage             = automationMessage('exit','exit_long','stop_loss','long',longComment,longEntryPriceEstimate,longStop,longTarget,longBrokerLots)
+shortStopMessage            = automationMessage('exit','exit_short','stop_loss','short',shortComment,shortEntryPriceEstimate,shortStop,shortTarget,shortBrokerLots)
+longTargetMessage           = automationMessage('exit','exit_long','take_profit','long',longComment,longEntryPriceEstimate,longStop,longTarget,longBrokerLots)
+shortTargetMessage          = automationMessage('exit','exit_short','take_profit','short',shortComment,shortEntryPriceEstimate,shortStop,shortTarget,shortBrokerLots)
+
+var float activeInitialRisk     = na
+var float activeTargetRisk      = na
+var float activeBrokerLots      = na
+var float favorableExtreme      = na
+var float activeStagedStop      = na
+var float pendingInitialRisk    = na
+var float pendingTargetRisk     = na
+var float pendingBrokerLots     = na
+
+longOrderSubmitted          = longEntry and longQuantityOk and strategy.position_size <= 0
+shortOrderSubmitted         = shortEntry and shortQuantityOk and strategy.position_size >= 0
+
+if longOrderSubmitted
+    pendingInitialRisk := longRisk
+    pendingTargetRisk := rewardRiskInput
+    pendingBrokerLots := longBrokerLots
+    strategy.entry('Long', strategy.long, qty = longQuantity, comment = longComment, alert_message = longEntryMessage)
+    strategy.exit('Long Exit', 'Long', stop = longStop, limit = longTarget, comment = 'Long Exit', alert_message = longExitMessage, alert_profit = longTargetMessage, alert_loss = longStopMessage)
+
+if shortOrderSubmitted
+    pendingInitialRisk := shortRisk
+    pendingTargetRisk := rewardRiskInput
+    pendingBrokerLots := shortBrokerLots
+    strategy.entry('Short', strategy.short, qty = shortQuantity, comment = shortComment, alert_message = shortEntryMessage)
+    strategy.exit('Short Exit', 'Short', stop = shortStop, limit = shortTarget, comment = 'Short Exit', alert_message = shortExitMessage, alert_profit = shortTargetMessage, alert_loss = shortStopMessage)
+
+newLongPosition             = strategy.position_size > 0 and strategy.position_size[1] <= 0
+newShortPosition            = strategy.position_size < 0 and strategy.position_size[1] >= 0
+flatPosition                = strategy.position_size == 0
+
+if newLongPosition
+    activeInitialRisk := pendingInitialRisk
+    activeTargetRisk := pendingTargetRisk
+    activeBrokerLots := pendingBrokerLots
+    favorableExtreme := high
+else if newShortPosition
+    activeInitialRisk := pendingInitialRisk
+    activeTargetRisk := pendingTargetRisk
+    activeBrokerLots := pendingBrokerLots
+    favorableExtreme := low
+else if strategy.position_size > 0
+    favorableExtreme := math.max(nz(favorableExtreme,high),high)
+else if strategy.position_size < 0
+    favorableExtreme := math.min(nz(favorableExtreme,low),low)
+else if flatPosition and not longOrderSubmitted and not shortOrderSubmitted
+    favorableExtreme := na
+    activeStagedStop := na
+    activeInitialRisk := na
+    activeTargetRisk := na
+    activeBrokerLots := na
+
+if strategy.position_size != 0 and not na(activeInitialRisk)
+    tradeDirection = math.sign(strategy.position_size)
+    actualEntryPrice = strategy.position_avg_price
+    activeInitialStop = actualEntryPrice - activeInitialRisk * tradeDirection
+    activeTarget = actualEntryPrice + activeInitialRisk * nz(activeTargetRisk,rewardRiskInput) * tradeDirection
+    favorableMove = tradeDirection > 0 ? favorableExtreme - actualEntryPrice : actualEntryPrice - favorableExtreme
+    breakEvenActive = useBreakEvenInput and favorableMove >= activeInitialRisk * breakEvenTriggerRiskInput
+    stagedTrailActive = useStagedTrailInput and favorableMove >= activeInitialRisk * trailActivationRiskInput
+    breakEvenStop = actualEntryPrice + breakEvenOffsetInput * tradeDirection
+    stagedTrailStop = favorableExtreme - activeInitialRisk * trailDistanceRiskInput * tradeDirection
+    activeStagedStop := activeInitialStop
+    if breakEvenActive
+        activeStagedStop := tradeDirection > 0 ? math.max(activeStagedStop,breakEvenStop) : math.min(activeStagedStop,breakEvenStop)
+    if stagedTrailActive
+        activeStagedStop := tradeDirection > 0 ? math.max(activeStagedStop,stagedTrailStop) : math.min(activeStagedStop,stagedTrailStop)
+    activeExitComment = tradeDirection > 0 ? longComment : shortComment
+    activeSide = tradeDirection > 0 ? 'long' : 'short'
+    activeAction = tradeDirection > 0 ? 'exit_long' : 'exit_short'
+    activeExitMessage = automationMessage('exit',activeAction,'staged_exit',activeSide,activeExitComment,actualEntryPrice,activeStagedStop,activeTarget,nz(activeBrokerLots,0))
+    activeStopMessage = automationMessage('exit',activeAction,stagedTrailActive ? 'trailing_stop' : breakEvenActive ? 'breakeven_stop' : 'stop_loss',activeSide,activeExitComment,actualEntryPrice,activeStagedStop,activeTarget,nz(activeBrokerLots,0))
+    activeTargetMessage = automationMessage('exit',activeAction,'take_profit',activeSide,activeExitComment,actualEntryPrice,activeStagedStop,activeTarget,nz(activeBrokerLots,0))
+    if tradeDirection > 0
+        strategy.exit('Long Exit','Long',stop = activeStagedStop,limit = activeTarget,comment = 'Long Staged Exit',alert_message = activeExitMessage,alert_profit = activeTargetMessage,alert_loss = activeStopMessage)
+    else
+        strategy.exit('Short Exit','Short',stop = activeStagedStop,limit = activeTarget,comment = 'Short Staged Exit',alert_message = activeExitMessage,alert_profit = activeTargetMessage,alert_loss = activeStopMessage)
+
+var table sqzFilterTable = table.new(position.bottom_right, 2, 11, bgcolor = color.new(color.black,75), border_color = color.new(color.gray,70), border_width = 1)
+if barstate.islast and showSqzFilterTableInput
+    sqzAllowsText = not useSqzFilterInput ? 'Bypass' : sqzLongFilterOk and sqzShortFilterOk ? 'Both' : sqzLongFilterOk ? 'Long' : sqzShortFilterOk ? 'Short' : 'None'
+    sqzAllowsColor = not useSqzFilterInput ? color.silver : sqzLongFilterOk ? color.lime : sqzShortFilterOk ? color.red : color.orange
+    sqzMomentumText = sqzMomentumTurnUp ? 'Turn Up' : sqzMomentumTurnDown ? 'Turn Down' : sqzMomentumBull ? sqzMomentumUp ? 'Bull +' : 'Bull Fade' : sqzMomentumDown ? 'Bear +' : 'Bear Fade'
+    sqzMomentumColor = sqzMomentumTurnUp ? color.aqua : sqzMomentumTurnDown ? color.fuchsia : sqzMomentumBull ? color.lime : color.red
+    rsiAllowsText = not useRSIFilterInput ? 'Bypass' : rsiLongFilterOk and rsiShortFilterOk ? 'Both' : rsiLongFilterOk ? 'Long' : rsiShortFilterOk ? 'Short' : 'None'
+    rsiAllowsColor = not useRSIFilterInput ? color.silver : rsiLongFilterOk ? color.lime : rsiShortFilterOk ? color.red : color.orange
+    stochAllowsText = not useStochFilterInput ? 'Bypass' : stochLongFilterOk and stochShortFilterOk ? 'Both' : stochLongFilterOk ? 'Long' : stochShortFilterOk ? 'Short' : 'None'
+    stochAllowsColor = not useStochFilterInput ? color.silver : stochLongFilterOk ? color.lime : stochShortFilterOk ? color.red : color.orange
+    table.cell(sqzFilterTable, 0, 0, 'SQZ Filter', text_color = color.white, bgcolor = color.new(color.gray,65))
+    table.cell(sqzFilterTable, 1, 0, useSqzFilterInput ? sqzFilterModeInput : 'Off', text_color = useSqzFilterInput ? color.lime : color.silver, bgcolor = color.new(color.gray,65))
+    table.cell(sqzFilterTable, 0, 1, 'Momentum', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 1, sqzMomentumText, text_color = sqzMomentumColor)
+    table.cell(sqzFilterTable, 0, 2, 'Trend', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 2, sqzTrendUpValue ? 'Up' : sqzTrendDownValue ? 'Down' : 'Flat', text_color = sqzTrendUpValue ? color.lime : sqzTrendDownValue ? color.red : color.silver)
+    table.cell(sqzFilterTable, 0, 3, 'Room', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 3, 'L ' + str.tostring(sqzRoomUpAtr,'#.0') + ' / S ' + str.tostring(sqzRoomDownAtr,'#.0'), text_color = sqzLongRoomOk or sqzShortRoomOk ? color.white : color.orange)
+    table.cell(sqzFilterTable, 0, 4, 'HTF', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 4, not sqzUseHtfInput ? 'Off' : sqzHtfLongAligned ? 'Long' : sqzHtfShortAligned ? 'Short' : 'Conflict', text_color = not sqzUseHtfInput ? color.silver : sqzHtfLongAligned ? color.lime : sqzHtfShortAligned ? color.red : color.orange)
+    table.cell(sqzFilterTable, 0, 5, 'Release', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 5, sqzOn ? 'Squeeze' : sqzRecentRelease ? 'Recent' : 'No', text_color = sqzOn ? color.orange : sqzRecentRelease ? color.aqua : color.silver)
+    table.cell(sqzFilterTable, 0, 6, 'Allows', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 6, sqzAllowsText, text_color = sqzAllowsColor)
+    table.cell(sqzFilterTable, 0, 7, 'RSI', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 7, str.tostring(rsiValue,'#.0') + ' ' + (useRSIFilterInput ? rsiFilterModeInput : 'Off'), text_color = useRSIFilterInput ? color.white : color.silver)
+    table.cell(sqzFilterTable, 0, 8, 'RSI Allows', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 8, rsiAllowsText, text_color = rsiAllowsColor)
+    table.cell(sqzFilterTable, 0, 9, 'Stoch', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 9, str.tostring(stochK,'#.0') + '/' + str.tostring(stochD,'#.0') + ' ' + (useStochFilterInput ? stochFilterModeInput : 'Off'), text_color = useStochFilterInput ? color.white : color.silver)
+    table.cell(sqzFilterTable, 0, 10, 'Stoch Allows', text_color = color.silver)
+    table.cell(sqzFilterTable, 1, 10, stochAllowsText, text_color = stochAllowsColor)
