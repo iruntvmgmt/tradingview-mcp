@@ -9,6 +9,7 @@ time — no hardcoded selectors in this file.
 """
 
 import asyncio
+import json
 from typing import Any
 
 from core.services.backends.base import (
@@ -120,13 +121,12 @@ class DomIndicatorBackend(IndicatorBackend):
 
         textarea_sels = pine_detail.get("textarea_selectors",
                                          [".inputarea.monaco-mouse-cursor-text"])
-        escaped_source = pine_code.replace("'", "\\'").replace("\n", "\\n")
         js = f"""
         (() => {{
-            const ta = document.querySelector('{textarea_sels[0].replace(chr(39), "\\'")}');
+            const ta = document.querySelector({json.dumps(textarea_sels[0])});
             if (ta) {{
                 ta.focus();
-                ta.value = '{escaped_source}';
+                ta.value = {json.dumps(pine_code)};
                 ta.dispatchEvent(new Event('input', {{ bubbles: true }}));
                 ta.dispatchEvent(new Event('change', {{ bubbles: true }}));
                 return true;
@@ -369,6 +369,14 @@ class DomOrderBackend(OrderBackend):
         size_sels = field_sels.get("size", [])
         if size_sels:
             await self._dom.type_text(size_sels, str(size))
+        # Fill stop loss field if provided
+        sl_sels = field_sels.get("sl", [])
+        if sl is not None and sl_sels:
+            await self._dom.type_text(sl_sels, str(sl))
+        # Fill take profit field if provided
+        tp_sels = field_sels.get("tp", [])
+        if tp is not None and tp_sels:
+            await self._dom.type_text(tp_sels, str(tp))
         # Submit
         submit_sels = detail.get("submit_selectors", [])
         if submit_sels:

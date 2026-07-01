@@ -6,7 +6,9 @@ clicking used across all domain backends.
 """
 
 import asyncio
+import json
 import logging
+import re
 from typing import Any
 
 from core.services.errors import SelectorResolutionError
@@ -44,19 +46,17 @@ class DomUtils:
 
     async def _count_selector(self, selector: str) -> int:
         """Return the number of DOM nodes matching *selector*."""
-        escaped = selector.replace("'", "\\'")
         result = await self._cdp.execute_js(
-            f"document.querySelectorAll('{escaped}').length",
+            f"document.querySelectorAll({json.dumps(selector)}).length",
         )
         val = result.get("result", {}).get("value", 0)
         return int(val) if val is not None else 0
 
     async def _get_element_bounds(self, selector: str) -> dict | None:
         """Return bounding-box info for the first element matching *selector*."""
-        escaped = selector.replace("'", "\\'")
         js = f"""
         (() => {{
-            const el = document.querySelector('{escaped}');
+            const el = document.querySelector({json.dumps(selector)});
             if (!el) return null;
             const rect = el.getBoundingClientRect();
             return {{ x: rect.x, y: rect.y, w: rect.width, h: rect.height }};
@@ -107,15 +107,13 @@ class DomUtils:
                 f"No selector matched for typing (tried {len(selectors)})",
                 details={"selectors": selectors, "timeout": timeout},
             )
-        escaped_sel = sel.replace("'", "\\'")
-        escaped_text = text.replace("'", "\\'").replace("\n", "\\n")
         js = f"""
         (() => {{
-            const el = document.querySelector('{escaped_sel}');
+            const el = document.querySelector({json.dumps(sel)});
             if (!el) return false;
             el.focus();
             {'el.value = "";' if clear_first else ''}
-            el.value = '{escaped_text}';
+            el.value = {json.dumps(text)};
             el.dispatchEvent(new Event('input', {{ bubbles: true }}));
             el.dispatchEvent(new Event('change', {{ bubbles: true }}));
             return true;
@@ -127,14 +125,22 @@ class DomUtils:
 
     async def extract_text(self, selectors: list[str],
                            timeout: float = 5.0) -> str | None:
-        """Extract ``textContent`` from the first matching element."""
+        """Extract text from the first matching element.
+
+        For ``<input>`` and ``<textarea>`` elements, returns ``.value`` instead
+        of ``.textContent`` so user-typed values are captured correctly.
+        """
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
             return None
-        escaped = sel.replace("'", "\\'")
-        result = await self._cdp.execute_js(
-            f"document.querySelector('{escaped}')?.textContent ?? ''",
-        )
+        js = f"""(function() {{
+            const el = document.querySelector({json.dumps(sel)});
+            if (!el) return '';
+            return (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')
+                ? (el.value ?? '')
+                : (el.textContent ?? '');
+        }})()"""
+        result = await self._cdp.execute_js(js)
         return result.get("result", {}).get("value")
 
     async def extract_table(self, selectors: list[str],
@@ -148,13 +154,12 @@ class DomUtils:
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
             return []
-        escaped_container = sel.replace("'", "\\'")
 
         if row_selectors:
             # Resolve row selector within the container context only
             js = f"""
             (() => {{
-                const container = document.querySelector('{escaped_container}');
+                const container = document.querySelector({json.dumps(sel)});
                 if (!container) return [];
                 const selectors = {json.dumps(row_selectors)};
                 let rows = [];
@@ -172,7 +177,7 @@ class DomUtils:
             """
         else:
             js = f"""
-            Array.from(document.querySelector('{escaped_container}')?.querySelectorAll('tr') ?? []).map(row =>
+            Array.from(document.querySelector({json.dumps(sel)})?.querySelectorAll('tr') ?? []).map(row =>
                 Array.from(row.querySelectorAll('td, th')).map(cell => cell.textContent.trim())
             )
             """
@@ -199,9 +204,8 @@ class DomUtils:
                 details={"selectors": container_selectors},
             )
         delta = amount if direction == "down" else -amount
-        escaped = sel.replace("'", "\\'")
         await self._cdp.execute_js(
-            f"document.querySelector('{escaped}')?.scrollBy(0, {delta})",
+            f"document.querySelector({json.dumps(sel)})?.scrollBy(0, {delta})",
         )
 
     # ── Scroll-and-stitch for virtual scrollers ─────────────────
@@ -224,14 +228,13 @@ class DomUtils:
 
         collected: list[str] = []
         seen = set()
-        escaped_sel = sel.replace("'", "\\'")
 
         for i in range(pages + 1):
             pct = i / max(pages, 1)
 
             # Scroll to position
             await self._cdp.execute_js(
-                f"var s = document.querySelector('{escaped_sel}'); "
+                f"var s = document.querySelector({json.dumps(sel)}); "
                 f"if(s) s.scrollTop = s.scrollHeight * {pct};"
             )
 
@@ -243,9 +246,8 @@ class DomUtils:
             if textarea_selectors:
                 ta_sel = await self.resolve_selector(textarea_selectors, timeout=2.0)
                 if ta_sel:
-                    escaped_ta = ta_sel.replace("'", "\\'")
                     r = await self._cdp.execute_js(
-                        f"document.querySelector('{escaped_ta}')?.value ?? ''"
+                        f"document.querySelector({json.dumps(ta_sel)})?.value ?? ''"
                     )
                     text = r.get("result", {}).get("value", "")
 
@@ -281,8 +283,15 @@ class DomUtils:
             return body;
         })()
         """
-        result = await self._cdp.execute_js(js)
-        body = result.get("result", {}).get("value", "")
+        deadline = asyncio.get_running_loop().time() + timeout
+        body = ""
+        while asyncio.get_running_loop().time() < deadline:
+            result = await self._cdp.execute_js(js)
+            body = result.get("result", {}).get("value", "")
+            if body:
+                break
+            await asyncio.sleep(POLL_INTERVAL_SEC)
+
         if not body:
             return {}
 
@@ -295,9 +304,8 @@ class DomUtils:
                 # Extract the text chunk after the label (up to ~80 chars)
                 chunk = body[idx + len(variant):idx + len(variant) + 120]
                 # Try to find a numeric value: <number> possibly followed by %, USD, etc.
-                import re
                 m = re.search(
-                    r'[\n\s]*([\d,.]+(?:e\+\d+)?)\s*(?:%|USD|trades)?',
+                    r'[\n\s]*(-?[\d,.]+(?:e[+-]?\d+)?)\s*(?:%|USD|trades)?',
                     chunk.split('\n')[0] if '\n' in chunk else chunk
                 )
                 if m:
@@ -321,8 +329,8 @@ class DomUtils:
 
         Returns True if an element was found and clicked, False otherwise.
         """
-        escaped = text.replace("\\", "\\\\").replace("'", "\\'")
-        compare = f"txt === '{escaped}'" if exact else f"txt.indexOf('{escaped}') !== -1"
+        txt_json = json.dumps(text)
+        compare = f"txt === {txt_json}" if exact else f"txt.indexOf({txt_json}) !== -1"
         js = f"""
         (() => {{
             const all = document.querySelectorAll('*');
@@ -381,10 +389,9 @@ class DomUtils:
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
             return False
-        escaped = sel.replace("'", "\\'")
         result = await self._cdp.execute_js(
             f"""(function() {{
-                const el = document.querySelector('{escaped}');
+                const el = document.querySelector({json.dumps(sel)});
                 if (!el) return false;
                 const style = window.getComputedStyle(el);
                 return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0;
@@ -398,8 +405,7 @@ class DomUtils:
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
             return None
-        escaped = sel.replace("'", "\\'")
         result = await self._cdp.execute_js(
-            f"document.querySelector('{escaped}')?.getAttribute('{attr}') ?? null",
+            f"document.querySelector({json.dumps(sel)})?.getAttribute({json.dumps(attr)}) ?? null",
         )
         return result.get("result", {}).get("value")

@@ -99,6 +99,10 @@ class CDPConnection:
         Retries up to ``MAX_RETRIES`` times with ``RETRY_DELAY_SEC`` backoff
         to give TV Desktop time to finish starting up.
         """
+        # Clean up any residual state from a prior connection
+        if self._ws or self._reader_task:
+            await self.disconnect()
+
         last_exc: Exception | None = None
         for attempt in range(1, MAX_RETRIES + 1):
             try:
@@ -118,6 +122,18 @@ class CDPConnection:
                 return
             except (OSError, ConnectionError, websockets.WebSocketException, HttpxConnectError, HttpxHTTPError, CDPConnectionError) as exc:
                 last_exc = exc
+                # Clean up any partial state from this attempt
+                if self._ws:
+                    await self._ws.close()
+                    self._ws = None
+                if self._reader_task:
+                    self._reader_task.cancel()
+                    try:
+                        await self._reader_task
+                    except asyncio.CancelledError:
+                        pass
+                    self._reader_task = None
+                self._target_id = None
                 logger.warning("CDP connect attempt %d/%d failed: %s", attempt, MAX_RETRIES, exc)
                 if attempt < MAX_RETRIES:
                     await asyncio.sleep(RETRY_DELAY_SEC)
@@ -128,12 +144,25 @@ class CDPConnection:
 
     async def disconnect(self) -> None:
         """Close the WebSocket and kill the browser process if we launched it."""
+        # 1. Reject all pending CDP response futures so callers don't hang
+        self._reject_pending_futures(
+            CDPConnectionError("Disconnecting — CDP connection closed"),
+        )
+
+        # 2. Cancel and await the reader task before closing the socket
         if self._reader_task:
             self._reader_task.cancel()
+            try:
+                await self._reader_task
+            except asyncio.CancelledError:
+                pass
             self._reader_task = None
+
+        # 3. Close the WebSocket
         if self._ws:
             await self._ws.close()
             self._ws = None
+
         self._target_id = None
         self._network_enabled = False
         if self._proc:
@@ -376,6 +405,26 @@ class CDPConnection:
                 elif msg.get("method", "").startswith("Network."):
                     self._network_events.append(msg)
         except websockets.WebSocketException:
-            pass
+            self._reject_pending_futures(
+                CDPConnectionError("WebSocket closed unexpectedly"),
+            )
         except asyncio.CancelledError:
-            pass
+            self._reject_pending_futures(
+                CDPConnectionError("WebSocket reader task cancelled"),
+            )
+
+    # ── Internal helpers ─────────────────────────────────────────
+
+    def _reject_pending_futures(self, exc: Exception) -> None:
+        """Reject all pending response futures with *exc*.
+
+        Called when the WebSocket disconnects unexpectedly or during
+        graceful disconnect so that any coroutines awaiting a CDP
+        response get an immediate error instead of hanging until the
+        30-second timeout expires.
+        """
+        pending = list(self._pending_responses.values())
+        self._pending_responses.clear()
+        for fut in pending:
+            if not fut.done():
+                fut.set_exception(exc)
