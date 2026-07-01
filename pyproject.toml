@@ -1,0 +1,33 @@
+[project]
+name = "tv-desktop-controller"
+version = "0.1.0"
+description = "MCP server for autonomous control of TradingView Desktop via CDP"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+dependencies = [
+    "mcp>=1.0.0",
+    "websockets>=12.0",
+    "httpx>=0.27.0",
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests that require a live TradingView Desktop instance (deselect with '-m \"not integration\"')",
+]
+
+[project.scripts]
+tv-desktop-recon = "core.services.recon:cli_main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
