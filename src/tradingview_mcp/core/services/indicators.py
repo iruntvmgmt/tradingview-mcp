@@ -40,16 +40,20 @@ def compute_bb_rating_signal(close: float, bb_upper: float, bb_middle: float, bb
 
 def compute_metrics(indicators: Dict) -> Optional[Dict]:
     try:
-        open_price = indicators["open"]
-        close = indicators["close"]
-        sma = indicators["SMA20"]
-        bb_upper = indicators["BB.upper"]
-        bb_lower = indicators["BB.lower"]
+        open_price = indicators.get("open")
+        close = indicators.get("close")
+        sma = indicators.get("SMA20")
+        bb_upper = indicators.get("BB.upper")
+        bb_lower = indicators.get("BB.lower")
         bb_middle = sma
 
-        change = compute_change(open_price, close)
+        # If essential price data is missing, return None
+        if close is None:
+            return None
+
+        change = compute_change(open_price or 0, close)
         bbw = compute_bbw(sma, bb_upper, bb_lower)
-        rating, signal = compute_bb_rating_signal(close, bb_upper, bb_middle, bb_lower)
+        rating, signal = compute_bb_rating_signal(close, bb_upper or 0, bb_middle or 0, bb_lower or 0)
 
         return {
             "price": round(close, 4),
@@ -58,7 +62,7 @@ def compute_metrics(indicators: Dict) -> Optional[Dict]:
             "rating": rating,
             "signal": signal,
         }
-    except (KeyError, TypeError):
+    except (KeyError, TypeError, ValueError, ZeroDivisionError):
         return None
 
 

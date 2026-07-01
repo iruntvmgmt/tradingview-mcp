@@ -301,7 +301,12 @@ def volume_confirmation_analyze(
             },
         }
     except Exception as exc:
-        return {"error": f"Analysis failed: {humanize_upstream_error(exc)}"}
+        return {
+            "error": f"Analysis failed: {humanize_upstream_error(exc)}",
+            "symbol": symbol,
+            "exchange": exchange,
+            "timeframe": timeframe,
+        }
 
 
 # ── Smart volume scanner ───────────────────────────────────────────────────────
