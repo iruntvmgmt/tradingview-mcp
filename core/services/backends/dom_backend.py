@@ -573,37 +573,15 @@ class DomPineScriptBackend(PineScriptBackend):
         return text or ""
 
     async def write(self, script_name: str, source: str) -> None:
-        """Write new source into the Pine Editor via a synthetic paste event.
+        """Write new source into the Pine Editor via system clipboard + Cmd+V.
 
-        1. Focus the textarea.
-        2. Select all existing content so the paste overwrites it.
-        3. Dispatch a ``ClipboardEvent('paste')`` with the full source —
-           Monaco intercepts this and routes it directly into its
-           internal model.
+        ``type_text_monaco`` handles: clipboard write, editor focus,
+        Cmd+A (select all), and Cmd+V (paste via real keystrokes).
         """
         detail = _cap(self._caps, "pine_write")
         textarea_sels = detail.get("textarea_selectors", [])
         editor_sels = detail.get("editor_selectors", [])
 
-        # Focus the hidden Monaco textarea via CDP mouse click
-        try:
-            await self._dom.click(textarea_sels or editor_sels, timeout=1.0)
-        except Exception:
-            pass  # Focus handled by type_text_monaco
-
-        # Select all existing content so the paste replaces everything
-        import asyncio
-        await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "rawKeyDown", "modifiers": 8, "key": "a",
-            "code": "KeyA", "windowsVirtualKeyCode": 65,
-        })
-        await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "keyUp", "modifiers": 8, "key": "a",
-            "code": "KeyA", "windowsVirtualKeyCode": 65,
-        })
-        await asyncio.sleep(0.1)
-
-        # Write via Monaco-native paste event
         await self._dom.type_text_monaco(
             textarea_sels or editor_sels, source
         )

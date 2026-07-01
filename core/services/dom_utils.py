@@ -123,17 +123,17 @@ class DomUtils:
 
     async def type_text_monaco(self, selectors: list[str], text: str,
                                timeout: float = 5.0) -> None:
-        """Write *text* into a Monaco editor via a synthetic paste event.
+        """Write *text* into a Monaco editor via system clipboard + real Cmd+V.
 
-        Monaco does NOT read ``.value`` from its hidden textarea — it
-        virtualizes the textarea to a ~1000-char window around the cursor
-        position.  Direct ``.value`` writes or ``execCommand('insertText')``
-        are silently truncated.
+        Monaco ignores synthetic ``ClipboardEvent``s (they have
+        ``isTrusted: false``).  Instead we:
 
-        The reliable approach is to dispatch a **synthetic
-        ``ClipboardEvent('paste')``** with a populated ``DataTransfer``.
-        Monaco intercepts paste events and routes the full payload directly
-        into its internal model regardless of size.
+        1. Write the full text to the system clipboard via
+           ``navigator.clipboard.writeText()``.
+        2. Focus the editor via a CDP mouse click on the visible container.
+        3. Send real ``Cmd+A`` then ``Cmd+V`` keystrokes via CDP
+           ``Input.dispatchKeyEvent`` — Monaco intercepts these as
+           trusted keyboard events and handles the paste natively.
         """
         import base64
 
@@ -145,97 +145,154 @@ class DomUtils:
             )
         b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
 
-        js = f"""
-        (() => {{
-            const el = document.querySelector({json.dumps(sel)});
-            if (!el) return false;
-            el.focus();
-
-            // Decode the script
+        # Step 1: Write the full text to the system clipboard
+        clip_js = f"""
+        (async () => {{
             const binary = atob({json.dumps(b64)});
             const bytes = new Uint8Array(binary.length);
             for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
             const decoded = new TextDecoder().decode(bytes);
-
-            // Build a DataTransfer with the full text
-            const dt = new DataTransfer();
-            dt.setData('text/plain', decoded);
-
-            // Dispatch a synthetic paste event — Monaco intercepts this
-            // and routes the payload directly into its internal model
-            const pasteEvent = new ClipboardEvent('paste', {{
-                clipboardData: dt,
-                bubbles: true,
-                cancelable: true,
-            }});
-            el.dispatchEvent(pasteEvent);
-            return true;
+            try {{
+                await navigator.clipboard.writeText(decoded);
+                return 'clipboard_ok';
+            }} catch(e) {{
+                return 'clipboard_fail: ' + e.message;
+            }}
         }})()
         """
-        result = await self._cdp.execute_js(js)
-        ok = result.get("result", {}).get("value")
-        if ok is False:
-            raise SelectorResolutionError(
-                f"Paste event dispatch failed — element not found or not focusable",
-                details={"selectors": selectors},
-            )
+        clip_result = await self._cdp.execute_js(clip_js, await_promise=True)
+        ret_val = clip_result.get("result", {}).get("value", "")
+        if "clipboard_fail" in str(ret_val):
+            import logging
+            logging.getLogger(__name__).warning("Clipboard write failed: %s", ret_val)
+
+        # Step 2: Focus the visible Monaco editor container via CDP click
+        import asyncio
+        bounds_js = """
+        (() => {
+            const el = document.querySelector('.monaco-editor');
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+        })()
+        """
+        bounds_result = await self._cdp.execute_js(bounds_js)
+        bv = bounds_result.get("result", {}).get("value", {})
+        cx = (bv.get("x", 0) or 0)
+        cy = (bv.get("y", 0) or 0)
+
+        if cx and cy:
+            await self._cdp._send_command("Input.dispatchMouseEvent", {
+                "type": "mousePressed", "x": cx, "y": cy,
+                "button": "left", "clickCount": 1,
+            })
+            await self._cdp._send_command("Input.dispatchMouseEvent", {
+                "type": "mouseReleased", "x": cx, "y": cy,
+                "button": "left", "clickCount": 1,
+            })
+            await asyncio.sleep(0.2)
+
+        # Step 3: Cmd+A (select all) then Cmd+V (paste) — REAL keystrokes
+        # Cmd+A
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "rawKeyDown", "modifiers": 8, "key": "a",
+            "code": "KeyA", "windowsVirtualKeyCode": 65,
+        })
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "keyUp", "modifiers": 8, "key": "a",
+            "code": "KeyA", "windowsVirtualKeyCode": 65,
+        })
+        await asyncio.sleep(0.1)
+        # Cmd+V
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "rawKeyDown", "modifiers": 8, "key": "v",
+            "code": "KeyV", "windowsVirtualKeyCode": 86,
+        })
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "keyUp", "modifiers": 8, "key": "v",
+            "code": "KeyV", "windowsVirtualKeyCode": 86,
+        })
+        await asyncio.sleep(0.3)
 
     async def read_text_monaco(self, selectors: list[str],
                                 timeout: float = 5.0) -> str | None:
-        """Read the full source from a Monaco editor via a copy-event intercept.
+        """Read the full source from a Monaco editor via real
+        ``Cmd+A`` + ``Cmd+C`` + clipboard read.
 
-        Since Monaco only exposes a ~1000-char window via ``textarea.value``,
-        we force a full read by:
+        Synthetic ``ClipboardEvent``s have ``isTrusted: false`` so Monaco
+        ignores them.  Instead we:
 
-        1. Registering a temporary ``copy`` event listener that captures
-           ``e.clipboardData.getData('text/plain')``.
-        2. Selecting all text (``document.execCommand('selectAll')``).
-        3. Triggering a synthetic ``ClipboardEvent('copy')`` on the textarea.
-        4. Returning the captured text.
-
-        Monaco intercepts copy events and populates the clipboard with the
-        full document contents from its internal model.
+        1. Click the visible Monaco editor container to focus it.
+        2. Send real ``Cmd+A`` keystroke via CDP to select all.
+        3. Send real ``Cmd+C`` keystroke via CDP to copy to system clipboard.
+        4. Read from ``navigator.clipboard.readText()``.
         """
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
             return None
 
-        js = f"""
-        (() => {{
-            const el = document.querySelector({json.dumps(sel)});
-            if (!el) return '';
+        import asyncio
 
-            // Register a one-shot copy listener to intercept the data
-            let captured = '';
-            const handler = (e) => {{
-                captured = e.clipboardData.getData('text/plain') || '';
-                e.preventDefault(); // prevent actual clipboard write
-            }};
-            document.addEventListener('copy', handler, {{ once: true }});
-
-            // Select all content within the Monaco editor
-            el.focus();
-            document.execCommand('selectAll', false, null);
-
-            // Dispatch a synthetic copy event — Monaco intercepts this
-            // and populates clipboardData with the full source from its
-            // internal model
-            const copyEvent = new ClipboardEvent('copy', {{
-                clipboardData: new DataTransfer(),
-                bubbles: true,
-                cancelable: true,
-            }});
-            el.dispatchEvent(copyEvent);
-
-            // Clean up the listener (belt-and-suspenders)
-            document.removeEventListener('copy', handler);
-
-            return captured;
-        }})()
+        # Step 1: Click the visible editor container to focus it
+        bounds_js = """
+        (() => {
+            const el = document.querySelector('.monaco-editor');
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+        })()
         """
-        result = await self._cdp.execute_js(js)
+        bounds_result = await self._cdp.execute_js(bounds_js)
+        bv = bounds_result.get("result", {}).get("value", {})
+        cx = (bv.get("x", 0) or 0)
+        cy = (bv.get("y", 0) or 0)
+
+        if cx and cy:
+            await self._cdp._send_command("Input.dispatchMouseEvent", {
+                "type": "mousePressed", "x": cx, "y": cy,
+                "button": "left", "clickCount": 1,
+            })
+            await self._cdp._send_command("Input.dispatchMouseEvent", {
+                "type": "mouseReleased", "x": cx, "y": cy,
+                "button": "left", "clickCount": 1,
+            })
+            await asyncio.sleep(0.2)
+
+        # Step 2: Cmd+A (select all)
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "rawKeyDown", "modifiers": 8, "key": "a",
+            "code": "KeyA", "windowsVirtualKeyCode": 65,
+        })
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "keyUp", "modifiers": 8, "key": "a",
+            "code": "KeyA", "windowsVirtualKeyCode": 65,
+        })
+        await asyncio.sleep(0.15)
+
+        # Step 3: Cmd+C (copy to system clipboard)
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "rawKeyDown", "modifiers": 8, "key": "c",
+            "code": "KeyC", "windowsVirtualKeyCode": 67,
+        })
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "keyUp", "modifiers": 8, "key": "c",
+            "code": "KeyC", "windowsVirtualKeyCode": 67,
+        })
+        await asyncio.sleep(0.15)
+
+        # Step 4: Read from system clipboard
+        read_js = """
+        (async () => {
+            try {
+                return await navigator.clipboard.readText();
+            } catch(e) {
+                return 'read_fail: ' + e.message;
+            }
+        })()
+        """
+        result = await self._cdp.execute_js(read_js, await_promise=True)
         text = result.get("result", {}).get("value", "")
-        if not text:
+        if not text or "read_fail" in str(text):
             return None
         return text
 
