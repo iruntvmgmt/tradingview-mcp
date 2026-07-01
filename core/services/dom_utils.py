@@ -121,6 +121,124 @@ class DomUtils:
         """
         await self._cdp.execute_js(js)
 
+    async def type_text_monaco(self, selectors: list[str], text: str,
+                               timeout: float = 5.0) -> None:
+        """Write *text* into a Monaco editor via a synthetic paste event.
+
+        Monaco does NOT read ``.value`` from its hidden textarea — it
+        virtualizes the textarea to a ~1000-char window around the cursor
+        position.  Direct ``.value`` writes or ``execCommand('insertText')``
+        are silently truncated.
+
+        The reliable approach is to dispatch a **synthetic
+        ``ClipboardEvent('paste')``** with a populated ``DataTransfer``.
+        Monaco intercepts paste events and routes the full payload directly
+        into its internal model regardless of size.
+        """
+        import base64
+
+        sel = await self.resolve_selector(selectors, timeout=timeout)
+        if sel is None:
+            raise SelectorResolutionError(
+                f"No textarea selector matched (tried {len(selectors)})",
+                details={"selectors": selectors, "timeout": timeout},
+            )
+        b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
+
+        js = f"""
+        (() => {{
+            const el = document.querySelector({json.dumps(sel)});
+            if (!el) return false;
+            el.focus();
+
+            // Decode the script
+            const binary = atob({json.dumps(b64)});
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const decoded = new TextDecoder().decode(bytes);
+
+            // Build a DataTransfer with the full text
+            const dt = new DataTransfer();
+            dt.setData('text/plain', decoded);
+
+            // Dispatch a synthetic paste event — Monaco intercepts this
+            // and routes the payload directly into its internal model
+            const pasteEvent = new ClipboardEvent('paste', {{
+                clipboardData: dt,
+                bubbles: true,
+                cancelable: true,
+            }});
+            el.dispatchEvent(pasteEvent);
+            return true;
+        }})()
+        """
+        result = await self._cdp.execute_js(js)
+        ok = result.get("result", {}).get("value")
+        if ok is False:
+            raise SelectorResolutionError(
+                f"Paste event dispatch failed — element not found or not focusable",
+                details={"selectors": selectors},
+            )
+
+    async def read_text_monaco(self, selectors: list[str],
+                                timeout: float = 5.0) -> str | None:
+        """Read the full source from a Monaco editor via a copy-event intercept.
+
+        Since Monaco only exposes a ~1000-char window via ``textarea.value``,
+        we force a full read by:
+
+        1. Registering a temporary ``copy`` event listener that captures
+           ``e.clipboardData.getData('text/plain')``.
+        2. Selecting all text (``document.execCommand('selectAll')``).
+        3. Triggering a synthetic ``ClipboardEvent('copy')`` on the textarea.
+        4. Returning the captured text.
+
+        Monaco intercepts copy events and populates the clipboard with the
+        full document contents from its internal model.
+        """
+        sel = await self.resolve_selector(selectors, timeout=timeout)
+        if sel is None:
+            return None
+
+        js = f"""
+        (() => {{
+            const el = document.querySelector({json.dumps(sel)});
+            if (!el) return '';
+
+            // Register a one-shot copy listener to intercept the data
+            let captured = '';
+            const handler = (e) => {{
+                captured = e.clipboardData.getData('text/plain') || '';
+                e.preventDefault(); // prevent actual clipboard write
+            }};
+            document.addEventListener('copy', handler, {{ once: true }});
+
+            // Select all content within the Monaco editor
+            el.focus();
+            document.execCommand('selectAll', false, null);
+
+            // Dispatch a synthetic copy event — Monaco intercepts this
+            // and populates clipboardData with the full source from its
+            // internal model
+            const copyEvent = new ClipboardEvent('copy', {{
+                clipboardData: new DataTransfer(),
+                bubbles: true,
+                cancelable: true,
+            }});
+            el.dispatchEvent(copyEvent);
+
+            // Clean up the listener (belt-and-suspenders)
+            document.removeEventListener('copy', handler);
+
+            return captured;
+        }})()
+        """
+        result = await self._cdp.execute_js(js)
+        text = result.get("result", {}).get("value", "")
+        if not text:
+            return None
+        return text
+
     # ── Extract text / table data ───────────────────────────────
 
     async def extract_text(self, selectors: list[str],

@@ -305,7 +305,11 @@
           "#pine-editor-dialog div[class*=\"monaco-editor\"]",
           "#pine-editor-dialog div[role=\"textbox\"]"
         ],
-        "open_tab_selectors": ["button:has(div:text(\"Pine Editor\"))"]
+        "open_tab_selectors": [],
+        "textarea_selectors": [
+          ".monaco-editor textarea.inputarea",
+          "#pine-editor-dialog textarea"
+        ]
       }
     },
     "pine_write": {
@@ -316,18 +320,24 @@
         "editor_selectors": [
           "#pine-editor-dialog div[class*=\"monaco-editor\"]",
           "#pine-editor-dialog div[role=\"textbox\"]"
+        ],
+        "textarea_selectors": [
+          ".monaco-editor textarea.inputarea",
+          "#pine-editor-dialog textarea"
         ]
       }
     },
     "pine_compile": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
         "dialog_selector": "#pine-editor-dialog",
         "compile_selectors": [
           "#pine-editor-dialog button[data-name=\"add-to-chart\"]",
           "button[data-name=\"add-to-chart\"]"
-        ]
+        ],
+        "use_keyboard_shortcut": true,
+        "compile_keys": "Meta+Enter"
       }
     },
     "pine_compile_errors_read": {

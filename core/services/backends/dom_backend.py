@@ -525,9 +525,18 @@ class DomSettingsBackend(SettingsBackend):
 class DomPineScriptBackend(PineScriptBackend):
     """Pine Script editor interaction via DOM.
 
-    The Pine Editor uses Monaco with a virtual scroller — ``.view-line``
-    elements only render the visible viewport.  Full source access requires
-    scrolling through the editor and collecting textarea snapshots.
+    The Pine Editor uses Monaco with a virtual scroller.  Monaco only
+    exposes a ~1000-char window of ``textarea.value`` around the cursor.
+
+    **Write** uses a synthetic ``ClipboardEvent('paste')`` with a
+    populated ``DataTransfer`` — Monaco intercepts paste events and
+    routes the full payload directly into its internal model.
+
+    **Read** uses a synthetic ``ClipboardEvent('copy')`` with an event
+    listener to intercept the full document from Monaco's internal model.
+
+    **Compile** is triggered via keyboard shortcuts rather than brittle
+    DOM button hunting.
     """
 
     def __init__(self, cdp, dom, capabilities: dict):
@@ -536,70 +545,126 @@ class DomPineScriptBackend(PineScriptBackend):
         self._caps = capabilities
 
     async def read(self, script_name: str) -> str:
-        """Read the Pine Script source from the editor.
+        """Read the full Pine Script source via a copy-event intercept.
 
-        Uses scroll-and-stitch to work around Monaco's virtual scroller:
-        1. Ensure the Pine Editor dialog is open.
-        2. Focus the Monaco editor via click.
-        3. Scroll to multiple positions and collect textarea snapshots.
-        4. Return the longest collected snippet.
+        1. Focus the Monaco textarea.
+        2. Select all text via ``execCommand('selectAll')``.
+        3. Dispatch a synthetic ``ClipboardEvent('copy')`` with a
+           one-shot event listener that captures the full source from
+           Monaco's internal model.
         """
         detail = _cap(self._caps, "pine_read")
-        monaco_sels = detail.get("monaco_editor_selectors", [])
         textarea_sels = detail.get("textarea_selectors", [])
-        scrollable_sels = detail.get("scrollable_selectors", [])
 
         # 1. Open the Pine Editor tab if needed
         tab_sels = detail.get("open_tab_selectors", [])
         if tab_sels:
             await self._dom.click(tab_sels)
 
-        # 2. Focus the editor
-        if monaco_sels:
-            await self._dom.click(monaco_sels)
-
-        # 3. Use scroll-and-stitch for virtual scroller
-        if scrollable_sels and textarea_sels:
-            text = await self._dom.scroll_and_collect_text(
-                scrollable_sels, textarea_sels, pages=6, delay=0.3
-            )
+        # 2. Read via Monaco copy-event intercept (full source)
+        if textarea_sels:
+            text = await self._dom.read_text_monaco(textarea_sels, timeout=3.0)
             if text and len(text) > 50:
                 return text
 
-        # 4. Fallback: read view-lines from current viewport
+        # Fallback: read view-lines from current viewport
         view_sels = detail.get("view_line_selectors", [])
         text = await self._dom.extract_text(view_sels, timeout=3.0)
         return text or ""
 
     async def write(self, script_name: str, source: str) -> None:
-        """Write new source into the Pine Editor.
+        """Write new source into the Pine Editor via a synthetic paste event.
 
-        1. Focus the Monaco editor.
-        2. Select all existing content.
-        3. Type the new source.
+        1. Focus the textarea.
+        2. Select all existing content so the paste overwrites it.
+        3. Dispatch a ``ClipboardEvent('paste')`` with the full source —
+           Monaco intercepts this and routes it directly into its
+           internal model.
         """
         detail = _cap(self._caps, "pine_write")
-        monaco_sels = detail.get("monaco_editor_selectors", [])
-        editor_sels = detail.get("editor_selectors", [])
         textarea_sels = detail.get("textarea_selectors", [])
+        editor_sels = detail.get("editor_selectors", [])
 
-        # Focus editor
-        if monaco_sels:
-            await self._dom.click(monaco_sels)
-        elif editor_sels:
-            await self._dom.click(editor_sels)
+        # Focus the hidden Monaco textarea via CDP mouse click
+        try:
+            await self._dom.click(textarea_sels or editor_sels, timeout=1.0)
+        except Exception:
+            pass  # Focus handled by type_text_monaco
 
-        # Select all and type the new source
-        # Monaco syncs its content to the hidden textarea for IME input
-        await self._dom.type_text(textarea_sels or editor_sels, source,
-                                  clear_first=True)
+        # Select all existing content so the paste replaces everything
+        import asyncio
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "rawKeyDown", "modifiers": 8, "key": "a",
+            "code": "KeyA", "windowsVirtualKeyCode": 65,
+        })
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "keyUp", "modifiers": 8, "key": "a",
+            "code": "KeyA", "windowsVirtualKeyCode": 65,
+        })
+        await asyncio.sleep(0.1)
+
+        # Write via Monaco-native paste event
+        await self._dom.type_text_monaco(
+            textarea_sels or editor_sels, source
+        )
 
     async def compile(self, script_name: str) -> dict[str, Any]:
+        """Compile the script and add it to the chart.
+
+        Dispatches a ``KeyboardEvent`` for ``Meta+Enter`` (Mac: Cmd+Enter)
+        on the currently-focused element.  This triggers TradingView's
+        compile-and-add-to-chart action regardless of which button is
+        currently visible in the UI.
+        """
         detail = _cap(self._caps, "pine_compile")
-        compile_sels = detail.get("compile_selectors", [])
-        if compile_sels:
-            await self._dom.click(compile_sels)
+
+        # Try keyboard shortcut first if enabled
+        if detail.get("use_keyboard_shortcut"):
+            compile_keys = detail.get("compile_keys", "Meta+Enter")
+            await self._dispatch_keyboard_shortcut(compile_keys)
+        else:
+            # Fallback: click compile button
+            compile_sels = detail.get("compile_selectors", [])
+            if compile_sels:
+                await self._dom.click(compile_sels)
+
         return {"success": True}
+
+    async def _dispatch_keyboard_shortcut(self, combo: str) -> None:
+        """Dispatch a keyboard shortcut on ``document.activeElement``.
+
+        *combo* is a string like ``"Meta+Enter"`` or ``"Ctrl+s"``.  Parses
+        the modifier and key, then dispatches matching ``keydown`` /
+        ``keyup`` events.
+        """
+        parts = combo.split("+")
+        key = parts[-1].lower()
+        modifiers: dict[str, str] = {}
+
+        for p in parts[:-1]:
+            p_lower = p.lower()
+            if p_lower in ("meta", "cmd", "command"):
+                modifiers["metaKey"] = "true"
+            elif p_lower == "ctrl":
+                modifiers["ctrlKey"] = "true"
+            elif p_lower in ("alt", "option"):
+                modifiers["altKey"] = "true"
+            elif p_lower == "shift":
+                modifiers["shiftKey"] = "true"
+
+        mod_js = ", ".join(
+            f"{k}: {v}" for k, v in modifiers.items()
+        )
+        js = f"""
+        (() => {{
+            const el = document.activeElement || document.body;
+            const opts = {{ key: {json.dumps(key)}, code: {json.dumps('Key' + key.upper())}, {mod_js}, bubbles: true, cancelable: true }};
+            el.dispatchEvent(new KeyboardEvent('keydown', opts));
+            el.dispatchEvent(new KeyboardEvent('keyup', opts));
+            return true;
+        }})()
+        """
+        await self._cdp.execute_js(js)
 
     async def read_compile_errors(self) -> list[dict[str, Any]]:
         sels = _cap(self._caps, "pine_compile_errors_read").get("console_selectors", [])
