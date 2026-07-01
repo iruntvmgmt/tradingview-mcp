@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-07-01T06:00:00Z",
+  "generated_at": "2026-07-01T07:00:00Z",
   "tv_desktop_version": "3.2.0",
   "capabilities": {
     "symbol_control": {
@@ -24,13 +24,25 @@
       "detail": {
         "selectors": [
           "button[role=\"radio\"][data-value=\"{tf}\"]",
-          "button[role=\"radio\"]"
+          "button[role=\"radio\"]",
+          "button[aria-label=\"{tf_aria}\"]"
         ],
         "interval_map": {
-          "1m": "1", "5m": "5", "15m": "15", "30m": "30",
-          "1h": "60", "4h": "240", "1D": "1D", "1W": "1W", "1M": "1M"
+          "1m": {"value": "1", "aria": "1 minute"},
+          "5m": {"value": "5", "aria": "5 minutes"},
+          "15m": {"value": "15", "aria": "15 minutes"},
+          "30m": {"value": "30", "aria": "30 minutes"},
+          "1h": {"value": "60", "aria": "1 hour"},
+          "4h": {"value": "240", "aria": "4 hours"},
+          "1D": {"value": "1D", "aria": "1 day"},
+          "1W": {"value": "1W", "aria": "1 week"},
+          "1M": {"value": "1M", "aria": "1 month"}
         },
-        "active_selector": "button[role=\"radio\"][aria-checked=\"true\"]"
+        "active_selector": "button[role=\"radio\"][aria-checked=\"true\"]",
+        "dropdown_open_selectors": [
+          "button[data-name=\"header-toolbar-intervals\"]",
+          "button[role=\"radio\"]"
+        ]
       }
     },
     "ohlcv_read": {
@@ -111,11 +123,13 @@
           "button:has(div:text(\"Alert\"))",
           "button[class*=\"button-dlFDN0Zd\"]:has(div:text(\"Alert\"))"
         ],
+        "dialog_selector": "[data-qa-id=\"alerts-create-edit-dialog\"]",
         "field_selectors": {
           "condition": ["[data-name=\"alert-condition\"]"],
           "message": ["[data-name=\"alert-message\"]"]
         },
-        "confirm_selectors": ["button:has(div:text(\"Create\"))"]
+        "confirm_selectors": ["button:has(div:text(\"Create\"))"],
+        "cancel_selectors": ["button:has(div:text(\"Cancel\"))"]
       }
     },
     "alert_edit": {
@@ -272,23 +286,36 @@
     },
     "pine_read": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
-        "editor_selectors": ["div[class*=\"monaco-editor\"]"]
+        "dialog_selector": "#pine-editor-dialog",
+        "editor_selectors": [
+          "#pine-editor-dialog div[class*=\"monaco-editor\"]",
+          "#pine-editor-dialog div[role=\"textbox\"]"
+        ],
+        "open_tab_selectors": ["button:has(div:text(\"Pine Editor\"))"]
       }
     },
     "pine_write": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
-        "editor_selectors": ["div[class*=\"monaco-editor\"]"]
+        "dialog_selector": "#pine-editor-dialog",
+        "editor_selectors": [
+          "#pine-editor-dialog div[class*=\"monaco-editor\"]",
+          "#pine-editor-dialog div[role=\"textbox\"]"
+        ]
       }
     },
     "pine_compile": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "compile_selectors": ["button[data-name=\"add-to-chart\"]"]
+        "dialog_selector": "#pine-editor-dialog",
+        "compile_selectors": [
+          "#pine-editor-dialog button[data-name=\"add-to-chart\"]",
+          "button[data-name=\"add-to-chart\"]"
+        ]
       }
     },
     "pine_compile_errors_read": {
@@ -313,12 +340,12 @@
     "webpackChunktradingview_desktop"
   ],
   "raw_dom_snapshots": {
-    "pine_editor": "",
-    "strategy_tester": "",
-    "alert_modal": "",
-    "alert_list_panel": "",
-    "drawing_toolbar": "#drawing-toolbar with buttons: Cross, Cursors, Trendline, Trend tools, Fib retracement, Gann and Fibonacci tools, XABCD pattern, Patterns, Long position, Forecasting and measurement tools, Brush, Geometric shapes, Text, Annotation tools, Icon, Icons, Measure, Zoom in, Magnets, Lock all drawings, Hide all drawings, Remove objects, Sync drawings options",
-    "order_ticket": "",
-    "replay_toolbar": ""
+    "pine_editor": "id=pine-editor-dialog, class=editorBaseLayoutContainer-dialog-z_CXxRZA, data-query-type=container, contains Monaco editor",
+    "strategy_tester": "Shares bottom panel area with Pine Editor; tab-based switching",
+    "alert_modal": "data-qa-id=alerts-create-edit-dialog, class=dialog-qyCw0PaN dialog-YKU5b5xj, contains price condition fields",
+    "alert_list_panel": "Same alert dialog found; alert list may be a separate panel in right sidebar",
+    "drawing_toolbar": "#drawing-toolbar with 29 buttons: Cross, Cursors, Trendline, Trend tools, Fib retracement, Gann and Fibonacci tools, XABCD pattern, Patterns, Long position, Forecasting and measurement tools, Brush, Geometric shapes, Text, Annotation tools, Icon, Icons, Measure, Zoom in, Magnets, Lock all drawings, Hide all drawings, Remove objects, Sync drawings options",
+    "order_ticket": "Side panel opened via 'Trade' button; not captured as dialog (may be a sidebar widget)",
+    "replay_toolbar": "Toolbar appears when Replay mode is active; not separately detected as a dialog element"
   }
 }
