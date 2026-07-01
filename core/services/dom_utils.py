@@ -143,30 +143,36 @@ class DomUtils:
         """Scrape a table element as a list of rows.
 
         Each row is a list of cell text values. If *row_selectors* is given,
-        rows are located via that sub-selector within the container.
+        rows are located via that sub-selector scoped within the container.
         """
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
             return []
-        escaped = sel.replace("'", "\\'")
-        row_sel = ""
-        if row_selectors:
-            rs = await self.resolve_selector(
-                [f"{sel} {rs}" for rs in row_selectors] + row_selectors,
-                timeout=2.0,
-            )
-            if rs:
-                row_sel = rs.replace("'", "\\'")
+        escaped_container = sel.replace("'", "\\'")
 
-        if row_sel:
+        if row_selectors:
+            # Resolve row selector within the container context only
             js = f"""
-            Array.from(document.querySelectorAll('{row_sel}')).map(row =>
-                Array.from(row.querySelectorAll('td, th')).map(cell => cell.textContent.trim())
-            )
+            (() => {{
+                const container = document.querySelector('{escaped_container}');
+                if (!container) return [];
+                const selectors = {json.dumps(row_selectors)};
+                let rows = [];
+                for (const rs of selectors) {{
+                    const found = container.querySelectorAll(rs);
+                    if (found.length > 0) {{
+                        rows = Array.from(found);
+                        break;
+                    }}
+                }}
+                return rows.map(row =>
+                    Array.from(row.querySelectorAll('td, th')).map(cell => cell.textContent.trim())
+                );
+            }})()
             """
         else:
             js = f"""
-            Array.from(document.querySelector('{escaped}')?.querySelectorAll('tr') ?? []).map(row =>
+            Array.from(document.querySelector('{escaped_container}')?.querySelectorAll('tr') ?? []).map(row =>
                 Array.from(row.querySelectorAll('td, th')).map(cell => cell.textContent.trim())
             )
             """
@@ -197,6 +203,139 @@ class DomUtils:
         await self._cdp.execute_js(
             f"document.querySelector('{escaped}')?.scrollBy(0, {delta})",
         )
+
+    # ── Scroll-and-stitch for virtual scrollers ─────────────────
+
+    async def scroll_and_collect_text(self, scrollable_selectors: list[str],
+                                       textarea_selectors: list[str],
+                                       pages: int = 6,
+                                       delay: float = 0.3) -> str:
+        """Scroll through a virtual-scroller editor and collect text snapshots.
+
+        Designed for Monaco Editor's virtual viewport.  Scrolls to evenly-
+        spaced positions, reads ``textarea.value`` at each (which preserves
+        real newlines), and stitches snippets together.
+
+        Returns the longest collected snippet (best-effort full source).
+        """
+        sel = await self.resolve_selector(scrollable_selectors, timeout=5.0)
+        if sel is None:
+            return ""
+
+        collected: list[str] = []
+        seen = set()
+        escaped_sel = sel.replace("'", "\\'")
+
+        for i in range(pages + 1):
+            pct = i / max(pages, 1)
+
+            # Scroll to position
+            await self._cdp.execute_js(
+                f"var s = document.querySelector('{escaped_sel}'); "
+                f"if(s) s.scrollTop = s.scrollHeight * {pct};"
+            )
+
+            # Wait for virtual scroller to re-render
+            await asyncio.sleep(delay)
+
+            # Read textarea value
+            text = await self.extract_text(textarea_selectors, timeout=3.0)
+            if text and text not in seen:
+                seen.add(text)
+                # Keep snippets that add new content
+                if len(text) > 50:
+                    collected.append(text)
+
+        if not collected:
+            return ""
+
+        # Return the longest snippet (usually covers the most of the file)
+        collected.sort(key=len, reverse=True)
+        return collected[0]
+
+    # ── Strategy Tester innerText parsing ───────────────────────
+
+    async def extract_innertext_map(self, labels: dict[str, list[str]],
+                                     timeout: float = 5.0) -> dict[str, str]:
+        """Scan ``document.body.innerText`` for known Strategy Tester labels
+        and extract the associated numeric values.
+
+        *labels* is a ``{key: [label_variants]}`` mapping where each value
+        is a list of possible text labels (e.g. ``"sharpe": ["Sharpe ratio", "Sharpe"]``).
+
+        Returns a dict of ``{key: value_string}`` for each key where a
+        matching label was found.  Values are extracted as the text
+        immediately following the label in the innerText block.
+        """
+        js = """
+        (() => {
+            const body = document.body.innerText || '';
+            return body;
+        })()
+        """
+        result = await self._cdp.execute_js(js, timeout=timeout)
+        body = result.get("result", {}).get("value", "")
+        if not body:
+            return {}
+
+        out: dict[str, str] = {}
+        for key, variants in labels.items():
+            for variant in variants:
+                idx = body.find(variant)
+                if idx == -1:
+                    continue
+                # Extract the text chunk after the label (up to ~80 chars)
+                chunk = body[idx + len(variant):idx + len(variant) + 120]
+                # Try to find a numeric value: <number> possibly followed by %, USD, etc.
+                import re
+                m = re.search(
+                    r'[\n\s]*([\d,.]+(?:e\+\d+)?)\s*(?:%|USD|trades)?',
+                    chunk.split('\n')[0] if '\n' in chunk else chunk
+                )
+                if m:
+                    out[key] = m.group(1).strip()
+                    break
+                # Fallback: just take the first non-empty line
+                lines = [l.strip() for l in chunk.split('\n') if l.strip()]
+                if lines:
+                    out[key] = lines[0]
+                break
+        return out
+
+    # ── Text-based element click ────────────────────────────────
+
+    async def click_at_text(self, text: str, exact: bool = True,
+                            timeout: float = 5.0) -> bool:
+        """Find an element containing *text* and click it.
+
+        Searches the DOM for a visible leaf element whose textContent
+        matches *text*.  If *exact* is False, a substring match is used.
+
+        Returns True if an element was found and clicked, False otherwise.
+        """
+        escaped = text.replace("\\", "\\\\").replace("'", "\\'")
+        compare = f"txt === '{escaped}'" if exact else f"txt.indexOf('{escaped}') !== -1"
+        js = f"""
+        (() => {{
+            const all = document.querySelectorAll('*');
+            for (const el of all) {{
+                if (el.children.length !== 0) continue;
+                if (el.offsetParent === null) continue;
+                const txt = el.textContent?.trim() || '';
+                if ({compare}) {{
+                    const r = el.getBoundingClientRect();
+                    return {{ x: r.x + r.width / 2, y: r.y + r.height / 2, text: txt.substring(0, 50) }};
+                }}
+            }}
+            return null;
+        }})()
+        """
+        result = await self._cdp.execute_js(js, timeout=timeout)
+        pos = result.get("result", {}).get("value")
+        if pos and pos.get("x") is not None:
+            await self._cdp.click_at(pos["x"], pos["y"])
+            return True
+        return False
 
     # ── Canvas coordinate click ──────────────────────────────────
 

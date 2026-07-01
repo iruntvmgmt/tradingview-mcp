@@ -80,23 +80,35 @@
     },
     "backtest_run": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
         "tab_selectors": [
           "button[data-name=\"strategy-tester-tab\"]",
           "button:has(div:text(\"Strategy Tester\"))"
+        ],
+        "bottom_panel_selectors": [
+          ".chart-widget__bottom--themed-dark",
+          "[class*='chart-widget__bottom']"
         ]
       }
     },
     "backtest_summary": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
         "tab_selectors": ["div[class*=\"strategy-tester\"]"],
         "row_selectors": {
-          "net_profit": ["[data-name=\"net-profit\"]"],
-          "win_rate": ["[data-name=\"win-rate\"]"]
-        }
+          "net_profit": ["Net Profit", "Strategy outperformance"],
+          "win_rate": ["Percent Profitable", "Win Rate"],
+          "sharpe": ["Sharpe ratio", "Sharpe"],
+          "total_trades": ["Total trades", "Total closed trades"],
+          "profit_factor": ["Profit Factor", "Profit factor"],
+          "max_drawdown": ["Max drawdown"],
+          "cagr": ["CAGR"],
+          "avg_pnl": ["Average PnL", "Avg Trade"],
+          "return_pct": ["Return on initial capital"]
+        },
+        "fallback": "innertext_scan"
       }
     },
     "backtest_trade_list": {

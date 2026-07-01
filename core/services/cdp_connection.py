@@ -148,16 +148,24 @@ class CDPConnection:
     # ── CDP Commands ─────────────────────────────────────────────
 
     async def execute_js(self, expression: str,
-                         return_by_value: bool = True) -> dict[str, Any]:
+                         return_by_value: bool = True,
+                         await_promise: bool = False) -> dict[str, Any]:
         """Evaluate *expression* in the renderer context via ``Runtime.evaluate``.
 
         Returns the CDP result dict.  Raises ``ConnectionError`` on transport
         failure.
+
+        If *await_promise* is True, the call will wait for a Promise to resolve
+        before returning — useful for async DOM operations like waiting for
+        re-render after scrolling.
         """
-        result = await self._send_command("Runtime.evaluate", {
+        params: dict[str, Any] = {
             "expression": expression,
             "returnByValue": return_by_value,
-        })
+        }
+        if await_promise:
+            params["awaitPromise"] = True
+        result = await self._send_command("Runtime.evaluate", params)
         if "exceptionDetails" in result:
             logger.warning("JS exception in %r: %s",
                            expression[:80], result["exceptionDetails"])
@@ -244,6 +252,21 @@ class CDPConnection:
             "y": y,
             "button": "left",
             "clickCount": 1,
+        })
+
+    async def wheel_at(self, x: float, y: float,
+                       delta_x: float = 0.0, delta_y: float = 0.0) -> None:
+        """Dispatch a mouse wheel event at pixel (x, y) via CDP.
+
+        Virtual scrollers like Monaco Editor respond to wheel events
+        for scrolling, often more reliably than setting ``scrollTop``.
+        """
+        await self._send_command("Input.dispatchMouseEvent", {
+            "type": "mouseWheel",
+            "x": x,
+            "y": y,
+            "deltaX": delta_x,
+            "deltaY": delta_y,
         })
 
     # ── Health ──────────────────────────────────────────────────
@@ -343,6 +366,7 @@ class CDPConnection:
                 try:
                     msg = json.loads(raw)
                 except json.JSONDecodeError:
+                    logger.debug("Dropped non-JSON CDP frame (len=%d): %s", len(raw), str(raw)[:100])
                     continue
                 msg_id = msg.get("id")
                 if msg_id and msg_id in self._pending_responses:

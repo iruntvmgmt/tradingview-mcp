@@ -127,7 +127,7 @@ _register("tv_get_chart_data", "Get OHLCV data from the chart",
 
 _register("tv_screenshot", "Capture a screenshot of the current chart view",
           {"type": "object", "properties": {}},
-          lambda: {"status": "screenshot not yet implemented"})
+          lambda: _ctrl_chart.screenshot())
 
 # ── Backtest ──
 _register("tv_run_backtest", "Run a strategy backtest",
@@ -266,10 +266,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
     try:
         result = handler(**arguments)
-        # If the handler returned a coroutine or Task, await it
-        if asyncio.iscoroutine(result) or asyncio.isfuture(result):
-            result = await result
-        # If the awaiting produced another level of coroutine (nested), await again
+        # Await if the handler returned a coroutine
         if asyncio.iscoroutine(result) or asyncio.isfuture(result):
             result = await result
         # If it's already a list of TextContent, return as-is

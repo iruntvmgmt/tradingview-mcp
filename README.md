@@ -114,6 +114,47 @@ TradingView Desktop (Electron app with --remote-debugging-port)
 - **Stable selectors only** — TV Desktop uses hashed CSS class names that change per build. All selectors use `data-name`, `aria-label`, `role`, `data-qa-id`, and element IDs.
 - **Factory pattern** — Each domain can switch between DOM/JS/Network at runtime by changing `recon_findings.json`. No controller code changes needed.
 
+### Capability Matrix (2026-07-01)
+
+| Domain | Tool | Status | Notes |
+|--------|------|--------|-------|
+| Chart | `tv_set_symbol` | ✅ | Symbol header text detection |
+| Chart | `tv_set_timeframe` | ✅ | Active interval button detection |
+| Chart | `tv_get_chart_data` | ❌ | Requires network-level WebSocket interception |
+| Chart | `tv_apply_script` | ⚠️ | Opens editor, pastes code, clicks Add-to-Chart — needs end-to-end verification |
+| Chart | `tv_remove_indicator` | ⚠️ | Selector-dependent; needs chart-specific testing |
+| Chart | `tv_screenshot` | ✅ | Uses CDP `Page.captureScreenshot` |
+| Backtest | `tv_run_backtest` | ⚠️ | Tab click works; backtest trigger from strategy panel untested |
+| Backtest | `tv_get_backtest_summary` | ✅ | Uses `extract_innertext_map` for SVG-based panels |
+| Backtest | `tv_get_backtest_trades` | ❌ | Trade list uses virtual scroller (SVG) — not DOM-accessible |
+| Backtest | `tv_get_backtest_equity_curve` | ❌ | Data is SVG-only, no DOM extraction path |
+| Alerts | `tv_alert_create` | ⚠️ | Dialog open/close works; condition field population needs testing |
+| Alerts | `tv_alert_edit` | ⚠️ | Selector-dependent |
+| Alerts | `tv_alert_delete` | ⚠️ | Selector-dependent |
+| Alerts | `tv_alert_list` | ⚠️ | Panel selector may need updating |
+| Drawing | `tv_drawing_create` | ⚠️ | Canvas click works; toolbar selectors populated |
+| Drawing | `tv_drawing_remove` | ⚠️ | Selector-dependent |
+| Drawing | `tv_drawing_list` | ⚠️ | Panel selector may need updating |
+| Orders | `tv_order_place` | ⚠️ | Safety gates work; DOM interaction for order ticket untested |
+| Orders | `tv_order_modify` | ⚠️ | Selector-dependent |
+| Orders | `tv_order_cancel` | ⚠️ | Selector-dependent |
+| Orders | `tv_order_status` | ⚠️ | Panel selector may need updating |
+| Replay | `tv_replay_enter` | ✅ | Button click works; state machine guards functional |
+| Replay | `tv_replay_step` | ⚠️ | Step button selector needs verification |
+| Replay | `tv_replay_exit` | ⚠️ | Exit button selector needs verification |
+| Replay | `tv_replay_state` | ⚠️ | Reads indicator text; format may vary |
+| Settings | `tv_settings_list_fields` | ✅ | Gear icon click + dialog text extraction |
+| Settings | `tv_settings_read` | ✅ | Dialog text read |
+| Settings | `tv_settings_write` | ✅ | Dialog open + type + Apply click |
+| Pine Script | `tv_pine_read` | ⚠️ | Scroll-and-stitch via textarea — limited to ~360 chars per snapshot. Read verification against local file recommended. |
+| Pine Script | `tv_pine_write` | ⚠️ | Focus + textarea.value + input event — Monaco may not fully sync |
+| Pine Script | `tv_pine_compile` | ⚠️ | Compile button click works; result parsing untested |
+| Pine Script | `tv_pine_compile_errors` | ❌ | Console panel not reliably accessible via DOM |
+| Pine Script | `tv_pine_logs` | ❌ | Pine Logs panel selectors not verified |
+| Diagnostics | `tv_diagnostics` | ✅ | Full health check across all 9 domains |
+
+**Legend**: ✅ Working | ⚠️ Partial / Needs Testing | ❌ Unavailable
+
 ## Running Tests
 
 ```bash

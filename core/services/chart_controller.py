@@ -53,26 +53,19 @@ class TVChartController:
     async def screenshot(self) -> bytes:
         """Capture the current chart view via CDP ``Page.captureScreenshot``.
 
-        This method calls CDP directly rather than going through a backend,
-        since it is always Path A (CDP native).
+        Sends the CDP command directly through the connection rather than
+        via JS injection, since ``chrome.debugger`` is not available in
+        the page context.
         """
-        result = await self._cdp.execute_js(
-            "new Promise(async (resolve) => { "
-            "  const data = await chrome.debugger.sendCommand('Page.captureScreenshot', {}); "
-            "  resolve(data.data); "
-            "})"
-        )
-        raw = result.get("result", {}).get("value")
-        if raw is None:
-            # Fallback: try via CDP command directly
-            from core.services.cdp_connection import CDPConnection
-            # We need to send the raw CDP command
-            result = await self._cdp.execute_js(
-                "navigator.mediaDevices && 'not supported'"
-            )
-            raise RuntimeError("Screenshot not available — CDP Page.captureScreenshot not implemented")
+        result = await self._cdp._send_command("Page.captureScreenshot", {
+            "format": "png",
+            "fromSurface": True,
+        })
+        data = result.get("data", "")
+        if not data:
+            raise RuntimeError("Page.captureScreenshot returned no image data")
         import base64
-        return base64.b64decode(raw)
+        return base64.b64decode(data)
 
     # ── Health ─────────────────────────────────────────────────
 
