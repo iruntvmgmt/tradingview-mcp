@@ -1,0 +1,33 @@
+{
+  "scroll_and_collect": {
+    "lines": 3,
+    "chars": 361,
+    "status": "PARTIAL",
+    "note": "Expected >72 lines (previous viewport-only limit was 72)"
+  },
+  "extract_innertext_map": {
+    "keys_found": 8,
+    "keys": [
+      "sharpe",
+      "total_trades",
+      "net_profit",
+      "max_drawdown",
+      "cagr",
+      "avg_pnl",
+      "return_pct",
+      "profit_factor"
+    ],
+    "status": "PASS",
+    "note": "Expected at least 3 metrics from Strategy Tester panel"
+  },
+  "click_at_text": {
+    "clicked": true,
+    "status": "PASS",
+    "note": "Expected to find and click 'Overview' sub-tab in Strategy Tester"
+  },
+  "screenshot": {
+    "status": "PASS",
+    "size_bytes": 583965,
+    "note": "Expected >1KB PNG image data"
+  }
+}

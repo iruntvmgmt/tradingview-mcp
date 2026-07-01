@@ -238,11 +238,19 @@ class DomUtils:
             # Wait for virtual scroller to re-render
             await asyncio.sleep(delay)
 
-            # Read textarea value
-            text = await self.extract_text(textarea_selectors, timeout=3.0)
+            # Read textarea.value (not textContent — textarea stores in .value)
+            text = None
+            if textarea_selectors:
+                ta_sel = await self.resolve_selector(textarea_selectors, timeout=2.0)
+                if ta_sel:
+                    escaped_ta = ta_sel.replace("'", "\\'")
+                    r = await self._cdp.execute_js(
+                        f"document.querySelector('{escaped_ta}')?.value ?? ''"
+                    )
+                    text = r.get("result", {}).get("value", "")
+
             if text and text not in seen:
                 seen.add(text)
-                # Keep snippets that add new content
                 if len(text) > 50:
                     collected.append(text)
 
@@ -273,7 +281,7 @@ class DomUtils:
             return body;
         })()
         """
-        result = await self._cdp.execute_js(js, timeout=timeout)
+        result = await self._cdp.execute_js(js)
         body = result.get("result", {}).get("value", "")
         if not body:
             return {}
@@ -330,7 +338,7 @@ class DomUtils:
             return null;
         }})()
         """
-        result = await self._cdp.execute_js(js, timeout=timeout)
+        result = await self._cdp.execute_js(js)
         pos = result.get("result", {}).get("value")
         if pos and pos.get("x") is not None:
             await self._cdp.click_at(pos["x"], pos["y"])

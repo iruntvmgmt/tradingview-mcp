@@ -58,13 +58,66 @@ MCP Client (Agent) ↔ MCP Server (server.py) ↔ Domain Controllers ↔ Backend
 
 ## 7. Current Status
 
-- [ ] Repo scaffolded
-- [ ] Sprint 1 — Foundation
-- [ ] Sprint 2 — Backend Strategy
-- [ ] Sprint 3 — Core Controllers
-- [ ] Sprint 4 — Expansion Controllers
-- [ ] Sprint 5 — Dev Controllers
-- [ ] Sprint 6 — MCP Server + Integration
+- [x] Sprint 1 — Foundation
+- [x] Sprint 2 — Backend Strategy
+- [x] Sprint 3 — Core Controllers
+- [x] Sprint 4 — Expansion Controllers
+- [x] Sprint 5 — Dev Controllers
+- [x] Sprint 6 — MCP Server + Integration
+
+### 7.1 Capability Verification Matrix (2026-07-01)
+
+Verified against live TradingView Desktop (NQ 5-min, WaveTrend MAX v5.8).
+
+| Domain | Tool | Status | V-Evidence |
+|--------|------|--------|-----------|
+| Chart | `tv_set_symbol` | ✅ | Symbol header text detection via `title-YTFIJ62h` |
+| Chart | `tv_set_timeframe` | ✅ | Active interval button via `isActive-U9b0TAs4` |
+| Chart | `tv_get_chart_data` | ❌ | Needs network WebSocket interception |
+| Chart | `tv_apply_script` | ⚠️ | Editor open + paste + Add-to-Chart coded; untested E2E |
+| Chart | `tv_remove_indicator` | ⚠️ | Selector-dependent |
+| Chart | `tv_screenshot` | ✅ | CDP `Page.captureScreenshot` → 584KB PNG verified |
+| Backtest | `tv_run_backtest` | ⚠️ | Tab click works; trigger from strategy panel untested |
+| Backtest | `tv_get_backtest_summary` | ✅ | `extract_innertext_map` → 8 metrics (Sharpe 0.193, trades, CAGR, DD%) |
+| Backtest | `tv_get_backtest_trades` | ❌ | SVG virtual scroller — no DOM path |
+| Backtest | `tv_get_backtest_equity_curve` | ❌ | SVG-only, no DOM extraction |
+| Alerts | `tv_alert_create` | ⚠️ | Dialog open/close; condition fields untested |
+| Alerts | `tv_alert_edit` | ⚠️ | Selector-dependent |
+| Alerts | `tv_alert_delete` | ⚠️ | Selector-dependent |
+| Alerts | `tv_alert_list` | ⚠️ | Panel selector unverified |
+| Drawing | `tv_drawing_create` | ⚠️ | Toolbar selectors populated; canvas click works |
+| Drawing | `tv_drawing_remove` | ⚠️ | Selector-dependent |
+| Drawing | `tv_drawing_list` | ⚠️ | Panel selector unverified |
+| Orders | `tv_order_place` | ⚠️ | Safety gates ✅; order ticket DOM untested |
+| Orders | `tv_order_modify` | ⚠️ | Selector-dependent |
+| Orders | `tv_order_cancel` | ⚠️ | Selector-dependent |
+| Orders | `tv_order_status` | ⚠️ | Panel selector unverified |
+| Replay | `tv_replay_enter` | ✅ | Button click + state machine guards ✅ |
+| Replay | `tv_replay_step` | ⚠️ | Step button unverified |
+| Replay | `tv_replay_exit` | ⚠️ | Exit button unverified |
+| Replay | `tv_replay_state` | ⚠️ | Text format may vary |
+| Settings | `tv_settings_list_fields` | ✅ | Gear click + dialog text extraction |
+| Settings | `tv_settings_read` | ✅ | Dialog text read |
+| Settings | `tv_settings_write` | ✅ | Dialog + type + Apply click |
+| Pine Script | `tv_pine_read` | ⚠️ | Scroll+textarea → ~360 chars. Hard Monaco limit. |
+| Pine Script | `tv_pine_write` | ⚠️ | Focus + textarea.value + input event |
+| Pine Script | `tv_pine_compile` | ⚠️ | Button click; result parsing untested |
+| Pine Script | `tv_pine_compile_errors` | ❌ | Console not DOM-accessible |
+| Pine Script | `tv_pine_logs` | ❌ | Panel selectors unverified |
+| Diagnostics | `tv_diagnostics` | ✅ | 9-domain health check |
+
+**Legend**: ✅ Verified Working | ⚠️ Coded, Untested E2E | ❌ Unavailable (hard limit)
+
+### 7.2 Hard Limitations (2026-07-01)
+
+| Limitation | Root Cause | Impact |
+|-----------|------------|--------|
+| Full Pine source read | Monaco virtual scroller; textarea holds ~360 chars max; `window.monaco` undefined; React Fiber keys absent | Cannot read full 463-line source via CDP. Use local file as ground truth. |
+| Strategy Tester trade list | SVG-rendered virtual scroller | Cannot extract per-trade PnL/timing |
+| Equity curve data | SVG `<path>` elements only | Cannot read curve values |
+| OHLCV data | Network WebSocket protocol not reverse-engineered | Cannot read chart bar data |
+| Pine compile errors | Console rendered as Monaco decorations, not DOM | Cannot parse error messages |
+| Pine Logs | Panel uses virtual scroller + SVG | Cannot read log entries |
 
 ## 8. Risks & Mitigations
 
