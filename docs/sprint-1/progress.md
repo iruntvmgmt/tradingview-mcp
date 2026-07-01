@@ -19,11 +19,25 @@
 | 2026-07-01 | Target Fix | ✅ | Discovered TV Desktop has 10+ renderer targets; fixed `_find_main_target` to score and select the real chart page at `tradingview.com/chart` |
 | 2026-07-01 | DOM Probe | ✅ | Deep DOM probe on real chart page discovered stable selectors using `data-name`, `aria-label`, `role`, and `#drawing-toolbar` ID — all hashed class names confirmed as non-portable |
 | 2026-07-01 | recon_findings.json | ✅ | Populated with real selectors; 12/33 capabilities verified with confirmed selectors |
+| 2026-07-01 | Interactive Panel Probe | ✅ | All 9 panels probed: Symbol Search, Timeframe, Pine Editor (#pine-editor-dialog), Strategy Tester, Alert ([data-qa-id=alerts-create-edit-dialog]), Drawing Toolbar, Order Panel, Replay |
 
 ## Next Steps
-- [ ] Interactive panel probing — open each panel (order ticket, Pine editor, alert dialog, etc.) one at a time to capture their selectors with `scripts/dom_probe.py --interactive`
 - [ ] Human review of recon_findings.json — verify verified selectors are correct
-- [ ] Begin Sprint 2 (backend interfaces)
+- [ ] **Begin Sprint 2** (backend interfaces: base.py, dom_backend.py, js_backend.py, network_backend.py)
+
+## Stable Selectors Summary
+| Panel | Selector |
+|-------|----------|
+| Symbol Search | `button[data-name="header-toolbar-symbol-search"]` |
+| Timeframe (bar) | `button[role="radio"][data-value="{value}"]` |
+| Timeframe (dropdown) | `button[aria-label="{N} minute(s)/hour(s)/day(s)"]` |
+| Indicators | `button[data-name="open-indicators-dialog"]` |
+| Alert button | Button with text "Alert" |
+| Alert dialog | `[data-qa-id="alerts-create-edit-dialog"]` |
+| Pine Editor | `#pine-editor-dialog` |
+| Drawing Toolbar | `#drawing-toolbar` + `button[aria-label="Trendline"/"Fib retracement"/etc]` |
+| Replay | Button with text "Replay" |
+| Trade/Order | Button with text "Trade" |
 
 ## Key Discoveries
 1. **Multi-process architecture:** TV Desktop has ~11 CDP targets (chart, toast, new-tab, tooltip, etc.)
