@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-01T01:10:00Z",
+  "tv_desktop_version": "3.2.0",
+  "capabilities": {
+    "symbol_control": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "selectors": ["[data-name='symbol-search']", "[class*='symbol']", "[class*='header']"]
+      }
+    },
+    "timeframe_control": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "selectors": ["[class*='resolution']", "[data-name='timeframe']", "[class*='interval']"]
+      }
+    },
+    "indicator_apply": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "editor_selectors": ["[class*='pine-editor']", "[class*='source-editor']", "[class*='monaco']"],
+        "add_to_chart_selectors": ["button:has-text('Add to Chart')", "button:has-text('Add')"]
+      }
+    },
+    "indicator_remove": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "context_menu_selectors": ["[class*='close']", "[class*='remove']"]
+      }
+    },
+    "ohlcv_read": {
+      "path": "network",
+      "verified": false,
+      "detail": {
+        "ws_message_shape": "unknown",
+        "match_pattern": "unknown"
+      }
+    },
+    "backtest_run": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "tab_selectors": ["[class*='strategy-tester']", "[class*='backtest']", "[class*='tester']"]
+      }
+    },
+    "backtest_summary": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "tab_selectors": ["button:has-text('Overview')"],
+        "row_selectors": {
+          "net_profit": ["[class*='net-profit']"],
+          "win_rate": ["[class*='win-rate']"],
+          "profit_factor": ["[class*='profit-factor']"],
+          "max_drawdown": ["[class*='max-drawdown']"]
+        }
+      }
+    },
+    "backtest_trade_list": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "table_selectors": ["table"],
+        "row_selectors": ["tr"],
+        "pagination": "scroll"
+      }
+    },
+    "backtest_equity_curve": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "fallback": "numeric_table_if_present_else_null"
+      }
+    },
+    "screenshot": {
+      "path": "cdp",
+      "verified": true,
+      "detail": {}
+    }
+  },
+  "window_globals_found": [],
+  "raw_dom_snapshots": {}
+}
