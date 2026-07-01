@@ -168,26 +168,39 @@ class ReconRunner:
             logger.warning("Window globals dump failed: %s", exc)
 
     async def _probe_known_paths(self) -> None:
-        """Check each known JS path and update capability paths."""
+        """Check each known JS path and update capability paths.
+
+        Two-pass approach:
+          1. Probe window-level globals (KNOWN_JS_PATHS) to see what exists.
+          2. Probe method-level paths (CAP_JS_PATH_MAP values) that would
+             indicate a usable JS API — upgrade the corresponding capability
+             from DOM→JS if a function is found.
+        """
         click.echo("\n--- Probing known JS paths ---")
+
+        # Pass 1: probe window-level globals
         for path in KNOWN_JS_PATHS:
             try:
                 result = await self._cdp.execute_js(f"typeof ({path})")
                 typeof_val = result.get("result", {}).get("value", "undefined")
-                exists = typeof_val not in ("undefined", "null")
                 click.echo(f"  {path}: {typeof_val}")
-                # If a JS function exists, upgrade relevant capabilities
-                if exists and path in CAP_JS_PATH_MAP:
-                    cap_name = CAP_JS_PATH_MAP[path]
-                    # Check that the method actually exists
-                    method_result = await self._cdp.execute_js(f"typeof ({path})")
-                    mtype = method_result.get("result", {}).get("value", "undefined")
-                    if mtype == "function":
-                        click.echo(f"    → Upgrading {cap_name} to JS path")
-                        self._findings["capabilities"][cap_name]["path"] = "js"
-                        self._findings["capabilities"][cap_name]["detail"]["js_path"] = path
             except Exception as exc:
                 logger.debug("Probe failed for %s: %s", path, exc)
+
+        # Pass 2: probe method-level paths for capability upgrades.
+        # CAP_JS_PATH_MAP maps capability_name → JS method path.
+        for cap_name, js_method_path in CAP_JS_PATH_MAP.items():
+            try:
+                result = await self._cdp.execute_js(f"typeof ({js_method_path})")
+                mtype = result.get("result", {}).get("value", "undefined")
+                if mtype == "function":
+                    click.echo(f"  {js_method_path}: function → upgrading '{cap_name}' to JS path")
+                    self._findings["capabilities"][cap_name]["path"] = "js"
+                    self._findings["capabilities"][cap_name]["detail"]["js_path"] = js_method_path
+                elif mtype != "undefined":
+                    click.echo(f"  {js_method_path}: {mtype} (exists, but not a function)")
+            except Exception as exc:
+                logger.debug("Method probe failed for %s: %s", js_method_path, exc)
 
     async def _tap_network(self) -> None:
         """Enable network monitoring and guide the operator through interactions."""
@@ -272,12 +285,23 @@ class ReconRunner:
                 click.echo(f"  {label}: error ({exc})")
 
     async def _snapshot_outer_html(self, css_selector: str) -> str | None:
-        """Return the outerHTML of the first element matching *css_selector*."""
-        escaped = css_selector.replace("'", "\\'")
-        result = await self._cdp.execute_js(
-            f"document.querySelector('{escaped}')?.outerHTML ?? ''",
-        )
-        return result.get("result", {}).get("value")
+        """Return the outerHTML of the first element matching *css_selector*.
+
+        Supports comma-separated fallback selectors by splitting on commas
+        and trying each individually with ``querySelector`` (rather than
+        passing them as a group, which ``querySelector`` would ignore).
+        """
+        for single_sel in (s.strip() for s in css_selector.split(",")):
+            if not single_sel:
+                continue
+            escaped = single_sel.replace("'", "\\'")
+            result = await self._cdp.execute_js(
+                f"document.querySelector('{escaped}')?.outerHTML ?? ''",
+            )
+            html = result.get("result", {}).get("value")
+            if html and len(html) > 20:
+                return html
+        return None
 
     # ── Report generation ───────────────────────────────────────
 

@@ -7,7 +7,7 @@ Integration tests (marked @integration) require a running TV Desktop instance.
 import pytest
 
 from core.services.cdp_connection import CDPConnection
-from core.services.errors import ConnectionError
+from core.services.errors import CDPConnectionError
 
 
 class TestCDPConnectionUnit:
@@ -17,7 +17,7 @@ class TestCDPConnectionUnit:
     async def test_connect_no_target_raises(self):
         """Connecting without a running TV Desktop should fail gracefully."""
         cdp = CDPConnection(debug_port=19999)  # unlikely-to-be-used port
-        with pytest.raises(ConnectionError) as exc:
+        with pytest.raises(CDPConnectionError) as exc:
             await cdp.connect()
         assert "CONNECTION_ERROR" in str(exc.value)
 
@@ -25,7 +25,7 @@ class TestCDPConnectionUnit:
     async def test_execute_js_before_connect_raises(self):
         """Calling execute_js before connecting raises."""
         cdp = CDPConnection()
-        with pytest.raises(ConnectionError) as exc:
+        with pytest.raises(CDPConnectionError) as exc:
             await cdp.execute_js("1+1")
         assert "Not connected" in str(exc.value)
 

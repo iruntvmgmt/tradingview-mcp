@@ -9,7 +9,6 @@ import asyncio
 import json
 import logging
 import subprocess
-import time
 from pathlib import Path
 from typing import Any
 
@@ -17,17 +16,9 @@ import httpx
 from httpx import ConnectError as HttpxConnectError, HTTPError as HttpxHTTPError
 import websockets
 
-from core.services.errors import ConnectionError
+from core.services.errors import CDPConnectionError
 
 logger = logging.getLogger(__name__)
-
-# Map of TV Desktop versions to known launch paths
-# Users can override via TV_DESKTOP_PATH env var or the launch() argument.
-DEFAULT_TV_PATHS: dict[str, str] = {
-    "darwin": "/Applications/TradingView.app/Contents/MacOS/TradingView",
-    "linux": "tradingview",
-    "win32": r"C:\Program Files\TradingView\TradingView.exe",
-}
 
 CDP_WS_URL = "ws://127.0.0.1:{port}"
 CDP_HTTP_URL = "http://127.0.0.1:{port}/json"
@@ -84,7 +75,7 @@ class CDPConnection:
                     break
 
         if not app_path:
-            raise ConnectionError(
+            raise CDPConnectionError(
                 "TradingView Desktop not found. Provide app_path or set TV_DESKTOP_PATH.",
                 details={"port": self._port},
             )
@@ -97,7 +88,7 @@ class CDPConnection:
             )
             logger.info("Launched TV Desktop (pid=%s) on port %s", self._proc.pid, self._port)
         except FileNotFoundError:
-            raise ConnectionError(
+            raise CDPConnectionError(
                 f"Executable not found at {app_path}",
                 details={"path": app_path, "port": self._port},
             )
@@ -113,7 +104,7 @@ class CDPConnection:
             try:
                 target = await self._find_main_target()
                 if target is None:
-                    raise ConnectionError(
+                    raise CDPConnectionError(
                         "No main renderer target found",
                         details={"port": self._port, "attempt": attempt},
                     )
@@ -125,12 +116,12 @@ class CDPConnection:
                 self._reader_task = asyncio.create_task(self._read_loop())
                 logger.info("Connected to CDP target %s", self._target_id)
                 return
-            except (OSError, ConnectionError, websockets.WebSocketException, HttpxConnectError, HttpxHTTPError) as exc:
+            except (OSError, ConnectionError, websockets.WebSocketException, HttpxConnectError, HttpxHTTPError, CDPConnectionError) as exc:
                 last_exc = exc
                 logger.warning("CDP connect attempt %d/%d failed: %s", attempt, MAX_RETRIES, exc)
                 if attempt < MAX_RETRIES:
                     await asyncio.sleep(RETRY_DELAY_SEC)
-        raise ConnectionError(
+        raise CDPConnectionError(
             f"Could not connect to CDP after {MAX_RETRIES} attempts",
             details={"port": self._port, "last_error": str(last_exc)},
         )
@@ -227,6 +218,29 @@ class CDPConnection:
         self._network_events.clear()
         return events
 
+    # ── Input automation ─────────────────────────────────────────
+
+    async def click_at(self, x: float, y: float) -> None:
+        """Dispatch a native mouse click at pixel (x, y) via CDP ``Input.dispatchMouseEvent``.
+
+        This is more reliable than dispatching synthetic MouseEvent objects
+        from JavaScript, particularly for canvas/WebGL elements.
+        """
+        await self._send_command("Input.dispatchMouseEvent", {
+            "type": "mousePressed",
+            "x": x,
+            "y": y,
+            "button": "left",
+            "clickCount": 1,
+        })
+        await self._send_command("Input.dispatchMouseEvent", {
+            "type": "mouseReleased",
+            "x": x,
+            "y": y,
+            "button": "left",
+            "clickCount": 1,
+        })
+
     # ── Health ──────────────────────────────────────────────────
 
     async def health_check(self) -> dict[str, Any]:
@@ -268,24 +282,24 @@ class CDPConnection:
     async def _send_command(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         """Send a CDP command and wait for its response."""
         if not self._ws:
-            raise ConnectionError("Not connected to CDP", details={"method": method})
+            raise CDPConnectionError("Not connected to CDP", details={"method": method})
         self._message_id += 1
         msg_id = self._message_id
         payload = json.dumps({"id": msg_id, "method": method, "params": params})
-        future: asyncio.Future[dict] = asyncio.get_event_loop().create_future()
+        future: asyncio.Future[dict] = asyncio.get_running_loop().create_future()
         self._pending_responses[msg_id] = future
         await self._ws.send(payload)
         try:
             result = await asyncio.wait_for(future, timeout=30.0)
         except asyncio.TimeoutError:
             self._pending_responses.pop(msg_id, None)
-            raise ConnectionError(
+            raise CDPConnectionError(
                 f"CDP command timed out: {method}",
                 details={"method": method, "timeout": 30},
             )
         if "error" in result:
             err = result["error"]
-            raise ConnectionError(
+            raise CDPConnectionError(
                 f"CDP error in {method}: {err.get('message', 'unknown')}",
                 details={"method": method, "code": err.get("code"), "message": err.get("message")},
             )

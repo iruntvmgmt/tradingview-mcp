@@ -22,7 +22,7 @@ class TvMcpError(Exception):
         return {"code": self.code, "message": self.args[0], "details": self.details}
 
 
-class ConnectionError(TvMcpError):
+class CDPConnectionError(TvMcpError):
     """CDP WebSocket connection or launch failure."""
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):

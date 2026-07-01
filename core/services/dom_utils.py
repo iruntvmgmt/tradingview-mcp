@@ -79,7 +79,12 @@ class DomUtils:
         await self._click_selector(sel)
 
     async def _click_selector(self, selector: str) -> None:
-        """Click the center of the first element matching *selector*."""
+        """Click the center of the first element matching *selector*.
+
+        Uses the already-computed bounding box to dispatch a native CDP
+        ``Input.dispatchMouseEvent`` — no redundant DOM queries, no
+        synthetic JS MouseEvent objects.
+        """
         bounds = await self._get_element_bounds(selector)
         if bounds is None:
             raise SelectorResolutionError(
@@ -88,18 +93,7 @@ class DomUtils:
             )
         x = bounds["x"] + bounds["w"] / 2
         y = bounds["y"] + bounds["h"] / 2
-        await self._cdp.execute_js(
-            f"""new Promise(resolve => {{
-                const el = document.querySelector('{selector.replace("'", "\\'")}');
-                if (!el) {{ resolve(false); return; }}
-                const rect = el.getBoundingClientRect();
-                const eventOpts = {{ view: window, bubbles: true, cancelable: true }};
-                el.dispatchEvent(new MouseEvent('mousedown', {{...eventOpts, clientX: rect.x + rect.width/2, clientY: rect.y + rect.height/2}}));
-                el.dispatchEvent(new MouseEvent('mouseup', {{...eventOpts, clientX: rect.x + rect.width/2, clientY: rect.y + rect.height/2}}));
-                el.dispatchEvent(new MouseEvent('click', {{...eventOpts, clientX: rect.x + rect.width/2, clientY: rect.y + rect.height/2}}));
-                resolve(true);
-            }})"""
-        )
+        await self._cdp.click_at(x, y)
 
     # ── Type text ────────────────────────────────────────────────
 
@@ -229,17 +223,8 @@ class DomUtils:
             )
         px = bounds["x"] + bounds["w"] * x_ratio
         py = bounds["y"] + bounds["h"] * y_ratio
-        # Dispatch MouseEvent at the computed pixel coordinates
-        await self._cdp.execute_js(
-            f"""new Promise(resolve => {{
-                const el = document.elementFromPoint({px}, {py});
-                if (!el) {{ resolve(false); return; }}
-                el.dispatchEvent(new MouseEvent('mousedown', {{ bubbles: true, clientX: {px}, clientY: {py} }}));
-                el.dispatchEvent(new MouseEvent('mouseup', {{ bubbles: true, clientX: {px}, clientY: {py} }}));
-                el.dispatchEvent(new MouseEvent('click', {{ bubbles: true, clientX: {px}, clientY: {py} }}));
-                resolve(true);
-            }})"""
-        )
+        # Dispatch native CDP mouse click instead of synthetic JS events
+        await self._cdp.click_at(px, py)
 
     # ── Visibility / attribute helpers ──────────────────────────
 
