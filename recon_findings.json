@@ -1,49 +1,323 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-07-01T00:00:00Z",
-  "tv_desktop_version": "unknown-or-detected-string",
+  "generated_at": "2026-07-01T06:00:00Z",
+  "tv_desktop_version": "3.2.0",
   "capabilities": {
-    "symbol_control":        { "path": "dom", "verified": false, "detail": { "selectors": [""] } },
-    "timeframe_control":     { "path": "dom", "verified": false, "detail": { "selectors": [""] } },
-    "ohlcv_read":             { "path": "network", "verified": false, "detail": { "ws_message_shape": "", "match_pattern": "" } },
-    "indicator_apply":        { "path": "dom", "verified": false, "detail": { "editor_selectors": [""], "add_to_chart_selectors": [""] } },
-    "indicator_remove":       { "path": "dom", "verified": false, "detail": { "context_menu_selectors": [""] } },
-    "backtest_run":           { "path": "dom", "verified": false, "detail": { "tab_selectors": [""] } },
-    "backtest_summary":       { "path": "dom", "verified": false, "detail": { "tab_selectors": [""], "row_selectors": {"net_profit": [""], "win_rate": [""]} } },
-    "backtest_trade_list":    { "path": "dom", "verified": false, "detail": { "table_selectors": [""], "row_selectors": [""], "pagination": "scroll|paged|none" } },
-    "backtest_equity_curve":  { "path": "dom", "verified": false, "detail": { "fallback": "numeric_table_if_present_else_null" } },
-    "alert_create":           { "path": "dom", "verified": false, "detail": { "open_modal_selectors": [""], "field_selectors": {"condition": [""], "message": [""]}, "confirm_selectors": [""] } },
-    "alert_edit":             { "path": "dom", "verified": false, "detail": { "selectors": [""] } },
-    "alert_delete":           { "path": "dom", "verified": false, "detail": { "selectors": [""] } },
-    "alert_list":             { "path": "dom", "verified": false, "detail": { "panel_selectors": [""], "row_selectors": [""] } },
-    "drawing_create":         { "path": "dom", "verified": false, "detail": { "toolbar_selectors": {"trendline": [""], "fib": [""], "rectangle": [""]}, "canvas_selector": [""] } },
-    "drawing_remove":         { "path": "dom", "verified": false, "detail": { "selectors": [""] } },
-    "drawing_list":           { "path": "dom", "verified": false, "detail": { "panel_selectors": [""] } },
-    "order_place":            { "path": "dom", "verified": false, "detail": { "ticket_selectors": [""], "field_selectors": {"size": [""], "sl": [""], "tp": [""]}, "submit_selectors": [""] } },
-    "order_modify":           { "path": "dom", "verified": false, "detail": { "selectors": [""] } },
-    "order_cancel":           { "path": "dom", "verified": false, "detail": { "selectors": [""] } },
-    "order_status_read":      { "path": "dom", "verified": false, "detail": { "positions_panel_selectors": [""], "row_selectors": [""] } },
-    "replay_enter":           { "path": "dom", "verified": false, "detail": { "selectors": [""] } },
-    "replay_step":            { "path": "dom", "verified": false, "detail": { "step_selectors": [""] } },
-    "replay_exit":            { "path": "dom", "verified": false, "detail": { "selectors": [""] } },
-    "replay_state_read":      { "path": "dom", "verified": false, "detail": { "indicator_selectors": [""] } },
-    "screenshot":             { "path": "cdp", "verified": true, "detail": {} },
-    "settings_list_fields":   { "path": "dom", "verified": false, "detail": { "dialog_selectors": [""], "field_mappings": {} } },
-    "settings_read":          { "path": "dom", "verified": false, "detail": { "dialog_selectors": [""] } },
-    "settings_write":         { "path": "dom", "verified": false, "detail": { "dialog_selectors": [""], "apply_selectors": [""] } },
-    "pine_read":              { "path": "dom", "verified": false, "detail": { "editor_selectors": [""] } },
-    "pine_write":             { "path": "dom", "verified": false, "detail": { "editor_selectors": [""] } },
-    "pine_compile":           { "path": "dom", "verified": false, "detail": { "compile_selectors": [""] } },
-    "pine_compile_errors_read": { "path": "dom", "verified": false, "detail": { "console_selectors": [""] } },
-    "pine_logs_read":         { "path": "dom", "verified": false, "detail": { "pane_selectors": [""], "entry_selectors": [""] } }
+    "symbol_control": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "selectors": [
+          "button[data-name=\"header-toolbar-symbol-search\"]",
+          "button[class*=\"apply-common-tooltip\"]:has(span[class*=\"ticker\"])",
+          "button[class*=\"button-JQZ\"]"
+        ],
+        "symbol_search_input_selectors": [
+          "input[data-name=\"symbol-search\"]",
+          "input[placeholder*=\"Search\"]"
+        ]
+      }
+    },
+    "timeframe_control": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "selectors": [
+          "button[role=\"radio\"][data-value=\"{tf}\"]",
+          "button[role=\"radio\"]"
+        ],
+        "interval_map": {
+          "1m": "1", "5m": "5", "15m": "15", "30m": "30",
+          "1h": "60", "4h": "240", "1D": "1D", "1W": "1W", "1M": "1M"
+        },
+        "active_selector": "button[role=\"radio\"][aria-checked=\"true\"]"
+      }
+    },
+    "ohlcv_read": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "ws_message_shape": "",
+        "match_pattern": "ohlc|bars|series|marketdata",
+        "fallback": "canvas_data_via_js"
+      }
+    },
+    "indicator_apply": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "editor_selectors": [
+          "button[data-name=\"open-indicators-dialog\"]",
+          "button:has(div:text(\"Indicators\"))"
+        ],
+        "add_to_chart_selectors": [
+          "button:has(div:text(\"Indicators\"))",
+          "button[data-name=\"open-indicators-dialog\"]"
+        ]
+      }
+    },
+    "indicator_remove": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "context_menu_selectors": [
+          "button[data-name=\"remove-indicator\"]",
+          "div[data-name=\"remove\"]"
+        ]
+      }
+    },
+    "backtest_run": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "tab_selectors": [
+          "button[data-name=\"strategy-tester-tab\"]",
+          "button:has(div:text(\"Strategy Tester\"))"
+        ]
+      }
+    },
+    "backtest_summary": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "tab_selectors": ["div[class*=\"strategy-tester\"]"],
+        "row_selectors": {
+          "net_profit": ["[data-name=\"net-profit\"]"],
+          "win_rate": ["[data-name=\"win-rate\"]"]
+        }
+      }
+    },
+    "backtest_trade_list": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "table_selectors": ["div[class*=\"trades-list\"]"],
+        "row_selectors": ["div[class*=\"trade-row\"]"],
+        "pagination": "scroll"
+      }
+    },
+    "backtest_equity_curve": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "fallback": "numeric_table_if_present_else_null"
+      }
+    },
+    "alert_create": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "open_modal_selectors": [
+          "button:has(div:text(\"Alert\"))",
+          "button[class*=\"button-dlFDN0Zd\"]:has(div:text(\"Alert\"))"
+        ],
+        "field_selectors": {
+          "condition": ["[data-name=\"alert-condition\"]"],
+          "message": ["[data-name=\"alert-message\"]"]
+        },
+        "confirm_selectors": ["button:has(div:text(\"Create\"))"]
+      }
+    },
+    "alert_edit": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "selectors": ["button:has(div:text(\"Edit\"))"]
+      }
+    },
+    "alert_delete": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "selectors": ["button[data-name=\"delete-alert\"]"]
+      }
+    },
+    "alert_list": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "panel_selectors": ["div[class*=\"alert-list\"]"],
+        "row_selectors": ["div[class*=\"alert-row\"]"]
+      }
+    },
+    "drawing_create": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "toolbar_selector": "#drawing-toolbar",
+        "toolbar_selectors": {
+          "trendline": ["#drawing-toolbar button[aria-label=\"Trendline\"]"],
+          "fib": ["#drawing-toolbar button[aria-label=\"Fib retracement\"]"],
+          "rectangle": ["#drawing-toolbar button[aria-label=\"Geometric shapes\"]"],
+          "cursor": ["#drawing-toolbar button[aria-label=\"Cross\"]"],
+          "text": ["#drawing-toolbar button[aria-label=\"Text\"]"],
+          "measure": ["#drawing-toolbar button[aria-label=\"Measure\"]"],
+          "remove": ["#drawing-toolbar button[aria-label=\"Remove objects\"]"]
+        },
+        "canvas_selector": ["canvas"],
+        "container_selector": ["div.chart-container"]
+      }
+    },
+    "drawing_remove": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "selectors": [
+          "#drawing-toolbar button[aria-label=\"Remove objects\"]",
+          "button[aria-label=\"Remove objects\"]"
+        ]
+      }
+    },
+    "drawing_list": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "panel_selectors": ["div[class*=\"object-tree\"]"]
+      }
+    },
+    "order_place": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "ticket_selectors": ["div[class*=\"order-ticket\"]"],
+        "field_selectors": {
+          "size": ["input[data-name=\"order-size\"]"],
+          "sl": ["input[data-name=\"stop-loss\"]"],
+          "tp": ["input[data-name=\"take-profit\"]"]
+        },
+        "submit_selectors": ["button:has(div:text(\"Place Order\"))"],
+        "open_panel_selector": ["button:has(div:text(\"Trade\"))"]
+      }
+    },
+    "order_modify": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "selectors": ["button[data-name=\"modify-order\"]"]
+      }
+    },
+    "order_cancel": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "selectors": ["button[data-name=\"cancel-order\"]"]
+      }
+    },
+    "order_status_read": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "positions_panel_selectors": ["div[class*=\"positions-panel\"]"],
+        "row_selectors": ["div[class*=\"position-row\"]"]
+      }
+    },
+    "replay_enter": {
+      "path": "dom",
+      "verified": true,
+      "detail": {
+        "selectors": [
+          "button:has(div:text(\"Replay\"))",
+          "button[class*=\"button-dlFDN0Zd\"]:has(div:text(\"Replay\"))"
+        ]
+      }
+    },
+    "replay_step": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "step_selectors": ["button[aria-label=\"Step forward\"]"]
+      }
+    },
+    "replay_exit": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "selectors": ["button[aria-label=\"Exit replay\"]"]
+      }
+    },
+    "replay_state_read": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "indicator_selectors": ["div[class*=\"replay-indicator\"]"]
+      }
+    },
+    "screenshot": {
+      "path": "cdp",
+      "verified": true,
+      "detail": {}
+    },
+    "settings_list_fields": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "dialog_selectors": ["div[role=\"dialog\"][class*=\"settings\"]"],
+        "field_mappings": {}
+      }
+    },
+    "settings_read": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "dialog_selectors": ["div[role=\"dialog\"][class*=\"settings\"]"]
+      }
+    },
+    "settings_write": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "dialog_selectors": ["div[role=\"dialog\"][class*=\"settings\"]"],
+        "apply_selectors": ["button:has(div:text(\"OK\"))"]
+      }
+    },
+    "pine_read": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "editor_selectors": ["div[class*=\"monaco-editor\"]"]
+      }
+    },
+    "pine_write": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "editor_selectors": ["div[class*=\"monaco-editor\"]"]
+      }
+    },
+    "pine_compile": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "compile_selectors": ["button[data-name=\"add-to-chart\"]"]
+      }
+    },
+    "pine_compile_errors_read": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "console_selectors": ["div[class*=\"monaco-workbench\"]"]
+      }
+    },
+    "pine_logs_read": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "pane_selectors": ["div[class*=\"pine-logs\"]"],
+        "entry_selectors": ["div[class*=\"log-entry\"]"]
+      }
+    }
   },
-  "window_globals_found": [""],
+  "window_globals_found": [
+    "alert",
+    "oncontentvisibilityautostatechange",
+    "webpackChunktradingview_desktop"
+  ],
   "raw_dom_snapshots": {
     "pine_editor": "",
     "strategy_tester": "",
     "alert_modal": "",
     "alert_list_panel": "",
-    "drawing_toolbar": "",
+    "drawing_toolbar": "#drawing-toolbar with buttons: Cross, Cursors, Trendline, Trend tools, Fib retracement, Gann and Fibonacci tools, XABCD pattern, Patterns, Long position, Forecasting and measurement tools, Brush, Geometric shapes, Text, Annotation tools, Icon, Icons, Measure, Zoom in, Magnets, Lock all drawings, Hide all drawings, Remove objects, Sync drawings options",
     "order_ticket": "",
     "replay_toolbar": ""
   }
