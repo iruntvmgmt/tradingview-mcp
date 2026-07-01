@@ -169,27 +169,32 @@ class CDPConnection:
         return result.get("targetInfos", [])
 
     async def select_main_renderer_target(self) -> str | None:
-        """Auto-select the main page-level renderer target.
+        """Auto-select the main chart page target from CDP ``Target.getTargets``.
 
-        Prefers targets whose title/url suggests the main TradingView window
-        (not an extension popup, DevTools window, or service worker).
+        Same scoring as ``_find_main_target``:
+          3 pts — ``tradingview.com/chart`` (main chart)
+          2 pts — any ``tradingview.com`` page
+          1 pt  — http(s) URL
+         -1 pt  — ``about:blank`` / ``file://`` (internal electron page)
+
         Returns the target ID or ``None``.
         """
         targets = await self.list_targets()
-        # Score targets: the main page is typically 'page' type with tradingview url
         candidates = []
         for t in targets:
-            url = (t.get("url") or "").lower()
-            title = (t.get("title") or "").lower()
             ttype = t.get("type", "")
             if ttype != "page":
                 continue
+            url = (t.get("url") or "").lower()
+            title = (t.get("title") or "").lower()
             score = 0
-            if "tradingview" in url or "tradingview" in title:
+            if "tradingview.com/chart" in url or "tradingview.com/chart" in title:
                 score += 3
+            elif "tradingview.com" in url or "tradingview" in title:
+                score += 2
             if url.startswith("http"):
                 score += 1
-            if "about:blank" in url:
+            if "about:blank" in url or url.startswith("file://"):
                 score -= 1
             candidates.append((score, t.get("targetId", t.get("id"))))
         if not candidates:
@@ -198,7 +203,7 @@ class CDPConnection:
         best_id = candidates[0][1]
         if self._target_id != best_id:
             self._target_id = best_id
-            logger.info("Selected main renderer target %s", best_id)
+            logger.info("Selected main renderer target %s (score %d)", best_id, candidates[0][0])
         return best_id
 
     async def listen_network(self, enable: bool = True) -> None:
@@ -260,24 +265,50 @@ class CDPConnection:
     # ── Internals ────────────────────────────────────────────────
 
     async def _find_main_target(self) -> dict | None:
-        """Query the HTTP discovery endpoint for available page targets."""
+        """Query the HTTP discovery endpoint for the main chart page target.
+
+        TV Desktop runs multiple renderer processes (toast, new-tab, tooltip,
+        browser-api, etc.).  This method scores targets to find the one that
+        hosts the actual chart — the ``tradingview.com/chart`` page.
+
+        Scoring:
+          3 pts — URL contains ``tradingview.com/chart`` (main chart)
+          2 pts — URL contains ``tradingview.com`` (any TV page)
+          1 pt  — URL starts with ``http``
+         -1 pt  — ``about:blank`` or ``file://`` (internal electron pages)
+        """
         url = CDP_HTTP_URL.format(port=self._port)
         async with httpx.AsyncClient() as client:
             resp = await client.get(url, timeout=5.0)
             resp.raise_for_status()
             targets: list[dict] = resp.json()
-        # Prefer a real page target over about:blank / extensions
+
+        scored = []
         for t in targets:
-            ttype = t.get("type", "")
+            if t.get("type") != "page":
+                continue
             url_val = (t.get("url") or "").lower()
             title = (t.get("title") or "").lower()
-            if ttype == "page" and ("tradingview" in url_val or "tradingview" in title or url_val.startswith("http")):
-                return t
-        # Fallback: first page target
-        for t in targets:
-            if t.get("type") == "page":
-                return t
-        return None
+            score = 0
+            if "tradingview.com/chart" in url_val or "tradingview.com/chart" in title:
+                score += 3
+            elif "tradingview.com" in url_val or "tradingview" in title:
+                score += 2
+            if url_val.startswith("http"):
+                score += 1
+            if "about:blank" in url_val or url_val.startswith("file://"):
+                score -= 1
+            scored.append((score, t))
+
+        if not scored:
+            # Fallback: first page target
+            for t in targets:
+                if t.get("type") == "page":
+                    return t
+            return None
+
+        scored.sort(key=lambda x: -x[0])
+        return scored[0][1]
 
     async def _send_command(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         """Send a CDP command and wait for its response."""
