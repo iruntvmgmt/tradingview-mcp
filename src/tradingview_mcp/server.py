@@ -1210,3 +1210,16 @@ def _ensure_connected() -> None:
         )
     if _tv_chart is None:
         raise ConnectionSetupError("Chart controller not initialized. Run tv_desktop_launch() first.")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Entry point
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def main() -> None:
+    """Main entry point — runs the FastMCP server over stdio."""
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

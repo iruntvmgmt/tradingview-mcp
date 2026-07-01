@@ -2,12 +2,10 @@
   "servers": {
     "tradingview": {
       "type": "command",
-      "command": "/Users/matt/.local/bin/uv",
+      "command": "/Users/matt/tradingview-mcp/.venv/bin/python",
       "args": [
-        "--directory",
-        "/Users/matt/tradingview-mcp",
-        "run",
-        "tradingview-mcp"
+        "-m",
+        "tradingview_mcp.server"
       ]
     }
   }
