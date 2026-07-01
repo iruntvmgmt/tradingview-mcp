@@ -127,3 +127,22 @@ Verified against live TradingView Desktop (NQ 5-min, WaveTrend MAX v5.8).
 | Live order accidentally submitted | `confirmed` gate at controller, backend, and tool level — three layers of defense |
 | CDP protocol changes | Batch all CDP calls through one connection module; version-pin `websockets` |
 | Published scripts can't use Pine Logs | Capability reports `CapabilityUnavailable` gracefully; recon documents the restriction |
+
+### 8.1 Bug Fixes Applied (2026-07-01, Sprint Hardening)
+
+The following critical/high-severity bugs were fixed in a dedicated hardening pass:
+
+| Area | Bug | Fix |
+|------|-----|-----|
+| `dom_utils.py` | Missing `import json` (crashes `extract_table`) | Added import |
+| `dom_utils.py` | JS injection via naive `.replace("'", "\\'")` in 10 methods | Replaced with `json.dumps()` |
+| `dom_utils.py` | `extract_text` can't read `<input>`/`<textarea>` values | Added `.tagName` check, returns `.value` for form elements |
+| `dom_utils.py` | `extract_innertext_map` ignores `timeout` parameter | Added polling loop with deadline |
+| `dom_utils.py` | Regex can't match negative numbers | Added `-?` prefix to regex |
+| `cdp_connection.py` | Pending futures hang forever on WS crash | Rejected with `CDPConnectionError` on disconnect |
+| `cdp_connection.py` | Reader task not awaited after cancel | Proper `await` with `CancelledError` handling |
+| `cdp_connection.py` | Stale state leaks on connection retry | Cleanup in `except` block |
+| `dom_backend.py` | `sl`/`tp` ignored in `place()` | Now types into stop-loss/take-profit fields |
+| `dom_backend.py` | JS injection in `apply()` | Replaced `.replace()` with `json.dumps()` |
+
+See `docs/sprint-hardening/done.md` for full details.
