@@ -582,104 +582,88 @@ class DomPineScriptBackend(PineScriptBackend):
         )
 
     async def compile(self, script_name: str) -> dict[str, Any]:
-        """Compile via trusted CDP ``Cmd+Enter`` keystroke.
+        """Compile and add the script to the chart.
 
-        See ``docs/monaco-editor-integration.md`` — only CDP-dispatched
-        keystrokes produce ``isTrusted: true`` events that Monaco/TradingView
-        will honor for the compile-and-add-to-chart action.
+        **Primary**: Finds the Pine Editor toolbar's Save button and
+        clicks it via JS ``element.click()``.  This triggers React's
+        synthetic event system, which CDP ``Input.dispatchMouseEvent``
+        and ``Input.dispatchKeyEvent`` do **not** reach.
+
+        **Fallback**: CDP ``Cmd+Enter`` keystroke (trusted) if the Save
+        button cannot be found.
+
+        See ``docs/monaco-editor-integration.md`` § "CDP vs React" for
+        the full investigation.
         """
         detail = _cap(self._caps, "pine_compile")
         import asyncio
 
-        # Focus the visible editor container via CDP click (trusted focus)
-        bounds_js = """
+        # ── Primary: JS click on Save button ──────────────────────
+        click_js = """
         (() => {
-            const el = document.querySelector('.monaco-editor');
-            if (!el) return null;
-            const r = el.getBoundingClientRect();
-            return { x: r.x + r.width / 2, y: r.y + 100 };
+            const btns = document.querySelectorAll('button');
+            for (let i = 0; i < btns.length; i++) {
+                const t = (btns[i].textContent || '').trim();
+                // The Save button text is "SaveSave" (text node + inner span)
+                if (t.startsWith('Save') && t.length < 20) {
+                    const r = btns[i].getBoundingClientRect();
+                    // Only click if in the Pine Editor toolbar area
+                    if (r.x > 1300 && r.y < 200) {
+                        btns[i].click();
+                        return 'save_clicked';
+                    }
+                }
+            }
+            return 'save_not_found';
         })()
         """
-        bounds_result = await self._cdp.execute_js(bounds_js)
-        bv = bounds_result.get("result", {}).get("value", {})
-        cx = (bv.get("x", 0) or 0)
-        cy = (bv.get("y", 0) or 0)
+        result = await self._cdp.execute_js(click_js)
+        status = result.get("result", {}).get("value", "")
 
-        if cx and cy:
-            await self._cdp._send_command("Input.dispatchMouseEvent", {
-                "type": "mousePressed", "x": cx, "y": cy,
-                "button": "left", "clickCount": 1,
-            })
-            await self._cdp._send_command("Input.dispatchMouseEvent", {
-                "type": "mouseReleased", "x": cx, "y": cy,
-                "button": "left", "clickCount": 1,
-            })
-            await asyncio.sleep(0.15)
+        # ── Fallback: CDP Cmd+Enter ───────────────────────────────
+        if status != "save_clicked":
+            bounds_js = """
+            (() => {
+                const el = document.querySelector('.monaco-editor');
+                if (!el) return null;
+                const r = el.getBoundingClientRect();
+                return { x: r.x + r.width / 2, y: r.y + 100 };
+            })()
+            """
+            bounds_result = await self._cdp.execute_js(bounds_js)
+            bv = bounds_result.get("result", {}).get("value", {})
+            cx = (bv.get("x", 0) or 0)
+            cy = (bv.get("y", 0) or 0)
 
-        # Send Cmd+Enter via CDP (trusted keystroke)
-        compile_keys = detail.get("compile_keys", "Meta+Enter")
-        if "Meta" in compile_keys and "Enter" in compile_keys:
-            # Cmd key down
+            if cx and cy:
+                await self._cdp._send_command("Input.dispatchMouseEvent", {
+                    "type": "mousePressed", "x": cx, "y": cy,
+                    "button": "left", "clickCount": 1,
+                })
+                await self._cdp._send_command("Input.dispatchMouseEvent", {
+                    "type": "mouseReleased", "x": cx, "y": cy,
+                    "button": "left", "clickCount": 1,
+                })
+                await asyncio.sleep(0.15)
+
             await self._cdp._send_command("Input.dispatchKeyEvent", {
                 "type": "rawKeyDown", "modifiers": 8, "key": "Meta",
                 "code": "MetaLeft", "windowsVirtualKeyCode": 91,
             })
-            # Enter down
             await self._cdp._send_command("Input.dispatchKeyEvent", {
                 "type": "rawKeyDown", "modifiers": 8, "key": "Enter",
                 "code": "Enter", "windowsVirtualKeyCode": 13,
             })
-            # Enter up
             await self._cdp._send_command("Input.dispatchKeyEvent", {
                 "type": "keyUp", "modifiers": 8, "key": "Enter",
                 "code": "Enter", "windowsVirtualKeyCode": 13,
             })
-            # Cmd key up
             await self._cdp._send_command("Input.dispatchKeyEvent", {
                 "type": "keyUp", "modifiers": 0, "key": "Meta",
                 "code": "MetaLeft", "windowsVirtualKeyCode": 91,
             })
-        else:
-            # Fallback: JS KeyboardEvent (may have isTrusted: false)
-            await self._dispatch_keyboard_shortcut(compile_keys)
 
-        return {"success": True}
-
-    async def _dispatch_keyboard_shortcut(self, combo: str) -> None:
-        """Dispatch a keyboard shortcut on ``document.activeElement``.
-
-        *combo* is a string like ``"Meta+Enter"`` or ``"Ctrl+s"``.  Parses
-        the modifier and key, then dispatches matching ``keydown`` /
-        ``keyup`` events.
-        """
-        parts = combo.split("+")
-        key = parts[-1].lower()
-        modifiers: dict[str, str] = {}
-
-        for p in parts[:-1]:
-            p_lower = p.lower()
-            if p_lower in ("meta", "cmd", "command"):
-                modifiers["metaKey"] = "true"
-            elif p_lower == "ctrl":
-                modifiers["ctrlKey"] = "true"
-            elif p_lower in ("alt", "option"):
-                modifiers["altKey"] = "true"
-            elif p_lower == "shift":
-                modifiers["shiftKey"] = "true"
-
-        mod_js = ", ".join(
-            f"{k}: {v}" for k, v in modifiers.items()
-        )
-        js = f"""
-        (() => {{
-            const el = document.activeElement || document.body;
-            const opts = {{ key: {json.dumps(key)}, code: {json.dumps('Key' + key.upper())}, {mod_js}, bubbles: true, cancelable: true }};
-            el.dispatchEvent(new KeyboardEvent('keydown', opts));
-            el.dispatchEvent(new KeyboardEvent('keyup', opts));
-            return true;
-        }})()
-        """
-        await self._cdp.execute_js(js)
+        return {"success": True, "method": status}
 
     async def read_compile_errors(self) -> list[dict[str, Any]]:
         sels = _cap(self._caps, "pine_compile_errors_read").get("console_selectors", [])
