@@ -189,7 +189,10 @@ class DomUtils:
             })
             await asyncio.sleep(0.2)
 
-        # Step 3: Cmd+A (select all) then Cmd+V (paste) — REAL keystrokes
+        # Step 3: Cmd+A → Cmd+X (cut) → Cmd+V (paste)
+        # Cmd+X triggers Monaco's native cut handler which reliably removes
+        # the selected content from the internal model.  Delete/Backspace
+        # key events are NOT reliably intercepted by Monaco via CDP.
         # Cmd+A
         await self._cdp._send_command("Input.dispatchKeyEvent", {
             "type": "rawKeyDown", "modifiers": 8, "key": "a",
@@ -199,8 +202,18 @@ class DomUtils:
             "type": "keyUp", "modifiers": 8, "key": "a",
             "code": "KeyA", "windowsVirtualKeyCode": 65,
         })
-        await asyncio.sleep(0.1)
-        # Cmd+V
+        await asyncio.sleep(0.3)
+        # Cmd+X (cut — Monaco reliably intercepts this)
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "rawKeyDown", "modifiers": 8, "key": "x",
+            "code": "KeyX", "windowsVirtualKeyCode": 88,
+        })
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "keyUp", "modifiers": 8, "key": "x",
+            "code": "KeyX", "windowsVirtualKeyCode": 88,
+        })
+        await asyncio.sleep(0.3)
+        # Cmd+V (paste)
         await self._cdp._send_command("Input.dispatchKeyEvent", {
             "type": "rawKeyDown", "modifiers": 8, "key": "v",
             "code": "KeyV", "windowsVirtualKeyCode": 86,
@@ -216,16 +229,26 @@ class DomUtils:
         """Read the full source from a Monaco editor via real Cmd+C + clipboard.
 
         See ``docs/monaco-editor-integration.md`` for full rationale.
-        Only CDP-dispatched keystrokes produce ``isTrusted: true`` events
-        that Monaco will honor for copy operations.
 
-        Pipeline: CDP click editor → Cmd+A → Cmd+C → clipboard readText
+        IMPORTANT: Clears the system clipboard BEFORE reading to avoid
+        stale data from a previous ``type_text_monaco`` write (which also
+        uses the clipboard).  Without this, Cmd+C might race with the
+        clipboard read and return the *written* content instead of the
+        *editor* content.
+
+        Pipeline: clear clipboard → CDP click editor → Cmd+A → Cmd+C → readText
         """
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
             return None
 
         import asyncio
+
+        # Step 0: Clear stale clipboard from previous writes
+        await self._cdp.execute_js(
+            "(async () => { try { await navigator.clipboard.writeText(''); } catch(e) {} })()",
+            await_promise=True,
+        )
 
         # Step 1: Click the visible editor container to focus it
         bounds_js = """
@@ -250,7 +273,7 @@ class DomUtils:
                 "type": "mouseReleased", "x": cx, "y": cy,
                 "button": "left", "clickCount": 1,
             })
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(0.3)
 
         # Step 2: Cmd+A (select all)
         await self._cdp._send_command("Input.dispatchKeyEvent", {
@@ -261,7 +284,7 @@ class DomUtils:
             "type": "keyUp", "modifiers": 8, "key": "a",
             "code": "KeyA", "windowsVirtualKeyCode": 65,
         })
-        await asyncio.sleep(0.15)
+        await asyncio.sleep(0.2)
 
         # Step 3: Cmd+C (copy to system clipboard)
         await self._cdp._send_command("Input.dispatchKeyEvent", {
@@ -272,7 +295,7 @@ class DomUtils:
             "type": "keyUp", "modifiers": 8, "key": "c",
             "code": "KeyC", "windowsVirtualKeyCode": 67,
         })
-        await asyncio.sleep(0.15)
+        await asyncio.sleep(0.3)
 
         # Step 4: Read from system clipboard
         read_js = """

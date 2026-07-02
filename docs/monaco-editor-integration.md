@@ -26,6 +26,8 @@ scripts would not transfer.
 | 7 | `document.execCommand('paste')` with pre-populated clipboard | No effect | Same `isTrusted` problem as #5 |
 | 8 | CDP `Input.dispatchMouseEvent` on Save/compile button | No effect | React synthetic event system ignores CDP mouse events |
 | 9 | CDP `Input.dispatchKeyEvent` (Cmd+S, Cmd+Enter) | No effect | React ignores CDP keystrokes for editor commands |
+| 10 | CDP Cmd+A + Backspace/Delete + Cmd+V | Content corruption | Monaco does NOT reliably intercept Delete/Backspace via CDP — old text fragments survive |
+| 11 | Native setter on Monaco textarea + input event | Immediately reset | Monaco resets textarea.value to its virtual window (~500 chars) within milliseconds |
 
 ---
 
@@ -108,12 +110,21 @@ CDP click on                                     focus
 .monaco-editor div ───────────► editor focused ◄──────────────────
                                                                    
 CDP Cmd+A              real keystroke ──────────────────────────► selectAll()
-(select all)                                                       AST marked
+(select all)                                                       AST selected
+                                                                   
+CDP Cmd+X              real keystroke ──────────────────────────► cut handler
+(cut)                    e.isTrusted = true                        removes old
+                                                                   content from AST
                                                                    
 CDP Cmd+V              real keystroke ──────────────────────────► paste handler
-(paste)                 e.isTrusted = true                         reads clipboard
+(paste)                  e.isTrusted = true                        reads clipboard
                                                                    writes to AST
 ```
+
+**Critical**: Cmd+X (cut) is required because Monaco's cut handler reliably
+removes selected content from the internal model.  Delete/Backspace CDP
+keystrokes are NOT reliably intercepted by Monaco and leave old text
+fragments that corrupt the document.
 
 ### Read Pipeline
 
