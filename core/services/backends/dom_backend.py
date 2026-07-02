@@ -525,18 +525,13 @@ class DomSettingsBackend(SettingsBackend):
 class DomPineScriptBackend(PineScriptBackend):
     """Pine Script editor interaction via DOM.
 
-    The Pine Editor uses Monaco with a virtual scroller.  Monaco only
-    exposes a ~1000-char window of ``textarea.value`` around the cursor.
+    IMPORTANT: Monaco Editor virtualizes its hidden textarea — direct DOM
+    reads/writes are silently truncated.  See ``docs/monaco-editor-integration.md``
+    for the full investigation and rationale.
 
-    **Write** uses a synthetic ``ClipboardEvent('paste')`` with a
-    populated ``DataTransfer`` — Monaco intercepts paste events and
-    routes the full payload directly into its internal model.
-
-    **Read** uses a synthetic ``ClipboardEvent('copy')`` with an event
-    listener to intercept the full document from Monaco's internal model.
-
-    **Compile** is triggered via keyboard shortcuts rather than brittle
-    DOM button hunting.
+    **Write** uses system clipboard write + CDP Cmd+V (real keystrokes).
+    **Read** uses CDP Cmd+A + Cmd+C + clipboard read.
+    **Compile** uses CDP Cmd+Enter (trusted keystroke).
     """
 
     def __init__(self, cdp, dom, capabilities: dict):
@@ -587,24 +582,66 @@ class DomPineScriptBackend(PineScriptBackend):
         )
 
     async def compile(self, script_name: str) -> dict[str, Any]:
-        """Compile the script and add it to the chart.
+        """Compile via trusted CDP ``Cmd+Enter`` keystroke.
 
-        Dispatches a ``KeyboardEvent`` for ``Meta+Enter`` (Mac: Cmd+Enter)
-        on the currently-focused element.  This triggers TradingView's
-        compile-and-add-to-chart action regardless of which button is
-        currently visible in the UI.
+        See ``docs/monaco-editor-integration.md`` — only CDP-dispatched
+        keystrokes produce ``isTrusted: true`` events that Monaco/TradingView
+        will honor for the compile-and-add-to-chart action.
         """
         detail = _cap(self._caps, "pine_compile")
+        import asyncio
 
-        # Try keyboard shortcut first if enabled
-        if detail.get("use_keyboard_shortcut"):
-            compile_keys = detail.get("compile_keys", "Meta+Enter")
-            await self._dispatch_keyboard_shortcut(compile_keys)
+        # Focus the visible editor container via CDP click (trusted focus)
+        bounds_js = """
+        (() => {
+            const el = document.querySelector('.monaco-editor');
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + 100 };
+        })()
+        """
+        bounds_result = await self._cdp.execute_js(bounds_js)
+        bv = bounds_result.get("result", {}).get("value", {})
+        cx = (bv.get("x", 0) or 0)
+        cy = (bv.get("y", 0) or 0)
+
+        if cx and cy:
+            await self._cdp._send_command("Input.dispatchMouseEvent", {
+                "type": "mousePressed", "x": cx, "y": cy,
+                "button": "left", "clickCount": 1,
+            })
+            await self._cdp._send_command("Input.dispatchMouseEvent", {
+                "type": "mouseReleased", "x": cx, "y": cy,
+                "button": "left", "clickCount": 1,
+            })
+            await asyncio.sleep(0.15)
+
+        # Send Cmd+Enter via CDP (trusted keystroke)
+        compile_keys = detail.get("compile_keys", "Meta+Enter")
+        if "Meta" in compile_keys and "Enter" in compile_keys:
+            # Cmd key down
+            await self._cdp._send_command("Input.dispatchKeyEvent", {
+                "type": "rawKeyDown", "modifiers": 8, "key": "Meta",
+                "code": "MetaLeft", "windowsVirtualKeyCode": 91,
+            })
+            # Enter down
+            await self._cdp._send_command("Input.dispatchKeyEvent", {
+                "type": "rawKeyDown", "modifiers": 8, "key": "Enter",
+                "code": "Enter", "windowsVirtualKeyCode": 13,
+            })
+            # Enter up
+            await self._cdp._send_command("Input.dispatchKeyEvent", {
+                "type": "keyUp", "modifiers": 8, "key": "Enter",
+                "code": "Enter", "windowsVirtualKeyCode": 13,
+            })
+            # Cmd key up
+            await self._cdp._send_command("Input.dispatchKeyEvent", {
+                "type": "keyUp", "modifiers": 0, "key": "Meta",
+                "code": "MetaLeft", "windowsVirtualKeyCode": 91,
+            })
         else:
-            # Fallback: click compile button
-            compile_sels = detail.get("compile_selectors", [])
-            if compile_sels:
-                await self._dom.click(compile_sels)
+            # Fallback: JS KeyboardEvent (may have isTrusted: false)
+            await self._dispatch_keyboard_shortcut(compile_keys)
 
         return {"success": True}
 

@@ -125,15 +125,12 @@ class DomUtils:
                                timeout: float = 5.0) -> None:
         """Write *text* into a Monaco editor via system clipboard + real Cmd+V.
 
-        Monaco ignores synthetic ``ClipboardEvent``s (they have
-        ``isTrusted: false``).  Instead we:
+        See ``docs/monaco-editor-integration.md`` for full rationale.
+        Synthetic clipboard events are NOT trusted by Monaco (``isTrusted``
+        check).  The ONLY way to trigger Monaco's native paste handler
+        is through real keystrokes dispatched via CDP.
 
-        1. Write the full text to the system clipboard via
-           ``navigator.clipboard.writeText()``.
-        2. Focus the editor via a CDP mouse click on the visible container.
-        3. Send real ``Cmd+A`` then ``Cmd+V`` keystrokes via CDP
-           ``Input.dispatchKeyEvent`` — Monaco intercepts these as
-           trusted keyboard events and handles the paste natively.
+        Pipeline: clipboard writeText → CDP click editor → Cmd+A → Cmd+V
         """
         import base64
 
@@ -216,16 +213,13 @@ class DomUtils:
 
     async def read_text_monaco(self, selectors: list[str],
                                 timeout: float = 5.0) -> str | None:
-        """Read the full source from a Monaco editor via real
-        ``Cmd+A`` + ``Cmd+C`` + clipboard read.
+        """Read the full source from a Monaco editor via real Cmd+C + clipboard.
 
-        Synthetic ``ClipboardEvent``s have ``isTrusted: false`` so Monaco
-        ignores them.  Instead we:
+        See ``docs/monaco-editor-integration.md`` for full rationale.
+        Only CDP-dispatched keystrokes produce ``isTrusted: true`` events
+        that Monaco will honor for copy operations.
 
-        1. Click the visible Monaco editor container to focus it.
-        2. Send real ``Cmd+A`` keystroke via CDP to select all.
-        3. Send real ``Cmd+C`` keystroke via CDP to copy to system clipboard.
-        4. Read from ``navigator.clipboard.readText()``.
+        Pipeline: CDP click editor → Cmd+A → Cmd+C → clipboard readText
         """
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:

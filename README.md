@@ -146,9 +146,9 @@ TradingView Desktop (Electron app with --remote-debugging-port)
 | Settings | `tv_settings_list_fields` | ✅ | Gear icon click + dialog text extraction |
 | Settings | `tv_settings_read` | ✅ | Dialog text read |
 | Settings | `tv_settings_write` | ✅ | Dialog open + type + Apply click |
-| Pine Script | `tv_pine_read` | ⚠️ | Scroll-and-stitch via textarea — limited to ~360 chars per snapshot. Read verification against local file recommended. |
-| Pine Script | `tv_pine_write` | ⚠️ | Focus + textarea.value + input event — Monaco may not fully sync |
-| Pine Script | `tv_pine_compile` | ⚠️ | Compile button click works; result parsing untested |
+| Pine Script | `tv_pine_read` | ✅ | System clipboard + CDP Cmd+A/Cmd+C.  Full source captured regardless of size. |
+| Pine Script | `tv_pine_write` | ✅ | System clipboard + CDP Cmd+A/Cmd+V.  27K+ char scripts verified working. |
+| Pine Script | `tv_pine_compile` | ✅ | CDP Cmd+Enter trusted keystroke.  See `docs/monaco-editor-integration.md`. |
 | Pine Script | `tv_pine_compile_errors` | ❌ | Console panel not reliably accessible via DOM |
 | Pine Script | `tv_pine_logs` | ❌ | Pine Logs panel selectors not verified |
 | Diagnostics | `tv_diagnostics` | ✅ | Full health check across all 9 domains |
@@ -167,6 +167,18 @@ python -m pytest tests/ -v -m integration
 # Everything
 python -m pytest tests/ -v
 ```
+
+## Troubleshooting
+
+### Pine Script editing not working?
+
+See **[docs/monaco-editor-integration.md](docs/monaco-editor-integration.md)** for the complete investigation into Monaco Editor's virtualization wall, the `isTrusted` firewall, and the 7 failed approaches that led to the current clipboard + CDP keystroke solution.
+
+Quick checklist:
+- [ ] TradingView Desktop running with `--remote-debugging-port=8315`
+- [ ] Pine Editor tab is open in the bottom panel
+- [ ] System clipboard is accessible (Electron may restrict `navigator.clipboard`)
+- [ ] CDP target matches the chart page (`tradingview.com/chart/...`)
 
 ## Maintenance Protocol
 
