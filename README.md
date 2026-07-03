@@ -1,479 +1,219 @@
-# TradingView MCP Market Data & Technical Analysis for AI Assistants
+# TradingView Desktop Controller — MCP Server
 
-<a href="https://trendshift.io/repositories/25110" target="_blank"><img src="https://trendshift.io/api/badge/repositories/25110" alt="atilaahmettaner%2Ftradingview-mcp | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+A standalone MCP server providing **autonomous programmatic control** over [TradingView Desktop](https://www.tradingview.com/desktop/) via Chrome DevTools Protocol (CDP).
 
-**TradingView MCP server** — real-time market data, technical indicators, screeners, and backtesting for Claude, ChatGPT, Cursor, Copilot, and any MCP client. Stocks, crypto, forex & futures across global exchanges.
-Backtesting + live sentiment + Yahoo Finance + 30+ technical-analysis tools — the most complete TradingView MCP toolkit, all in one server.
+## What It Does
 
-<p align="center">
-  <img src=".github/assets/tradingview-mcp-demo.gif" width="820" alt="TradingView MCP in an AI chat: ask for the top gainers on Binance and get ranked, real-time results — one of 30+ tools" />
-</p>
+This server exposes **37 MCP tools** that let an AI coding agent control TradingView Desktop as if a human were using it:
 
-> [!NOTE]
-> Independent open-source project — **not affiliated with, endorsed by, or associated with TradingView Inc.** "TradingView" is a trademark of its respective owner; this project consumes third-party market data and is not a TradingView product.
+| Domain | Tools |
+|--------|-------|
+| **Chart** | Set symbol, set timeframe, read OHLCV data, apply/remove indicators |
+| **Backtest** | Run strategy backtests, read performance summary, trade list, equity curve |
+| **Alerts** | Create, edit, delete, and list price alerts |
+| **Drawing** | Place trendlines, Fibonacci retracements, rectangles; remove/list drawings |
+| **Orders** | Place paper trades (with safety gate), modify, cancel, read positions |
+| **Replay** | Enter/step/exit Replay mode with state machine guards |
+| **Settings** | Read and write indicator/strategy input values |
+| **Pine Script** | Read/write source, compile, read errors, read Pine Logs |
+| **Diagnostics** | Full health check across all 9 domains |
 
-> [!NOTE]
-> **Does it need — or risk — your TradingView account? No.** This server does **not** log into, scrape, or automate a TradingView session, and it requires no TradingView account or API key. Market data is fetched server-side from public endpoints, so there is no account of yours in the loop and no browser/UI automation. *(This is different from MCP servers that drive the TradingView Desktop app via Chrome DevTools.)* You are responsible for ensuring your own use complies with the terms of any data source you point it at.
+## Quick Start
 
-> [!IMPORTANT]
-> **Not financial advice.** Nothing produced by this software is investment, financial, legal, tax, or accounting advice. tradingview-mcp is an informational and educational analysis tool. Its outputs, including indicators, scores, signals, "trade setups", entries, stop losses, and targets, are computed from third party market data and are **not** recommendations to buy, sell, or hold any asset. It does not execute trades, manage money, or guarantee any result. Trading and investing carry a substantial risk of loss, and you can lose some or all of your capital. Always do your own research and consult a licensed professional before making any financial decision. You are solely responsible for your own decisions and for complying with the laws and regulations that apply to you. Market data may be delayed, inaccurate, or incomplete, and is provided without warranty.
+### Prerequisites
+- Python 3.12+
+- [TradingView Desktop](https://www.tradingview.com/desktop/) installed
 
-> [!TIP]
-> **Prefer zero setup? Use the hosted version.** [**pro.cryptosieve.com**](https://pro.cryptosieve.com) serves all 30+ tools as one connector URL for Claude.ai, ChatGPT, Copilot, and Cursor — no `uv`, `pandas`, or Python to wrangle. **From $9/mo (Pro) or $29/mo (Pro+ — higher limits), with a 3-day free trial.** Self-hosting stays free forever; hosted is just for folks who'd rather skip the ops. *(Full self-host vs hosted comparison in Quick Start below.)*
+### Installation
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![MCP Ready](https://img.shields.io/badge/MCP-Ready-brightgreen)](https://modelcontextprotocol.com/)
-[![OpenClaw Ready](https://img.shields.io/badge/OpenClaw-Ready-blueviolet)](https://openclaw.ai)
-[![Version](https://img.shields.io/badge/version-v0.7.0-blue)](https://github.com/atilaahmettaner/tradingview-mcp/releases)
-[![PyPI](https://img.shields.io/badge/PyPI-tradingview--mcp--server-orange)](https://pypi.org/project/tradingview-mcp-server/)
-[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-❤️-pink?logo=github-sponsors)](https://github.com/sponsors/atilaahmettaner)
-
-> **⭐ If this tool improves your workflow, please star the repo and consider [sponsoring](https://github.com/sponsors/atilaahmettaner) — it keeps the project alive and growing!**
-
-<a href="https://github.com/sponsors/atilaahmettaner">
-  <img src="https://img.shields.io/badge/☕_Coffee_($5)-Sponsor-orange?style=for-the-badge&logo=github-sponsors" alt="Sponsor $5"/>
-</a>
-<a href="https://github.com/sponsors/atilaahmettaner">
-  <img src="https://img.shields.io/badge/🚀_Supporter_($15)-Sponsor-blueviolet?style=for-the-badge&logo=github-sponsors" alt="Sponsor $15"/>
-</a>
-<a href="https://github.com/sponsors/atilaahmettaner">
-  <img src="https://img.shields.io/badge/💎_Pro_($30)-Sponsor-gold?style=for-the-badge&logo=github-sponsors" alt="Sponsor $30"/>
-</a>
-
----
-
-## 🎥 Framework Demo
-
-https://github-production-user-asset-6210df.s3.amazonaws.com/67838093/478689497-4a605d98-43e8-49a6-8d3a-559315f6c01d.mp4
-
----
-
-## 🆕 What's New
-
-**Stability & Strategy Expansion (May 2026)**
-
-- **9 backtest strategies** (up from 6) — added `rsi_pullback`, `keltner_breakout`, and `triple_ema`, covering trend-pullback, ATR-normalized breakout, and SMA200-filtered EMA cross edges. `compare_strategies` now ranks the full 9.
-- **Resilience layer** — automatic retry + 60-second TTL cache on the TradingView screener provider, eliminating transient `"Expecting value"` errors on `combined_analysis` and `multi_timeframe_analysis`. *(PR [#32](https://github.com/atilaahmettaner/tradingview-mcp/pull/32) — merged)*
-- **Financial news service rebuild** — replaces deprecated Reuters RSS endpoints with Yahoo Finance, MarketWatch, and CNBC. Fixes the long-standing `count: 0` bug on `financial_news`. *(PR [#33](https://github.com/atilaahmettaner/tradingview-mcp/pull/33) — merged)*
-- **TA throttle** — caps concurrent `tradingview_ta` calls (default 4) + min 0.8s spacing between starts. Prevents parallel bursts of `combined_analysis` / `multi_timeframe_analysis` from hitting TradingView's empty-body rate-limit cliff. Tunable via env vars. *(PR [#34](https://github.com/atilaahmettaner/tradingview-mcp/pull/34) — merged)*
-- **Walk-forward backtesting** (`walk_forward_backtest_strategy`) — train/test split with overfitting verdict (ROBUST / MODERATE / WEAK / OVERFITTED).
-- **Hourly (1h) timeframe** support across `backtest_strategy`, `compare_strategies`, and `walk_forward_backtest_strategy`.
-- **Full trade log + equity curve** outputs (`include_trade_log=True`, `include_equity_curve=True`).
-
----
-
-## 🏗️ Architecture
-
-![tradingview-mcp Architecture](assets/architecture.png)
-
----
-
-## ✨ Why tradingview-mcp?
-
-| Feature | `tradingview-mcp` | Traditional Setups | Bloomberg Terminal |
-|---------|-------------------|--------------------|--------------------|
-| **Setup Time** | 5 minutes | Hours (Docker, Conda...) | Weeks (Contracts) |
-| **Cost** | Free & Open Source | Variable | $30k+/year |
-| **Backtesting** | ✅ 9 strategies + Walk-forward + Sharpe | ❌ Manual scripting | ✅ Proprietary |
-| **Live Sentiment** | ✅ Reddit + RSS news | ❌ Separate setup | ✅ Terminal |
-| **Market Data** | ✅ Live / Real-Time | Historical / Delayed | Live |
-| **API Keys** | **None required** | Multiple (OpenAI, etc.) | N/A |
-
----
-
-## 🚀 Quick Start (5 Minutes)
-
-**Two ways to run it — the same 30+ tools either way:**
-
-| | 🧑‍💻 Self-host (this repo) | ☁️ Hosted — [pro.cryptosieve.com](https://pro.cryptosieve.com) |
-|---|---|---|
-| **Price** | Free forever (MIT) | $9/mo Pro · $29/mo Pro+ · 3-day trial |
-| **Time to first call** | ~5 minutes (Python + `uv`) | ~60 seconds (paste one URL) |
-| **Updates & ops** | You run and update it | Managed — always on the latest |
-| **Runs on** | Your machine or VPS | Hosted, streamed from the edge |
-| **Limits** | Your hardware | 2,500/mo · 60/min (Pro) → 10,000/mo · 150/min (Pro+) |
-| **Best for** | Tinkerers, forkers, full control | Folks who'd rather skip the ops |
-
-> ☁️ **Zero setup:** paste one connector URL into Claude.ai, ChatGPT, Copilot, or Cursor → **[start a 3-day free trial](https://pro.cryptosieve.com)**. Everything below is for self-hosting.
-
-### Install via pip
 ```bash
-pip install tradingview-mcp-server
+# Clone and setup
+cd tv-desktop-controller
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install mcp websockets httpx click pytest pytest-asyncio
 ```
 
-### Claude Desktop Config (`claude_desktop_config.json`)
+### Launch TradingView Desktop with Debug Port
 
-> **Note:** On macOS, GUI apps like Claude Desktop may not have `~/.local/bin` in their PATH. Use the full path to `uvx` to avoid "command not found" errors.
+```bash
+# Option A: Launch script
+./scripts/launch_tv_desktop.sh
+
+# Option B: Manual launch
+/Applications/TradingView.app/Contents/MacOS/TradingView --remote-debugging-port=8315
+```
+
+### Run Reconnaissance (first-time setup)
+
+Before the server can control TV Desktop, it needs to discover the DOM selectors for each UI panel:
+
+```bash
+python -m core.services.recon --no-launch --port 8315
+```
+
+This guides you through a ~4-minute interaction sequence. The output is `recon_findings.json` — the configuration file that drives all backends.
+
+### Start the MCP Server
+
+```bash
+python server.py
+```
+
+The server communicates over **stdio** — configure your MCP client to launch it.
+
+### MCP Client Configuration
+
+Add to your MCP client's config (e.g., Claude Desktop, VS Code Copilot):
 
 ```json
 {
   "mcpServers": {
-    "tradingview": {
-      "command": "/Users/YOUR_USERNAME/.local/bin/uvx",
-      "args": ["--from", "tradingview-mcp-server", "tradingview-mcp"]
+    "tv-desktop-controller": {
+      "command": "python",
+      "args": ["server.py"],
+      "cwd": "/path/to/tv-desktop-controller"
     }
   }
 }
 ```
 
-On Linux, replace `/Users/YOUR_USERNAME` with `/home/YOUR_USERNAME`. On Windows, use `%USERPROFILE%\.local\bin\uvx.exe`.
+## Safety Warnings
 
-### Codex Plugin Config
+### 🤖 Paper Trading Only
+All order operations (`tv_order_place`, `tv_order_modify`) are designed for **paper trading only**. They require an explicit `confirm=True` parameter — the `confirm` flag defaults to `False` and cannot be silently bypassed.
 
-This repository also includes mcp-only Codex plugin metadata:
+If TradingView Desktop is ever connected to a live broker, **do not enable order tools** without re-auditing the entire order flow.
 
-- `.codex-plugin/plugin.json`
-- `.codex-mcp.json`
+### 🔒 Three-Layer Order Safety Gate
+1. **MCP Tool** — `confirm` parameter defaults to `False`
+2. **Controller** — `TVOrderController.place()` raises `OrderSubmissionBlocked` if not confirmed
+3. **Backend** — `DomOrderBackend.place()` raises `OrderSubmissionBlocked` if not confirmed
 
-The plugin uses the same PyPI package entrypoint:
+### 🔄 Multi-Renderer Architecture
+TV Desktop runs ~11 separate CDP targets (toast, new-tab, browser-api, etc.). The server uses scoring-based target selection to always connect to the **main chart page** at `tradingview.com/chart/...`. Do not change the target selection logic without verifying against the actual CDP targets.
 
-```json
-{
-  "mcpServers": {
-    "tradingview": {
-      "command": "uvx",
-      "args": ["--from", "tradingview-mcp-server", "tradingview-mcp"]
-    }
-  }
-}
-```
-
-After installing or enabling the Codex plugin, restart Codex so the MCP server is loaded in the next session. Depending on your Codex version, `codex mcp list` may show registered MCP servers, but tool availability should be verified in a fresh Codex session.
-
-### Or run from source
-```bash
-git clone https://github.com/atilaahmettaner/tradingview-mcp
-cd tradingview-mcp
-uv run tradingview-mcp
-```
-
----
-
-## 🛠️ Troubleshooting
-
-### 🪟 Windows: `MCP error -32001: Request timed out` on first launch
-
-Symptom — you see this in the Claude Desktop logs shortly after adding the config:
+## How It Works
 
 ```
-[tradingview] Server started and connected successfully
-[tradingview] Message from client: initialize ...
-[60 seconds later]
-[tradingview] notifications/cancelled — reason: "MCP error -32001: Request timed out"
+MCP Client (Agent)
+    ↕ MCP Protocol (stdio)
+server.py (37 tool handlers)
+    ↕
+9 Domain Controllers (chart, backtest, alert, drawing, order, replay, settings, pinescript)
+    ↕ Strategy Pattern
+Backend Layer (DOM / JS / Network — selected at runtime from recon)
+    ↕
+cdp_connection.py (WebSocket → Chrome DevTools Protocol)
+    ↕
+TradingView Desktop (Electron app with --remote-debugging-port)
 ```
 
-**Why it happens:** on Windows with Python 3.14, `uvx` downloads `tradingview-mcp-server`, creates a fresh virtualenv, and installs dependencies the first time it runs. Because `pandas` has no prebuilt wheel for Python 3.14 yet, pip falls back to a source build — which typically exceeds Claude Desktop's 60-second MCP initialization timeout.
+### Architecture Decisions
+- **All DOM, no JS API** — Recon confirmed `window.tvWidget` and similar APIs don't exist. All 9 domains use DOM automation (Path C).
+- **Stable selectors only** — TV Desktop uses hashed CSS class names that change per build. All selectors use `data-name`, `aria-label`, `role`, `data-qa-id`, and element IDs.
+- **Factory pattern** — Each domain can switch between DOM/JS/Network at runtime by changing `recon_findings.json`. No controller code changes needed.
 
-**Fix — pin to Python 3.13 (has prebuilt pandas wheels):**
+### Capability Matrix (2026-07-01)
 
-```json
-{
-  "mcpServers": {
-    "tradingview": {
-      "command": "uvx",
-      "args": ["--python", "3.13", "--from", "tradingview-mcp-server", "tradingview-mcp"]
-    }
-  }
-}
-```
+| Domain | Tool | Status | Notes |
+|--------|------|--------|-------|
+| Chart | `tv_set_symbol` | ✅ | Symbol header text detection |
+| Chart | `tv_set_timeframe` | ✅ | Active interval button detection |
+| Chart | `tv_get_chart_data` | ❌ | Requires network-level WebSocket interception |
+| Chart | `tv_apply_script` | ⚠️ | Opens editor, pastes code, clicks Add-to-Chart — needs end-to-end verification |
+| Chart | `tv_remove_indicator` | ⚠️ | Selector-dependent; needs chart-specific testing |
+| Chart | `tv_screenshot` | ✅ | Uses CDP `Page.captureScreenshot` |
+| Backtest | `tv_run_backtest` | ⚠️ | Tab click works; backtest trigger from strategy panel untested |
+| Backtest | `tv_get_backtest_summary` | ✅ | Uses `extract_innertext_map` for SVG-based panels |
+| Backtest | `tv_get_backtest_trades` | ❌ | Trade list uses virtual scroller (SVG) — not DOM-accessible |
+| Backtest | `tv_get_backtest_equity_curve` | ❌ | Data is SVG-only, no DOM extraction path |
+| Alerts | `tv_alert_create` | ⚠️ | Dialog open/close works; condition field population needs testing |
+| Alerts | `tv_alert_edit` | ⚠️ | Selector-dependent |
+| Alerts | `tv_alert_delete` | ⚠️ | Selector-dependent |
+| Alerts | `tv_alert_list` | ⚠️ | Panel selector may need updating |
+| Drawing | `tv_drawing_create` | ⚠️ | Canvas click works; toolbar selectors populated |
+| Drawing | `tv_drawing_remove` | ⚠️ | Selector-dependent |
+| Drawing | `tv_drawing_list` | ⚠️ | Panel selector may need updating |
+| Orders | `tv_order_place` | ⚠️ | Safety gates work; DOM interaction for order ticket untested |
+| Orders | `tv_order_modify` | ⚠️ | Selector-dependent |
+| Orders | `tv_order_cancel` | ⚠️ | Selector-dependent |
+| Orders | `tv_order_status` | ⚠️ | Panel selector may need updating |
+| Replay | `tv_replay_enter` | ✅ | Button click works; state machine guards functional |
+| Replay | `tv_replay_step` | ⚠️ | Step button selector needs verification |
+| Replay | `tv_replay_exit` | ⚠️ | Exit button selector needs verification |
+| Replay | `tv_replay_state` | ⚠️ | Reads indicator text; format may vary |
+| Settings | `tv_settings_list_fields` | ✅ | Gear icon click + dialog text extraction |
+| Settings | `tv_settings_read` | ✅ | Dialog text read |
+| Settings | `tv_settings_write` | ✅ | Dialog open + type + Apply click |
+| Pine Script | `tv_pine_read` | ✅ | System clipboard + CDP Cmd+A/Cmd+C.  Full source captured regardless of size. |
+| Pine Script | `tv_pine_write` | ✅ | System clipboard + CDP Cmd+A/Cmd+V.  27K+ char scripts verified working. |
+| Pine Script | `tv_pine_compile` | ✅ | CDP Cmd+Enter trusted keystroke.  See `docs/monaco-editor-integration.md`. |
+| Pine Script | `tv_pine_compile_errors` | ❌ | Console panel not reliably accessible via DOM |
+| Pine Script | `tv_pine_logs` | ❌ | Pine Logs panel selectors not verified |
+| Diagnostics | `tv_diagnostics` | ✅ | Full health check across all 9 domains |
 
-On macOS use the full path to `uvx` (see the note in Quick Start). On Windows `uvx` is typically `%USERPROFILE%\.local\bin\uvx.exe`.
+**Legend**: ✅ Working | ⚠️ Partial / Needs Testing | ❌ Unavailable
 
-**Alternative — pre-install once, then let Claude Desktop reuse the cache:**
-
-```bash
-# Run in a terminal before launching Claude Desktop
-uv tool install --python 3.13 tradingview-mcp-server
-```
-
-After the install finishes, start Claude Desktop with the normal config and the server will come up instantly (cache is already warm).
-
-> _Credit: [@wyh4444](https://github.com/wyh4444) for the original report in [#24](https://github.com/atilaahmettaner/tradingview-mcp/issues/24)._
-
----
-
-## ⚠️ Error Envelope Format
-
-Tools that have adopted the structured error format return either their normal payload **or** an error envelope:
-
-```json
-{"error": {"code": "ALL_BATCHES_FAILED", "message": "All 5 batches failed; first error: JSONDecodeError(...)", "batches_attempted": 5, "batches_failed": 5, "first_error": "..."}}
-```
-
-**Why:** the previous `[]` / `{"error": "Analysis failed: ..."}` strings made it impossible to distinguish "no matches today" from "upstream rate-limit cliff." The new envelope is programmatically branchable by `code`.
-
-**Currently adopted by:** `top_gainers`, `top_losers`, `rating_filter`, `volume_breakout_scanner`, `smart_volume_scanner`. More tools will follow in subsequent PRs.
-
-**Detecting an error:**
-
-```python
-result = volume_breakout_scanner(exchange="KUCOIN")
-if isinstance(result, dict) and "error" in result:
-    code = result["error"]["code"]
-    if code == "ALL_BATCHES_FAILED":
-        # Wait + retry, raise alert, fall back to single-batch call, etc.
-        ...
-else:
-    for row in result:
-        ...
-```
-
-Stable codes are defined in [`core/errors.py`](src/tradingview_mcp/core/errors.py).
-
----
-
-## 📱 Use via Telegram, WhatsApp & More (OpenClaw)
-
-Connect this server to **Telegram, WhatsApp, Discord** and 20+ messaging platforms using [OpenClaw](https://openclaw.ai) — a self-hosted AI gateway. **Tested & verified on Hetzner VPS (Ubuntu 24.04).**
-
-### How It Works
-
-> OpenClaw routes Telegram messages to an AI agent. The agent uses `trading.py` — a thin Python wrapper — to call `tradingview-mcp` functions and return formatted results. **No MCP protocol needed between OpenClaw and the server; it's a direct Python import.**
-
-```
-Telegram → OpenClaw agent (AI model) → trading.py (bash) → tradingview-mcp → Yahoo Finance
-```
-
-### Quick Setup
+## Running Tests
 
 ```bash
-# 1. Install UV and tradingview-mcp
-curl -LsSf https://astral.sh/uv/install.sh | sh && source ~/.bashrc
-uv tool install tradingview-mcp-server
+# Unit tests (fast, no TV Desktop needed)
+python -m pytest tests/ -v -m "not integration"
 
-# 2. Configure OpenClaw channels
-cat > ~/.openclaw/openclaw.json << 'EOF'
-{
-  channels: {
-    telegram: {
-      botToken: "YOUR_BOT_TOKEN_HERE",
-    },
-  },
-}
-EOF
+# Integration tests (requires live TV Desktop on port 8315)
+python -m pytest tests/ -v -m integration
 
-# 3. Configure gateway + agent
-openclaw config set gateway.mode local
-openclaw config set acp.defaultAgent main
-
-# 4. Set your AI model (choose ONE option below)
-openclaw configure --section model
-
-# 5. Install the skill + tool wrapper
-mkdir -p ~/.agents/skills/tradingview-mcp ~/.openclaw/tools
-curl -fsSL https://raw.githubusercontent.com/atilaahmettaner/tradingview-mcp/main/openclaw/SKILL.md \
-  -o ~/.agents/skills/tradingview-mcp/SKILL.md
-curl -fsSL https://raw.githubusercontent.com/atilaahmettaner/tradingview-mcp/main/openclaw/trading.py \
-  -o ~/.openclaw/tools/trading.py && chmod +x ~/.openclaw/tools/trading.py
-
-# 6. Start the gateway
-openclaw gateway install
-systemctl --user start openclaw-gateway.service
+# Everything
+python -m pytest tests/ -v
 ```
 
-### Choose Your AI Model
+## Troubleshooting
 
-OpenRouter is **not required** — use whichever provider you have a key for:
+### Pine Script editing not working?
 
-| Provider | Model ID for OpenClaw | Get Key |
-|----------|----------------------|---------|
-| **OpenRouter** (aggregator — access to all models) | `openrouter/google/gemini-3-flash-preview` | [openrouter.ai/keys](https://openrouter.ai/keys) |
-| **Anthropic** (Claude direct) | `anthropic/claude-sonnet-4-5` | [console.anthropic.com](https://console.anthropic.com) |
-| **Google** (Gemini direct) | `google/gemini-2.5-flash` | [aistudio.google.com](https://aistudio.google.com) |
-| **OpenAI** (GPT direct) | `openai/gpt-4o-mini` | [platform.openai.com](https://platform.openai.com) |
+See **[docs/monaco-editor-integration.md](docs/monaco-editor-integration.md)** for the complete investigation into Monaco Editor's virtualization wall, the `isTrusted` firewall, and the 7 failed approaches that led to the current clipboard + CDP keystroke solution.
 
-```bash
-# Examples — set your chosen model:
-openclaw config set agents.defaults.model "openrouter/google/gemini-3-flash-preview"  # via OpenRouter
-openclaw config set agents.defaults.model "anthropic/claude-sonnet-4-5"               # Anthropic direct
-openclaw config set agents.defaults.model "google/gemini-2.5-flash"                   # Google direct
-```
+Quick checklist:
+- [ ] TradingView Desktop running with `--remote-debugging-port=8315`
+- [ ] Pine Editor tab is open in the bottom panel
+- [ ] System clipboard is accessible (Electron may restrict `navigator.clipboard`)
+- [ ] CDP target matches the chart page (`tradingview.com/chart/...`)
 
-> ⚠️ **Important:** Prefix must match your provider. `google/...` needs a Google API key. `openrouter/...` needs an OpenRouter key.
+## Maintenance Protocol
 
-### ⚠️ Common Mistakes
+If a TradingView Desktop update breaks something:
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `Unrecognized keys: mcpServers` | `mcpServers` not supported in this version | Remove from config, use bash wrapper |
-| `No API key for provider "google"` | Used `google/model` but only have OpenRouter key | Use `openrouter/google/model` instead |
-| `which agent?` loop | `acp.defaultAgent` not set | `openclaw config set acp.defaultAgent main` |
-| Gateway won't start | `gateway.mode` missing | `openclaw config set gateway.mode local` |
+1. **`tv_diagnostics()`** — narrows breakage to a specific domain via health check
+2. **`tv_recon_run()`** — re-runs the interactive recon session to update selectors
+3. **Fix affected backend** — update selectors in `recon_findings.json` for the broken capability
+4. **Commit updated recon** — `recon_findings.json` is tracked in git
+5. **Re-verify order panel** — after any TV Desktop update, manually verify order selectors before trusting `confirmed=True`
 
-### Test Your Bot
-
-Once running, send your Telegram bot:
-```
-market snapshot
-backtest RSI strategy for AAPL, 1 year
-compare all strategies for BTC-USD
-```
-
-👉 **[Full OpenClaw Setup Guide →](OPENCLAW.md)**
-
----
-
-
-
-
-
-Unlike basic screeners, this framework deploys **specialized AI agents** that debate findings in real-time:
-
-1. **🛠️ Technical Analyst** — Bollinger Bands (±3 proprietary rating), RSI, MACD
-2. **🌊 Sentiment & Momentum Analyst** — Reddit community sentiment + price momentum
-3. **🛡️ Risk Manager** — Volatility, drawdown risk, mean-reversion signals
-
-*Output: `STRONG BUY` / `BUY` / `HOLD` / `SELL` / `STRONG SELL` with confidence score*
-
----
-
-## 🔧 All 30+ MCP Tools
-
-### 📊 Backtesting Engine
-
-| Tool | Description |
-|------|-------------|
-| `backtest_strategy` | Backtest 1 of 9 strategies with institutional metrics (Sharpe, Calmar, Expectancy). Supports `1d` and `1h` timeframes; optional full trade log + equity curve. |
-| `compare_strategies` | Run all 9 strategies on the same symbol and rank by performance. |
-| `walk_forward_backtest_strategy` | Train/test split walk-forward validation with overfitting verdict (ROBUST / MODERATE / WEAK / OVERFITTED). |
-
-**9 Strategies to Test:**
-- `rsi` — RSI oversold/overbought mean reversion
-- `bollinger` — Bollinger Band mean reversion
-- `macd` — MACD golden/death cross
-- `ema_cross` — EMA 20/50 Golden/Death Cross
-- `supertrend` — ATR-based Supertrend trend following 🔥
-- `donchian` — Donchian Channel breakout (Turtle Trader style)
-- `rsi_pullback` — Dip-buy in confirmed uptrend (SMA50>SMA200 + RSI<40 entry) 🆕
-- `keltner_breakout` — ATR-normalized breakout (EMA20 + 2·ATR upper band) 🆕
-- `triple_ema` — EMA 20/50 cross gated by SMA200 trend filter 🆕
-
-> 🆕 strategies require `period='1y'` or `'2y'` so the SMA200 trend filter can complete its warmup.
-
-**Metrics you get:** Win Rate, Total Return, Sharpe Ratio, Calmar Ratio, Max Drawdown, Profit Factor, Expectancy, Best/Worst Trade, vs Buy-and-Hold, with **realistic commission + slippage simulation**.
+## Project Structure
 
 ```
-Example prompt: "Compare all 9 strategies on MSFT for 2 years"
-→ #1 triple_ema:        +15.1% | Sharpe:  0.0 | WR: 100%
-→ #2 keltner_breakout:  +14.3% | Sharpe:  4.7 | WR:  40%
-→ #3 bollinger:         +12.2% | Sharpe:  4.1 | WR:  64%
-→ Buy & Hold:            -2.1%
+tv-desktop-controller/
+├── server.py                    # MCP server entry point
+├── recon_findings.json          # Capability classifications (committed)
+├── core/services/
+│   ├── cdp_connection.py        # CDP WebSocket transport
+│   ├── dom_utils.py             # DOM automation primitives
+│   ├── errors.py                # Typed error classes
+│   ├── recon.py                 # Interactive recon tool
+│   ├── *_controller.py          # 8 domain controllers
+│   └── backends/
+│       ├── base.py              # 9 abstract interfaces
+│       ├── dom_backend.py       # DOM implementations
+│       ├── js_backend.py        # JS stubs
+│       └── network_backend.py   # Network stubs
+├── scripts/
+│   ├── launch_tv_desktop.sh     # TV Desktop launcher
+│   └── dom_probe.py             # DOM probe helper
+├── tests/                       # Unit + integration tests
+└── docs/                        # Sprint plans + QA audits
 ```
 
----
+## License
 
-### 💰 Yahoo Finance — Real-Time Prices *(New in v0.6.0)*
-
-| Tool | Description |
-|------|-------------|
-| `yahoo_price` | Real-time quote: price, change %, 52w high/low, market state |
-| `market_snapshot` | Global overview: S&P500, NASDAQ, VIX, BTC, ETH, EUR/USD, SPY, GLD |
-
-**Supports:** Stocks (AAPL, TSLA, NVDA), Crypto (BTC-USD, ETH-USD, SOL-USD), ETFs (SPY, QQQ, GLD), Indices (^GSPC, ^DJI, ^IXIC, ^VIX), FX (EURUSD=X), Turkish (THYAO.IS, SASA.IS)
-
----
-
-### 🧠 AI Sentiment & Intelligence
-
-| Tool | Description |
-|------|-------------|
-| `market_sentiment` | Reddit sentiment across finance communities (bullish/bearish score, top posts) |
-| `financial_news` | Live RSS headlines from Yahoo Finance, MarketWatch, CNBC, CoinDesk, CoinTelegraph |
-| `combined_analysis` | **Power Tool**: TradingView technicals + Reddit sentiment + live news → confluence decision. Now backed by retry + 60s cache for resilience against transient screener errors. |
-
----
-
-### 📈 Technical Analysis Core
-
-| Tool | Description |
-|------|-------------|
-| `get_technical_analysis` | Full TA: RSI, MACD, Bollinger, 23 indicators with BUY/SELL/HOLD |
-| `get_multiple_analysis` | Bulk TA for multiple symbols at once |
-| `get_bollinger_band_analysis` | Proprietary ±3 BB rating system |
-| `get_stock_decision` | 3-layer decision engine (ranking + trade setup + quality score) |
-| `screen_stocks` | Multi-exchange screener with 20+ filter criteria |
-| `scan_by_signal` | Scan by signal type (oversold, trending, breakout...) |
-| `get_candlestick_patterns` | 15 candlestick pattern detector |
-| `get_multi_timeframe_analysis` | Weekly→Daily→4H→1H→15m alignment analysis |
-
----
-
-### 🌍 Multi-Exchange Support
-
-| Exchange | Tools |
-|----------|-------|
-| **Binance** | Crypto screener, all pairs |
-| **KuCoin / Bybit+** | Crypto screener |
-| **NASDAQ / NYSE** | US stocks (AAPL, TSLA, NVDA...) |
-| **EGX (Egypt)** | `egx_market_overview`, `egx_stock_screener`, `egx_trade_plan`, `egx_fibonacci_retracement` |
-| **Turkish (BIST)** | Via TradingView screener |
-
----
-
-## 💬 Example AI Conversations
-
-```
-You: "Give me a full market snapshot right now"
-AI: [market_snapshot] → S&P500 -3.4%, BTC +0.1%, VIX 31 (+13%), EUR/USD 1.15
-
-You: "What is Reddit saying about NVDA?"
-AI: [market_sentiment] → Strongly Bullish (0.41) | 23 posts | 18 bullish
-
-You: "Backtest RSI strategy on BTC-USD for 2 years"
-AI: [backtest_strategy] → +31.5% return | 100% win rate | 2 trades | B&H: -5%
-
-You: "Which of the 9 strategies worked best on MSFT in the last 2 years?"
-AI: [compare_strategies] → triple_ema #1 (+15.1%, WR 100%), keltner_breakout #2 (+14.3%), macd last (-23.4%)
-
-You: "Run walk-forward backtest on supertrend for SPY"
-AI: [walk_forward_backtest_strategy] → Verdict: ROBUST (avg robustness 0.92) | OOS return +8.5%
-
-You: "Analyze TSLA with all signals: technical + sentiment + news"
-AI: [combined_analysis] → BUY (Technical STRONG BUY + Bullish Reddit + Positive news)
-```
-
----
-
-## 💖 Support the Project
-
-This framework is **free and open source**, built in spare time. If it saves you hours of research or helps you make better decisions, please consider sponsoring:
-
-| Tier | Monthly | What You Get |
-|------|---------|--------------|
-| ☕ Coffee | $5 | Heartfelt gratitude + name in README |
-| 🚀 Supporter | $15 | Above + priority bug fixes |
-| 💎 Pro | $30 | Above + priority feature requests |
-
-<a href="https://github.com/sponsors/atilaahmettaner">
-  <img src="https://img.shields.io/badge/Become_a_Sponsor-pink?style=for-the-badge&logo=github-sponsors" alt="Sponsor"/>
-</a>
-
-Every sponsor directly funds new features like Walk-Forward Backtesting, Twitter/X sentiment, and managed cloud hosting.
-
----
-
-## 📋 Roadmap
-
-- [x] TradingView technical analysis (30+ indicators)
-- [x] Multi-exchange screener (Binance, KuCoin, MEXC, EGX, US stocks)
-- [x] Reddit sentiment analysis
-- [x] Live financial news (Yahoo / MarketWatch / CNBC / CoinDesk / CoinTelegraph)
-- [x] Yahoo Finance real-time prices
-- [x] Backtesting engine (9 strategies + Sharpe / Calmar / Expectancy)
-- [x] Walk-forward backtesting (overfitting detection)
-- [x] Resilience layer (retry + TTL cache) on screener provider
-- [x] Hourly (1h) backtesting timeframe
-- [ ] Twitter/X market sentiment
-- [ ] Paper trading simulation
-- [ ] Managed cloud hosting (no local setup)
-
----
-
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-*Disclaimer: This tool is for educational and research purposes only. It does not constitute financial advice. Always do your own research before making investment decisions.*
+MIT

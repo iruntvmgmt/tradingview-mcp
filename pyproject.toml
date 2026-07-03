@@ -1,55 +1,33 @@
 [project]
-name = "tradingview-mcp-server"
-version = "0.7.1"
-description = "Advanced AI Trading Intelligence Framework — MCP server with walk-forward backtesting, trade logs, equity curves, 1h timeframe, sentiment, Yahoo Finance, and 30+ technical analysis tools"
-readme = "README.md"
-requires-python = ">=3.10"
-authors = [
-  { name = "Atila Ahmettaner" }
-]
-urls = { Repository = "https://github.com/atilaahmettaner/tradingview-mcp" }
-keywords = ["mcp", "tradingview", "crypto", "technical analysis", "screener", "backtesting", "walk-forward", "sentiment", "yahoo-finance", "trading", "agents", "algorithmic-trading", "equity-curve"]
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-]
+name = "tv-desktop-controller"
+version = "0.1.0"
+description = "MCP server for autonomous control of TradingView Desktop via CDP"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
 dependencies = [
-  "feedparser>=6.0.12",
-  "mcp[cli]>=1.12.0",
-  "playwright>=1.52.0",
-  "requests>=2.32",
-  # Pinned to ==3.0.0 on purpose. 3.2.0 makes a bare Query() default to a
-  # *stock* preset filter that silently returns 0 rows for crypto/futures
-  # scans, which would break coin/screener/futures tools. The Docker build uses
-  # `uv pip install --system .` (ignores uv.lock), so an open range would let a
-  # rebuild drift to 3.2.0 and break paid traffic. See futures_service._futures_query.
-  "tradingview-screener==3.0.0",
-  "tradingview-ta>=3.3.0",
-  "websockets>=16.0",
+    "mcp>=1.0.0",
+    "websockets>=12.0",
+    "httpx>=0.27.0",
+    "click>=8.1.0",
 ]
 
 [project.optional-dependencies]
-recon = [
-    "playwright>=1.52.0",
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests that require a live TradingView Desktop instance (deselect with '-m \"not integration\"')",
 ]
 
 [project.scripts]
-# Entry point now points to packaged module
-tradingview-mcp = "tradingview_mcp.server:main"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-tradingview_mcp = ["coinlist/*.txt"]
-
-[tool.uv]
-dev-dependencies = [
-    "pytest>=9.0.3",
-    "pytest-asyncio>=1.4.0",
-]
-package = true
+tv-desktop-recon = "core.services.recon:cli_main"
 
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
