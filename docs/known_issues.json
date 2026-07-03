@@ -1,0 +1,59 @@
+{
+  "_comment": "Hand-maintained. This is the ONLY file where humans/agents record known issues per capability. Do not duplicate this information in prose docs — STATUS.md is generated FROM this file plus recon_findings.json, so editing STATUS.md directly will be overwritten. Capability names must match keys in recon_findings.json exactly.",
+  "_schema": {
+    "capability": "must match a key in recon_findings.json capabilities{}",
+    "severity": "blocker | major | minor",
+    "summary": "one-line description of the issue",
+    "detail_ref": "path#anchor to the full writeup, e.g. docs/adr/0003-xxx.md or docs/handoff/2026-07-03-audit-findings.md",
+    "blocks_goal": "true if this blocks the project's primary use case (agent-driven strategy iteration)",
+    "opened": "YYYY-MM-DD",
+    "status": "open | fixed | wontfix"
+  },
+  "issues": [
+    {
+      "capability": "settings_list_fields",
+      "severity": "blocker",
+      "summary": "Returns raw dialog text split by newline, not structured fields. No selector to target individual inputs.",
+      "detail_ref": "docs/handoff/2026-07-03-audit-findings.md#settings-backend",
+      "blocks_goal": true,
+      "opened": "2026-07-03",
+      "status": "open"
+    },
+    {
+      "capability": "settings_read",
+      "severity": "blocker",
+      "summary": "Returns unparsed raw text blob instead of key/value pairs.",
+      "detail_ref": "docs/handoff/2026-07-03-audit-findings.md#settings-backend",
+      "blocks_goal": true,
+      "opened": "2026-07-03",
+      "status": "open"
+    },
+    {
+      "capability": "settings_write",
+      "severity": "blocker",
+      "summary": "Uses guessed generic selectors (input[name=], [data-name=], placeholder match) never confirmed against real TradingView Inputs dialog DOM. Will likely silently fail to match.",
+      "detail_ref": "docs/handoff/2026-07-03-audit-findings.md#settings-backend",
+      "blocks_goal": true,
+      "opened": "2026-07-03",
+      "status": "open"
+    },
+    {
+      "capability": "indicator_apply",
+      "severity": "blocker",
+      "summary": "Marked verified:true in recon but is not: editor_selectors and add_to_chart_selectors are identical (both open the built-in Indicators browse dialog, not the Pine Editor), and the Monaco write uses the naive `ta.value =` approach already proven broken in docs/monaco-editor-integration.md. tv_apply_script should not be trusted until fixed.",
+      "detail_ref": "docs/adr/0002-monaco-editor-clipboard-write-strategy.md",
+      "blocks_goal": true,
+      "opened": "2026-07-03",
+      "status": "open"
+    },
+    {
+      "capability": "ohlcv_read",
+      "severity": "major",
+      "summary": "Dead end on both implemented paths. DOM backend punts to network path with a CapabilityUnavailable; network backend's get_ohlcv also unconditionally raises CapabilityUnavailable despite its own docstring claiming OHLCV is the one thing the network path supports. No working OHLCV read exists.",
+      "detail_ref": "docs/handoff/2026-07-03-audit-findings.md#ohlcv",
+      "blocks_goal": false,
+      "opened": "2026-07-03",
+      "status": "open"
+    }
+  ]
+}
