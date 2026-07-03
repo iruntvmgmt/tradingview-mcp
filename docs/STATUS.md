@@ -2,10 +2,10 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-03 23:14 UTC
+Last generated: 2026-07-03 23:24 UTC
 Source: `recon_findings.json` (schema v2)
 
-**13/33** capabilities recon-verified · **5** have open known issues that override that verification (see table).
+**15/33** capabilities recon-verified · **5** have open known issues that override that verification (see table).
 
 ## Capability matrix
 
@@ -22,7 +22,7 @@ Source: `recon_findings.json` (schema v2)
 | `drawing_create` | `dom` | verified | 🟢 Verified | — |
 | `drawing_list` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `drawing_remove` | `dom` | verified | 🟢 Verified | — |
-| `indicator_apply` | `dom` | verified | 🔴 Known issue | 🔴 Marked verified:true in recon but is not: editor_selectors and add_to_chart_selectors are identical (both open the built-in Indicators browse dialog, not the Pine Editor), and the Monaco write uses the naive `ta.value =` approach already proven broken in docs/monaco-editor-integration.md. tv_apply_script should not be trusted until fixed. |
+| `indicator_apply` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `indicator_remove` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `ohlcv_read` | `dom` | unverified | 🔴 Known issue | 🟠 Dead end on both implemented paths. DOM backend punts to network path with a CapabilityUnavailable; network backend's get_ohlcv also unconditionally raises CapabilityUnavailable despite its own docstring claiming OHLCV is the one thing the network path supports. No working OHLCV read exists. |
 | `order_cancel` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
@@ -39,20 +39,13 @@ Source: `recon_findings.json` (schema v2)
 | `replay_state_read` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `replay_step` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `screenshot` | `cdp` | verified | 🟢 Verified | — |
-| `settings_list_fields` | `dom` | unverified | 🔴 Known issue | 🔴 Returns raw dialog text split by newline, not structured fields. No selector to target individual inputs. |
-| `settings_read` | `dom` | unverified | 🔴 Known issue | 🔴 Returns unparsed raw text blob instead of key/value pairs. |
-| `settings_write` | `dom` | unverified | 🔴 Known issue | 🔴 Uses guessed generic selectors (input[name=], [data-name=], placeholder match) never confirmed against real TradingView Inputs dialog DOM. Will likely silently fail to match. |
+| `settings_list_fields` | `dom` | verified | 🟢 Verified | — |
+| `settings_read` | `dom` | verified | 🟢 Verified | — |
+| `settings_write` | `dom` | verified | 🟢 Verified | — |
 | `symbol_control` | `dom` | verified | 🟢 Verified | — |
 | `timeframe_control` | `dom` | verified | 🟢 Verified | — |
 
 ## Open issues (detail)
-
-### 🔴 `indicator_apply` — Marked verified:true in recon but is not: editor_selectors and add_to_chart_selectors are identical (both open the built-in Indicators browse dialog, not the Pine Editor), and the Monaco write uses the naive `ta.value =` approach already proven broken in docs/monaco-editor-integration.md. tv_apply_script should not be trusted until fixed.
-
-- **Severity:** blocker
-- **Blocks primary goal:** yes
-- **Opened:** 2026-07-03
-- **Detail:** docs/adr/0002-monaco-editor-clipboard-write-strategy.md
 
 ### 🟠 `ohlcv_read` — Dead end on both implemented paths. DOM backend punts to network path with a CapabilityUnavailable; network backend's get_ohlcv also unconditionally raises CapabilityUnavailable despite its own docstring claiming OHLCV is the one thing the network path supports. No working OHLCV read exists.
 
@@ -60,27 +53,6 @@ Source: `recon_findings.json` (schema v2)
 - **Blocks primary goal:** no
 - **Opened:** 2026-07-03
 - **Detail:** docs/handoff/2026-07-03-audit-findings.md#ohlcv
-
-### 🔴 `settings_list_fields` — Returns raw dialog text split by newline, not structured fields. No selector to target individual inputs.
-
-- **Severity:** blocker
-- **Blocks primary goal:** yes
-- **Opened:** 2026-07-03
-- **Detail:** docs/handoff/2026-07-03-audit-findings.md#settings-backend
-
-### 🔴 `settings_read` — Returns unparsed raw text blob instead of key/value pairs.
-
-- **Severity:** blocker
-- **Blocks primary goal:** yes
-- **Opened:** 2026-07-03
-- **Detail:** docs/handoff/2026-07-03-audit-findings.md#settings-backend
-
-### 🔴 `settings_write` — Uses guessed generic selectors (input[name=], [data-name=], placeholder match) never confirmed against real TradingView Inputs dialog DOM. Will likely silently fail to match.
-
-- **Severity:** blocker
-- **Blocks primary goal:** yes
-- **Opened:** 2026-07-03
-- **Detail:** docs/handoff/2026-07-03-audit-findings.md#settings-backend
 
 ## Test coverage caveat
 

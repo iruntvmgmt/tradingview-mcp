@@ -17,7 +17,7 @@
       "detail_ref": "docs/handoff/2026-07-03-audit-findings.md#settings-backend",
       "blocks_goal": true,
       "opened": "2026-07-03",
-      "status": "open"
+      "status": "fixed"
     },
     {
       "capability": "settings_read",
@@ -26,7 +26,7 @@
       "detail_ref": "docs/handoff/2026-07-03-audit-findings.md#settings-backend",
       "blocks_goal": true,
       "opened": "2026-07-03",
-      "status": "open"
+      "status": "fixed"
     },
     {
       "capability": "settings_write",
@@ -35,16 +35,16 @@
       "detail_ref": "docs/handoff/2026-07-03-audit-findings.md#settings-backend",
       "blocks_goal": true,
       "opened": "2026-07-03",
-      "status": "open"
+      "status": "fixed"
     },
     {
       "capability": "indicator_apply",
       "severity": "blocker",
-      "summary": "Marked verified:true in recon but is not: editor_selectors and add_to_chart_selectors are identical (both open the built-in Indicators browse dialog, not the Pine Editor), and the Monaco write uses the naive `ta.value =` approach already proven broken in docs/monaco-editor-integration.md. tv_apply_script should not be trusted until fixed.",
+      "summary": "Fixed: now delegates to DomPineScriptBackend.write (clipboard-based, per ADR-0002) instead of broken ta.value=. Marked verified:false pending live-session test per ADR-0003.",
       "detail_ref": "docs/adr/0002-monaco-editor-clipboard-write-strategy.md",
       "blocks_goal": true,
       "opened": "2026-07-03",
-      "status": "open"
+      "status": "fixed"
     },
     {
       "capability": "ohlcv_read",

@@ -56,7 +56,7 @@
     },
     "indicator_apply": {
       "path": "dom",
-      "verified": true,
+      "verified": false,
       "detail": {
         "editor_selectors": [
           "button[data-name=\"open-indicators-dialog\"]",
@@ -275,25 +275,40 @@
     },
     "settings_list_fields": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
-        "dialog_selectors": ["div[role=\"dialog\"][class*=\"settings\"]"],
-        "field_mappings": {}
+        "dialog_selector": "div[data-name=\"indicator-properties-dialog\"]",
+        "inputs_tab_selector": "button#inputs",
+        "row_label_selector": "div.cell-RLntasnw.first-RLntasnw",
+        "row_cell_template": "div.cell-RLntasnw.first-RLntasnw",
+        "input_selector_within_row": "input[data-qa-id=\"ui-lib-Input-input\"], button[role=\"combobox\"], input[type=\"checkbox\"][data-qa-id=\"ui-lib-checkbox-input-input\"]",
+        "_field_map": {
+          "number": "input[data-qa-id=\"ui-lib-Input-input\"]",
+          "checkbox": "input[type=\"checkbox\"][data-qa-id=\"ui-lib-checkbox-input-input\"]",
+          "dropdown": "button[role=\"combobox\"]"
+        }
       }
     },
     "settings_read": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
-        "dialog_selectors": ["div[role=\"dialog\"][class*=\"settings\"]"]
+        "dialog_selector": "div[data-name=\"indicator-properties-dialog\"]",
+        "inputs_tab_selector": "button#inputs",
+        "row_label_selector": "div.cell-RLntasnw.first-RLntasnw",
+        "input_selector_within_row": "input[data-qa-id=\"ui-lib-Input-input\"], button[role=\"combobox\"], input[type=\"checkbox\"][data-qa-id=\"ui-lib-checkbox-input-input\"]"
       }
     },
     "settings_write": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
-        "dialog_selectors": ["div[role=\"dialog\"][class*=\"settings\"]"],
-        "apply_selectors": ["button:has(div:text(\"OK\"))"]
+        "dialog_selector": "div[data-name=\"indicator-properties-dialog\"]",
+        "inputs_tab_selector": "button#inputs",
+        "row_label_selector": "div.cell-RLntasnw.first-RLntasnw",
+        "input_selector_within_row": "input[data-qa-id=\"ui-lib-Input-input\"], button[role=\"combobox\"], input[type=\"checkbox\"][data-qa-id=\"ui-lib-checkbox-input-input\"]",
+        "submit_selector": "button[data-name=\"submit-button\"]",
+        "cancel_selector": "button[name=\"cancel\"]"
       }
     },
     "pine_read": {

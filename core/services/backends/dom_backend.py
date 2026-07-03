@@ -10,6 +10,7 @@ time — no hardcoded selectors in this file.
 
 import asyncio
 import json
+import logging
 from typing import Any
 
 from core.services.backends.base import (
@@ -29,6 +30,8 @@ from core.services.errors import (
     OrderSubmissionBlocked,
     SelectorResolutionError,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # ── Helper ────────────────────────────────────────────────────
@@ -91,7 +94,13 @@ class DomChartBackend(ChartBackend):
 # ═══════════════════════════════════════════════════════════════
 
 class DomIndicatorBackend(IndicatorBackend):
-    """Apply / remove indicators via DOM."""
+    """Apply / remove indicators via DOM.
+
+    Per ADR-0002, the **write step delegates to DomPineScriptBackend**
+    which uses the proven clipboard-based + trusted-keystroke approach.
+    The old naive ``textarea.value =`` write is removed — it is
+    documented as broken in ``docs/monaco-editor-integration.md``.
+    """
 
     def __init__(self, cdp, dom, capabilities: dict):
         self._cdp = cdp
@@ -101,46 +110,24 @@ class DomIndicatorBackend(IndicatorBackend):
     async def apply(self, pine_code: str, name: str) -> None:
         """Apply a Pine Script indicator/strategy to the chart.
 
-        1. Open the Pine Editor via the toolbar button.
-        2. Paste the Pine Script source into the editor.
-        3. Click "Add to Chart" to compile and apply.
+        1. Open the Pine Editor tab (per recon pine_read selectors).
+        2. Write the source via DomPineScriptBackend.write (clipboard).
+        3. Compile & apply via DomPineScriptBackend.compile.
         """
-        # 1. Open Pine Editor
-        editor_sels = _cap(self._caps, "indicator_apply").get("editor_selectors", [])
-        await self._dom.click(editor_sels)
+        # 1. Open the Pine Editor
+        pine_detail = _cap(self._caps, "pine_read")
+        tab_sels = pine_detail.get("open_tab_selectors", [])
+        if tab_sels:
+            await self._dom.click(tab_sels)
+        await asyncio.sleep(0.5)
 
-        # 2. Write the Pine code into the editor
-        import time
-        await asyncio.sleep(0.5)  # Wait for editor to open
-        pine_detail = _cap(self._caps, "pine_write")
-        monaco_sels = pine_detail.get("monaco_editor_selectors",
-                                       pine_detail.get("editor_selectors", []))
-        if monaco_sels:
-            await self._dom.click(monaco_sels)  # Focus editor
-            await asyncio.sleep(0.2)
+        # 2. Write using the proven clipboard-based approach (ADR-0002)
+        pine = DomPineScriptBackend(self._cdp, self._dom, self._caps)
+        await pine.write(name, pine_code)
+        await asyncio.sleep(0.3)
 
-        textarea_sels = pine_detail.get("textarea_selectors",
-                                         [".inputarea.monaco-mouse-cursor-text"])
-        js = f"""
-        (() => {{
-            const ta = document.querySelector({json.dumps(textarea_sels[0])});
-            if (ta) {{
-                ta.focus();
-                ta.value = {json.dumps(pine_code)};
-                ta.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                ta.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                return true;
-            }}
-            return false;
-        }})()
-        """
-        await self._cdp.execute_js(js)
-
-        # 3. Click "Add to Chart" to compile & apply
-        add_sels = _cap(self._caps, "indicator_apply").get("add_to_chart_selectors", [])
-        if add_sels:
-            await asyncio.sleep(0.3)
-            await self._dom.click(add_sels)
+        # 3. Compile & add to chart
+        await pine.compile(name)
 
     async def remove(self, name: str) -> None:
         sels = _cap(self._caps, "indicator_remove").get("context_menu_selectors", [])
@@ -457,7 +444,18 @@ class DomReplayBackend(ReplayBackend):
 # ═══════════════════════════════════════════════════════════════
 
 class DomSettingsBackend(SettingsBackend):
-    """Study / indicator Inputs tab via DOM."""
+    """Study / indicator Inputs tab via DOM.
+
+    Selectors were discovered from a live TradingView Desktop 3.2.0
+    Settings dialog dump on 2026-07-03.  The dialog uses a table-row
+    layout where each field has a label cell (``cell-RLntasnw first-RLntasnw``)
+    followed by a value cell containing one of:
+      - ``input[data-qa-id=\"ui-lib-Input-input\"]`` (number fields)
+      - ``button[role=\"combobox\"]`` (dropdowns — displayed value is
+        the button's text)
+      - ``input[type=\"checkbox\"][data-qa-id=\"ui-lib-checkbox-input-input\"]``
+        (checkboxes)
+    """
 
     def __init__(self, cdp, dom, capabilities: dict):
         self._cdp = cdp
@@ -465,54 +463,156 @@ class DomSettingsBackend(SettingsBackend):
         self._caps = capabilities
 
     async def list_fields(self, study_name: str) -> list[dict[str, Any]]:
-        """Click the gear icon to open settings, then extract field labels."""
+        """Open the Settings dialog and enumerate all Inputs tab fields.
+
+        Returns a list of dicts with keys: name, type (number/checkbox/
+        dropdown/string), current_value.
+        """
         detail = _cap(self._caps, "settings_list_fields")
-        # Click the gear icon to open settings dialog
-        gear_sels = detail.get("gear_icon_selectors", [])
-        if gear_sels:
-            await self._dom.click(gear_sels)
-        # Read field labels from the dialog
-        dialog_sels = detail.get("dialog_selectors", [])
-        text = await self._dom.extract_text(dialog_sels, timeout=5.0)
-        if text:
-            # Parse field names from the dialog text
-            return [{"name": line.strip(), "type": "unknown"}
-                    for line in text.split('\n') if line.strip()]
-        return [{"name": "settings_panel", "type": "dialog"}]
+        dialog_sel = detail.get("dialog_selector")
+        if not dialog_sel:
+            return []
+
+        # Use injected JS to read the entire dialog structure in one round-trip
+        row_label_sel = detail.get("row_label_selector", "div.cell-RLntasnw.first-RLntasnw")
+        input_sel = detail.get("input_selector_within_row", "input, select, button[role='combobox']")
+
+        js = """
+        (() => {
+            const dialog = document.querySelector(%s);
+            if (!dialog) return [];
+            const labels = dialog.querySelectorAll(%s);
+            const results = [];
+            labels.forEach(labelDiv => {
+                const name = labelDiv.textContent.trim();
+                if (!name) return;
+                // The value cell is the next sibling in the row
+                const row = labelDiv.parentElement;
+                if (!row) return;
+                const cells = Array.from(row.children);
+                const labelIdx = cells.indexOf(labelDiv);
+                const valueCell = cells[labelIdx + 1];
+                if (!valueCell) return;
+                const input = valueCell.querySelector(%s);
+                if (!input) return;
+                let fieldType = 'string';
+                let currentValue = null;
+                if (input.tagName === 'INPUT' && input.type === 'checkbox') {
+                    fieldType = 'checkbox';
+                    currentValue = input.checked;
+                } else if (input.getAttribute('role') === 'combobox' || input.tagName === 'BUTTON') {
+                    fieldType = 'dropdown';
+                    currentValue = input.textContent.trim();
+                } else if (input.tagName === 'INPUT' && input.getAttribute('inputmode') === 'numeric') {
+                    fieldType = 'number';
+                    currentValue = input.value;
+                } else if (input.tagName === 'INPUT') {
+                    fieldType = 'string';
+                    currentValue = input.value;
+                } else if (input.tagName === 'SELECT') {
+                    fieldType = 'dropdown';
+                    currentValue = input.value;
+                }
+                results.push({name, type: fieldType, current_value: currentValue});
+            });
+            return results;
+        })()
+        """ % (json.dumps(dialog_sel), json.dumps(row_label_sel), json.dumps(input_sel))
+
+        result = await self._cdp.execute_js(js)
+        return result.get("result", {}).get("value", []) or []
 
     async def read(self, study_name: str) -> dict[str, Any]:
-        """Read input values from the settings dialog."""
-        detail = _cap(self._caps, "settings_read")
-        dialog_sels = detail.get("dialog_selectors", [])
-        text = await self._dom.extract_text(dialog_sels, timeout=5.0)
-        if text:
-            # Return the raw text; caller can parse key:value pairs
-            return {"raw": text, "study_name": study_name}
-        return {}
+        """Read current input values from the Settings dialog.
+
+        Returns a flat dict of {field_name: current_value}.
+        """
+        fields = await self.list_fields(study_name)
+        return {f["name"]: f["current_value"] for f in fields}
 
     async def write(self, study_name: str, values: dict[str, Any]) -> None:
-        """Type values into settings inputs and click Apply."""
+        """Set one or more input values and click OK.
+
+        For number/string fields: focuses the input and types the value.
+        For checkboxes: clicks the checkbox if target value differs from current.
+        For dropdowns: clicks the combobox and selects the matching option.
+        """
         detail = _cap(self._caps, "settings_write")
-        dialog_sels = detail.get("dialog_selectors", [])
-        if dialog_sels:
-            await self._dom.click(dialog_sels)
-        # For each field, find and type the value
+        dialog_sel = detail.get("dialog_selector", "div[data-name=\"indicator-properties-dialog\"]")
+        row_label_sel = detail.get("row_label_selector", "div.cell-RLntasnw.first-RLntasnw")
+        submit_sel = detail.get("submit_selector", "button[data-name=\"submit-button\"]")
+
         for field, value in values.items():
-            # Try to type into an input near the field label
-            field_sels = [f"input[name='{field}']", f"[data-name='{field}']",
-                          f"input[placeholder*='{field}']"]
-            await self._dom.type_text(field_sels, str(value), clear_first=True)
-        # Click Apply/OK
-        apply_sels = detail.get("apply_selectors", [])
-        if apply_sels:
-            await self._dom.click(apply_sels)
+            # Build JS to find the row label, navigate to value cell, set the input
+            escaped_field = json.dumps(field)
+            str_val = json.dumps(str(value))
+            js = """
+            (() => {
+                const dialog = document.querySelector(%s);
+                if (!dialog) return {error: 'no dialog'};
+                const labels = dialog.querySelectorAll(%s);
+                for (const labelDiv of labels) {
+                    if (labelDiv.textContent.trim() !== %s) continue;
+                    const row = labelDiv.parentElement;
+                    const cells = Array.from(row.children);
+                    const idx = cells.indexOf(labelDiv);
+                    const valueCell = cells[idx + 1];
+                    if (!valueCell) return {error: 'no value cell'};
+                    const input = valueCell.querySelector('input[type=\"checkbox\"]');
+                    if (input) {
+                        // Checkbox: click if needed
+                        const want = %s;
+                        if (input.checked !== want) input.click();
+                        return {set: true, type: 'checkbox', value: input.checked};
+                    }
+                    const numInput = valueCell.querySelector('input');
+                    if (numInput && !numInput.disabled) {
+                        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+                        setter.call(numInput, %s);
+                        numInput.dispatchEvent(new Event('input', {bubbles: true}));
+                        numInput.dispatchEvent(new Event('change', {bubbles: true}));
+                        return {set: true, type: 'number', value: numInput.value};
+                    }
+                    const combo = valueCell.querySelector('button[role=\"combobox\"]');
+                    if (combo) {
+                        // Dropdown: click to open, then click the option
+                        combo.click();
+                        setTimeout(() => {
+                            const opts = document.querySelectorAll('[role=\"option\"]');
+                            for (const o of opts) {
+                                if (o.textContent.trim() === %s) { o.click(); break; }
+                            }
+                        }, 200);
+                        return {set: true, type: 'dropdown', target: %s};
+                    }
+                    return {error: 'no editable input found'};
+                }
+                return {error: 'field not found: ' + %s};
+            })()
+            """ % (
+                json.dumps(dialog_sel), json.dumps(row_label_sel),
+                escaped_field,
+                json.dumps(value) if isinstance(value, bool) else 'null',
+                str_val, str_val, str_val, escaped_field
+            )
+
+            r = await self._cdp.execute_js(js)
+            result = r.get("result", {}).get("value", {})
+            if isinstance(result, dict) and "error" in result:
+                raise SelectorResolutionError(
+                    f"Settings write failed for field '{field}': {result['error']}",
+                    details={"field": field, "study": study_name, "js_result": result},
+                )
+
+        # Click OK to apply
+        await self._dom.click([submit_sel])
 
     async def health_check(self) -> bool:
         try:
             detail = _cap(self._caps, "settings_list_fields")
-            sels = detail.get("gear_icon_selectors", detail.get("dialog_selectors", []))
-            if sels:
-                await self._dom.resolve_selector(sels, timeout=3.0)
+            dialog_sel = detail.get("dialog_selector")
+            if dialog_sel:
+                await self._dom.resolve_selector([dialog_sel], timeout=3.0)
             return True
         except Exception:
             return False
