@@ -533,9 +533,9 @@ class DomSettingsBackend(SettingsBackend):
     async def write(self, study_name: str, values: dict[str, Any]) -> None:
         """Set one or more input values and click OK.
 
-        For number/string fields: focuses the input and types the value.
-        For checkboxes: clicks the checkbox if target value differs from current.
-        For dropdowns: clicks the combobox and selects the matching option.
+        For number/string fields: native setter + input/change events.
+        For checkboxes: click the checkbox element.
+        For dropdowns: click combo to open, await, then click target option.
         """
         detail = _cap(self._caps, "settings_write")
         dialog_sel = detail.get("dialog_selector", "div[data-name=\"indicator-properties-dialog\"]")
@@ -543,10 +543,11 @@ class DomSettingsBackend(SettingsBackend):
         submit_sel = detail.get("submit_selector", "button[data-name=\"submit-button\"]")
 
         for field, value in values.items():
-            # Build JS to find the row label, navigate to value cell, set the input
             escaped_field = json.dumps(field)
             str_val = json.dumps(str(value))
-            js = """
+
+            # Step 1: Find the input element and determine its type
+            find_js = """
             (() => {
                 const dialog = document.querySelector(%s);
                 if (!dialog) return {error: 'no dialog'};
@@ -558,50 +559,110 @@ class DomSettingsBackend(SettingsBackend):
                     const idx = cells.indexOf(labelDiv);
                     const valueCell = cells[idx + 1];
                     if (!valueCell) return {error: 'no value cell'};
-                    const input = valueCell.querySelector('input[type=\"checkbox\"]');
-                    if (input) {
-                        // Checkbox: click if needed
-                        const want = %s;
-                        if (input.checked !== want) input.click();
-                        return {set: true, type: 'checkbox', value: input.checked};
-                    }
-                    const numInput = valueCell.querySelector('input');
-                    if (numInput && !numInput.disabled) {
-                        const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-                        setter.call(numInput, %s);
-                        numInput.dispatchEvent(new Event('input', {bubbles: true}));
-                        numInput.dispatchEvent(new Event('change', {bubbles: true}));
-                        return {set: true, type: 'number', value: numInput.value};
-                    }
+
+                    // Checkbox
+                    const cb = valueCell.querySelector('input[type=\"checkbox\"]');
+                    if (cb) return {type: 'checkbox', checked: cb.checked, id: cb.id};
+
+                    // Combobox dropdown
                     const combo = valueCell.querySelector('button[role=\"combobox\"]');
                     if (combo) {
-                        // Dropdown: click to open, then click the option
                         combo.click();
-                        setTimeout(() => {
-                            const opts = document.querySelectorAll('[role=\"option\"]');
-                            for (const o of opts) {
-                                if (o.textContent.trim() === %s) { o.click(); break; }
-                            }
-                        }, 200);
-                        return {set: true, type: 'dropdown', target: %s};
+                        return {type: 'dropdown', currentText: combo.textContent.trim()};
+                    }
+
+                    // Number/string input
+                    const input = valueCell.querySelector('input');
+                    if (input && !input.disabled) {
+                        return {type: 'number', currentValue: input.value};
                     }
                     return {error: 'no editable input found'};
                 }
                 return {error: 'field not found: ' + %s};
             })()
-            """ % (
-                json.dumps(dialog_sel), json.dumps(row_label_sel),
-                escaped_field,
-                json.dumps(value) if isinstance(value, bool) else 'null',
-                str_val, str_val, str_val, escaped_field
-            )
+            """ % (json.dumps(dialog_sel), json.dumps(row_label_sel), escaped_field, escaped_field)
 
-            r = await self._cdp.execute_js(js)
-            result = r.get("result", {}).get("value", {})
-            if isinstance(result, dict) and "error" in result:
+            r = await self._cdp.execute_js(find_js)
+            found = r.get("result", {}).get("value", {})
+
+            if isinstance(found, dict) and "error" in found:
                 raise SelectorResolutionError(
-                    f"Settings write failed for field '{field}': {result['error']}",
-                    details={"field": field, "study": study_name, "js_result": result},
+                    f"Settings write failed for field '{field}': {found['error']}",
+                    details={"field": field, "study": study_name},
+                )
+
+            ftype = found.get("type", "")
+
+            # Step 2: Set the value based on field type
+            if ftype == "checkbox":
+                want = bool(value)
+                if found.get("checked") != want:
+                    # Click the checkbox
+                    click_js = """
+                    (() => {
+                        const dialog = document.querySelector(%s);
+                        const labels = dialog.querySelectorAll(%s);
+                        for (const labelDiv of labels) {
+                            if (labelDiv.textContent.trim() !== %s) continue;
+                            const row = labelDiv.parentElement;
+                            const cells = Array.from(row.children);
+                            const idx = cells.indexOf(labelDiv);
+                            const valueCell = cells[idx + 1];
+                            const cb = valueCell.querySelector('input[type=\"checkbox\"]');
+                            if (cb) { cb.click(); return {toggled: true}; }
+                            return {error: 'checkbox disappeared'};
+                        }
+                        return {error: 'field disappeared'};
+                    })()
+                    """ % (json.dumps(dialog_sel), json.dumps(row_label_sel), escaped_field)
+                    await self._cdp.execute_js(click_js)
+
+            elif ftype == "dropdown":
+                # Dropdown was already opened by the find_js call above
+                await asyncio.sleep(0.3)
+                # Click the target option
+                option_js = """
+                (() => {
+                    const opts = document.querySelectorAll('[role=\"option\"]');
+                    for (const o of opts) {
+                        if (o.textContent.trim() === %s) { o.click(); return {clicked: %s}; }
+                    }
+                    return {error: 'option not found: ' + %s};
+                })()
+                """ % (str_val, str_val, str_val)
+                await self._cdp.execute_js(option_js)
+
+            elif ftype == "number":
+                # Use native value setter for React-controlled inputs
+                set_js = """
+                (() => {
+                    const dialog = document.querySelector(%s);
+                    const labels = dialog.querySelectorAll(%s);
+                    for (const labelDiv of labels) {
+                        if (labelDiv.textContent.trim() !== %s) continue;
+                        const row = labelDiv.parentElement;
+                        const cells = Array.from(row.children);
+                        const idx = cells.indexOf(labelDiv);
+                        const valueCell = cells[idx + 1];
+                        const input = valueCell.querySelector('input');
+                        if (input && !input.disabled) {
+                            const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+                            setter.call(input, %s);
+                            input.dispatchEvent(new Event('input', {bubbles: true}));
+                            input.dispatchEvent(new Event('change', {bubbles: true}));
+                            return {set: true, value: input.value};
+                        }
+                        return {error: 'input disappeared'};
+                    }
+                    return {error: 'field disappeared'};
+                })()
+                """ % (json.dumps(dialog_sel), json.dumps(row_label_sel), escaped_field, str_val)
+                await self._cdp.execute_js(set_js)
+
+            else:
+                raise SelectorResolutionError(
+                    f"Unknown field type '{ftype}' for '{field}'",
+                    details={"field": field, "type": ftype},
                 )
 
         # Click OK to apply

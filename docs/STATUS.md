@@ -2,7 +2,7 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-03 23:24 UTC
+Last generated: 2026-07-03 23:38 UTC
 Source: `recon_findings.json` (schema v2)
 
 **15/33** capabilities recon-verified · **5** have open known issues that override that verification (see table).
@@ -41,7 +41,7 @@ Source: `recon_findings.json` (schema v2)
 | `screenshot` | `cdp` | verified | 🟢 Verified | — |
 | `settings_list_fields` | `dom` | verified | 🟢 Verified | — |
 | `settings_read` | `dom` | verified | 🟢 Verified | — |
-| `settings_write` | `dom` | verified | 🟢 Verified | — |
+| `settings_write` | `dom` | verified | 🟢 Verified | 🟡 Dropdown (combobox) writes confirmed working via backend.write() on Source field (Open→High, persisted across dialog close/re-open). Checkbox writes not yet tested — SMA indicator has no checkbox. Checkbox branch structurally correct (click-to-toggle) but needs test against an indicator with checkbox inputs (e.g. Style tab). |
 | `symbol_control` | `dom` | verified | 🟢 Verified | — |
 | `timeframe_control` | `dom` | verified | 🟢 Verified | — |
 
@@ -53,6 +53,13 @@ Source: `recon_findings.json` (schema v2)
 - **Blocks primary goal:** no
 - **Opened:** 2026-07-03
 - **Detail:** docs/handoff/2026-07-03-audit-findings.md#ohlcv
+
+### 🟡 `settings_write` — Dropdown (combobox) writes confirmed working via backend.write() on Source field (Open→High, persisted across dialog close/re-open). Checkbox writes not yet tested — SMA indicator has no checkbox. Checkbox branch structurally correct (click-to-toggle) but needs test against an indicator with checkbox inputs (e.g. Style tab).
+
+- **Severity:** minor
+- **Blocks primary goal:** no
+- **Opened:** 2026-07-03
+- **Detail:** docs/adr/0004-settings-dialog-selector-fragility.md
 
 ## Test coverage caveat
 
