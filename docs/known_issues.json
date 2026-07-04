@@ -76,7 +76,7 @@
     {
       "capability": "settings_write",
       "severity": "minor",
-      "summary": "Dropdown (combobox) writes confirmed working via backend.write() on Source field (Open→High, persisted across dialog close/re-open). Checkbox writes not yet tested — SMA indicator has no checkbox. Checkbox branch structurally correct (click-to-toggle) but needs test against an indicator with checkbox inputs (e.g. Style tab).",
+      "summary": "Dropdown (combobox) writes confirmed working via backend.write() on Source field (Open→High). Checkbox click-to-toggle mechanism confirmed working 2026-07-04 via JS .click() on TradingView checkboxes (state changes correctly). Backend's checkbox code path is structurally sound but not yet tested through the full backend.write() flow with an indicator settings dialog open — requires an indicator with checkbox inputs like Bollinger Bands or MACD on the chart with the properties dialog open.",
       "detail_ref": "docs/adr/0004-settings-dialog-selector-fragility.md",
       "blocks_goal": false,
       "opened": "2026-07-03",

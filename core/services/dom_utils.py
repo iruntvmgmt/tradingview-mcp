@@ -24,16 +24,35 @@ _KCD_V = 9
 
 
 def _get_tv_pid() -> int | None:
-    """Return TradingView Desktop's PID, or None if not running."""
+    """Return TradingView Desktop's PID, or None if not running.
+
+    Tries the bundle-identifier lookup first (most reliable on macOS),
+    then falls back to ``pgrep -f TradingView``.
+    """
+    # Primary: bundle identifier via NSWorkspace
     try:
         from Cocoa import NSWorkspace
         ws = NSWorkspace.sharedWorkspace()
         for app in ws.runningApplications():
             if app.bundleIdentifier() == 'com.tradingview.tradingviewapp.desktop':
                 return app.processIdentifier()
-        return None
     except Exception:
-        return None
+        pass
+
+    # Fallback: pgrep (works even if bundle ID changes)
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['pgrep', '-f', 'TradingView'],
+            capture_output=True, text=True, timeout=5,
+        )
+        pids = result.stdout.strip().split('\n')
+        if pids and pids[0]:
+            return int(pids[0])
+    except Exception:
+        pass
+
+    return None
 
 
 def _has_accessibility_permission() -> bool:
@@ -240,9 +259,12 @@ class DomUtils:
     async def _paste_via_cgevent(self) -> bool:
         """Send Cmd+A then Cmd+V via CGEventPostToPid.
 
-        Returns True if TradingView PID was found, Accessibility permission
-        is granted, and keystrokes were dispatched.
+        Activates TradingView first (``open -a``) so keystrokes reach
+        the focused Monaco textarea.  CGEventPostToPid targets a PID
+        but the app must be frontmost for keyboard focus to work.
         """
+        import subprocess
+
         if not _has_accessibility_permission():
             logger.debug("No Accessibility permission — using CDP fallback")
             return False
@@ -251,6 +273,14 @@ class DomUtils:
         if not tv_pid:
             logger.debug("TradingView PID not found")
             return False
+
+        try:
+            subprocess.run(['open', '-a', 'TradingView'], capture_output=True, timeout=3)
+        except Exception:
+            logger.debug("Failed to activate TradingView", exc_info=True)
+            return False
+
+        await asyncio.sleep(0.4)
 
         try:
             _send_cmd_key(tv_pid, _KCD_A)
@@ -356,6 +386,8 @@ class DomUtils:
 
     async def _copy_via_cgevent(self) -> bool:
         """Send Cmd+A then Cmd+C via CGEventPostToPid."""
+        import subprocess
+
         if not _has_accessibility_permission():
             logger.debug("No Accessibility permission — using CDP fallback")
             return False
@@ -364,6 +396,14 @@ class DomUtils:
         if not tv_pid:
             logger.debug("TradingView PID not found")
             return False
+
+        try:
+            subprocess.run(['open', '-a', 'TradingView'], capture_output=True, timeout=3)
+        except Exception:
+            logger.debug("Failed to activate TradingView", exc_info=True)
+            return False
+
+        await asyncio.sleep(0.4)
 
         try:
             _send_cmd_key(tv_pid, _KCD_A)

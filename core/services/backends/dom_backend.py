@@ -742,61 +742,33 @@ class DomPineScriptBackend(PineScriptBackend):
     async def compile(self, script_name: str) -> dict[str, Any]:
         """Compile and add the script to the chart.
 
-        **Primary**: Clicks the Pine Editor toolbar's "Add to chart" button
-        via JS ``element.click()``.  The button is identified by its
-        ``title="Add to chart"`` attribute.
-
-        **Fallback**: CDP ``Cmd+Enter`` keystroke (same macOS limitation
-        as write — may not trigger React's handler on macOS without
-        Accessibility permissions).
+        Clicks the Pine Editor toolbar button via JS ``element.click()``.
+        The button title changes state: "Add to chart" (first add) →
+        "Update on chart" (subsequent updates).
         """
         detail = _cap(self._caps, "pine_compile")
         import asyncio, logging
         logger = logging.getLogger(__name__)
 
-        # ── Primary: JS click on "Add to chart" button ────────────
+        # ── Primary: JS click on Add/Update button ───────────────
         click_js = """
         (() => {
-            // Try title attribute first
-            const btn = document.querySelector('button[title="Add to chart"]');
-            if (btn) { btn.click(); return 'add_to_chart_clicked'; }
-            
-            // Fallback: search all buttons in the Pine Editor area
-            const btns = document.querySelectorAll('button');
-            for (let i = 0; i < btns.length; i++) {
-                const t = (btns[i].title || '').trim();
-                if (t === 'Add to chart') {
-                    btns[i].click();
-                    return 'add_to_chart_clicked_fallback';
-                }
+            for (const title of ['Add to chart', 'Update on chart', 'Save script']) {
+                const btn = document.querySelector('button[title="' + title + '"]');
+                if (btn) { btn.click(); return title.replace(/ /g,'_') + '_clicked'; }
             }
-            return 'add_to_chart_not_found';
+            return 'compile_button_not_found';
         })()
         """
         result = await self._cdp.execute_js(click_js)
         status = result.get("result", {}).get("value", "")
 
         if "clicked" in str(status):
-            logger.debug("Add to chart button clicked via JS")
-            await asyncio.sleep(1.5)  # Wait for compilation
-            return {"success": True, "method": "add_to_chart_button"}
-
-        # ── Fallback: try "Save script" button ───────────────────
-        click_js2 = """
-        (() => {
-            const btn = document.querySelector('button[title="Save script"]');
-            if (btn) { btn.click(); return 'save_clicked'; }
-            return 'save_not_found';
-        })()
-        """
-        result2 = await self._cdp.execute_js(click_js2)
-        status2 = result2.get("result", {}).get("value", "")
-        if "clicked" in str(status2):
-            logger.debug("Save script button clicked via JS")
+            logger.debug("Compile button clicked via JS: %s", status)
             await asyncio.sleep(1.5)
-            return {"success": True, "method": "save_script_button"}
+            return {"success": True, "method": status}
 
-        logger.warning("Could not find Add to chart or Save button in Pine Editor")
+        logger.warning("Could not find Add/Update/Save button in Pine Editor")
         return {"success": False, "error": "compile_button_not_found", "method": status}
 
     async def read_compile_errors(self) -> list[dict[str, Any]]:
