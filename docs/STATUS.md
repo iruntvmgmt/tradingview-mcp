@@ -2,10 +2,10 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-03 23:38 UTC
+Last generated: 2026-07-04 02:29 UTC
 Source: `recon_findings.json` (schema v2)
 
-**15/33** capabilities recon-verified · **5** have open known issues that override that verification (see table).
+**16/33** capabilities recon-verified · **7** have open known issues that override that verification (see table).
 
 ## Capability matrix
 
@@ -22,7 +22,7 @@ Source: `recon_findings.json` (schema v2)
 | `drawing_create` | `dom` | verified | 🟢 Verified | — |
 | `drawing_list` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `drawing_remove` | `dom` | verified | 🟢 Verified | — |
-| `indicator_apply` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
+| `indicator_apply` | `dom` | verified | 🟢 Verified | — |
 | `indicator_remove` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `ohlcv_read` | `dom` | unverified | 🔴 Known issue | 🟠 Dead end on both implemented paths. DOM backend punts to network path with a CapabilityUnavailable; network backend's get_ohlcv also unconditionally raises CapabilityUnavailable despite its own docstring claiming OHLCV is the one thing the network path supports. No working OHLCV read exists. |
 | `order_cancel` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |

@@ -1,6 +1,6 @@
 # ADR-0002: Read/write the Pine Editor via clipboard + trusted keystrokes, never via direct textarea `.value` assignment
 
-**Status:** accepted (see § Compliance below for a known violation of this decision elsewhere in the codebase)
+**Status:** superseded in part by ADR-0006 (see § macOS Cmd-key limitation below); original accepted 2026-07-03
 **Date:** 2026-07-03 (reconstructed from `docs/monaco-editor-integration.md` and commit history; original investigation predates this ADR)
 **Author(s):** reconstructed by audit session; original investigation documented in `docs/monaco-editor-integration.md`
 
@@ -81,3 +81,11 @@ against the current TradingView Desktop build: attempt a direct
 it does not match what was written. If TradingView ever changes its editor
 component away from Monaco, or Monaco's internals change how they sync the
 shadow textarea, this entire ADR needs re-validation.
+
+**macOS Cmd-key caveat (2026-07-03)**: The CDP `Input.dispatchKeyEvent`
+Cmd+A/Cmd+V approach documented in this ADR does **not** trigger paste/copy
+ClipboardEvents on macOS.  The OS intercepts Cmd-modified synthetic
+keystrokes at the window-server level.  See **ADR-0006** for the
+replacement mechanism (pynput OS-level keystrokes, requiring Accessibility
+permission).  The core decision — clipboard for transport, never `.value`
+for Monaco — remains correct; only the keystroke delivery method changed.

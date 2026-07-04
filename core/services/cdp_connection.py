@@ -301,18 +301,31 @@ class CDPConnection:
     # ── Health ──────────────────────────────────────────────────
 
     async def health_check(self) -> dict[str, Any]:
-        """Ping the CDP connection and return status."""
+        """Ping the CDP connection and return status including Accessibility permission."""
         if not self._ws:
             return {"connected": False, "target_id": None}
+
+        info: dict[str, Any] = {"connected": True, "target_id": self._target_id}
+
         try:
             result = await self.execute_js("1+1")
-            return {
-                "connected": True,
-                "target_id": self._target_id,
-                "eval_ok": result.get("result", {}).get("value") == 2,
-            }
+            info["eval_ok"] = result.get("result", {}).get("value") == 2
         except Exception as exc:
-            return {"connected": True, "target_id": self._target_id, "eval_ok": False, "error": str(exc)}
+            info["eval_ok"] = False
+            info["eval_error"] = str(exc)
+
+        # macOS Accessibility check (needed for Pine Editor write/read)
+        try:
+            from core.services.dom_utils import _has_accessibility_permission, _get_tv_pid
+            info["accessibility_permission"] = _has_accessibility_permission()
+            info["tv_pid"] = _get_tv_pid()
+            info["pine_editor_write_ready"] = (
+                info["accessibility_permission"] and info["tv_pid"] is not None
+            )
+        except Exception:
+            info["accessibility_permission"] = "unknown"
+
+        return info
 
     # ── Internals ────────────────────────────────────────────────
 

@@ -17,6 +17,54 @@ logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_SEC = 0.3
 
+# macOS keycodes: a=0, c=8, v=9
+_KCD_A = 0
+_KCD_C = 8
+_KCD_V = 9
+
+
+def _get_tv_pid() -> int | None:
+    """Return TradingView Desktop's PID, or None if not running."""
+    try:
+        from Cocoa import NSWorkspace
+        ws = NSWorkspace.sharedWorkspace()
+        for app in ws.runningApplications():
+            if app.bundleIdentifier() == 'com.tradingview.tradingviewapp.desktop':
+                return app.processIdentifier()
+        return None
+    except Exception:
+        return None
+
+
+def _has_accessibility_permission() -> bool:
+    """Check if this process has macOS Accessibility permission."""
+    try:
+        from HIServices import AXIsProcessTrusted
+        return bool(AXIsProcessTrusted())
+    except ImportError:
+        return False
+
+
+def _send_cmd_key(pid: int, keycode: int) -> None:
+    """Send Cmd+<key> to *pid* via Quartz CGEventPostToPid.
+
+    This is the ONLY mechanism confirmed to trigger Monaco's paste/copy
+    handlers on macOS.  CDP ``Input.dispatchKeyEvent`` with Meta modifier
+    does NOT generate ClipboardEvents on macOS.  See ADR-0006.
+    """
+    from Quartz import (
+        CGEventCreateKeyboardEvent, CGEventPostToPid, CGEventSetFlags,
+    )
+    CMD_FLAG = 0x100000  # kCGEventFlagMaskCommand = 1 << 20
+
+    down = CGEventCreateKeyboardEvent(None, keycode, True)
+    CGEventSetFlags(down, CMD_FLAG)
+    CGEventPostToPid(pid, down)
+
+    up = CGEventCreateKeyboardEvent(None, keycode, False)
+    CGEventSetFlags(up, CMD_FLAG)
+    CGEventPostToPid(pid, up)
+
 
 class DomUtils:
     """Stateless DOM helper — all methods operate via the injected CDP connection."""
@@ -123,22 +171,16 @@ class DomUtils:
 
     async def type_text_monaco(self, selectors: list[str], text: str,
                                timeout: float = 5.0) -> None:
-        """Write *text* into a Monaco editor via system clipboard + OS-level paste.
-
-        .. warning::
-
-           CDP ``Input.dispatchKeyEvent`` with Meta/Cmd modifier does **not**
-           trigger ``paste`` ClipboardEvents on macOS — the OS intercepts
-           Cmd-modified keystrokes.  We therefore use ``pynput`` to send
-           real Cmd+A / Cmd+V keystrokes at the OS level.
+        """Write *text* into a Monaco editor via system clipboard + CGEventPostToPid.
 
         Pipeline:
-            1. Write text to system clipboard via JS ``navigator.clipboard.writeText``
-            2. Focus the Monaco textarea via JS ``ta.focus() + ta.select()``
-            3. Send Cmd+A + Cmd+V via ``pynput.keyboard.Controller`` (real OS keystrokes)
+            1. ``Page.bringToFront`` — fix clipboard focus
+            2. ``navigator.clipboard.writeText`` — write to system clipboard
+            3. Focus Monaco textarea via JS
+            4. ``CGEventPostToPid`` Cmd+A + Cmd+V — real OS keystrokes
 
-        Falls back to CDP ``Input.dispatchKeyEvent`` if pynput is unavailable
-        (Windows/Linux or missing permission — though paste may not work there either).
+        Falls back to CDP ``Input.dispatchKeyEvent`` if CGEvent is unavailable
+        (non-macOS or missing Accessibility permission).
         """
         import asyncio
 
@@ -149,12 +191,21 @@ class DomUtils:
                 details={"selectors": selectors, "timeout": timeout},
             )
 
-        # ── Step 1: Write to system clipboard ──────────────────────
-        safe_text = json.dumps(text)
+        # ── Step 1: Ensure page has focus ────────────────────────
+        await self._cdp._send_command("Page.bringToFront", {})
+        await asyncio.sleep(0.6)
+
+        # ── Step 2: Write to system clipboard ────────────────────
+        import base64
+        b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
         clip_js = f"""
         (async () => {{
+            const binary = atob("{b64}");
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const decoded = new TextDecoder().decode(bytes);
             try {{
-                await navigator.clipboard.writeText({safe_text});
+                await navigator.clipboard.writeText(decoded);
                 return 'clipboard_ok';
             }} catch(e) {{
                 return 'clipboard_fail: ' + e.message;
@@ -164,15 +215,13 @@ class DomUtils:
         clip_result = await self._cdp.execute_js(clip_js, await_promise=True)
         ret_val = clip_result.get("result", {}).get("value", "")
         if "clipboard_fail" in str(ret_val):
-            import logging
-            logging.getLogger(__name__).warning("Clipboard write failed: %s", ret_val)
+            logger.warning("Clipboard write failed: %s", ret_val)
 
-        # ── Step 2: Focus the Monaco textarea ──────────────────────
+        # ── Step 3: Focus the Monaco textarea ────────────────────
         await self._cdp.execute_js("""
         (() => {
             const ta = document.querySelector('#pine-editor-dialog textarea.inputarea');
             if (ta) { ta.focus(); ta.select(); return 'focused'; }
-            // Fallback: any visible .monaco-editor textarea
             const all = document.querySelectorAll('.monaco-editor textarea.inputarea');
             for (let i = 0; i < all.length; i++) {
                 if (all[i].offsetWidth > 0) { all[i].focus(); all[i].select(); return 'focused-fallback'; }
@@ -182,67 +231,36 @@ class DomUtils:
         """)
         await asyncio.sleep(0.2)
 
-        # ── Step 3: OS-level Cmd+A → Cmd+V ─────────────────────────
-        if not await self._paste_via_pynput():
-            # Fallback: CDP keystrokes (may not trigger paste on macOS)
+        # ── Step 4: OS-level Cmd+A → Cmd+V ──────────────────────
+        if not await self._paste_via_cgevent():
             await self._paste_via_cdp()
 
         await asyncio.sleep(0.3)
 
-    async def _paste_via_pynput(self) -> bool:
-        """Send Cmd+A then Cmd+V via pynput (real OS keystrokes).
+    async def _paste_via_cgevent(self) -> bool:
+        """Send Cmd+A then Cmd+V via CGEventPostToPid.
 
-        Activates TradingView first so keystrokes reach the right app.
-        Returns True if pynput is available and keystrokes were sent.
-
-        **macOS Accessibility Permission Required**: The terminal (or VS Code)
-        must be granted Accessibility permission in:
-        System Preferences → Privacy & Security → Accessibility.
-
-        If not granted, pynput/cgEvent/osascript will silently fail —
-        the CDP fallback will be used instead.
+        Returns True if TradingView PID was found, Accessibility permission
+        is granted, and keystrokes were dispatched.
         """
-        import asyncio, subprocess, logging
-        logger = logging.getLogger(__name__)
-
-        # ── Check for pynput ──────────────────────────────────────
-        try:
-            from pynput.keyboard import Controller, Key
-        except ImportError:
-            logger.debug("pynput not installed — using CDP fallback")
+        if not _has_accessibility_permission():
+            logger.debug("No Accessibility permission — using CDP fallback")
             return False
 
-        # ── Activate TradingView ──────────────────────────────────
-        try:
-            subprocess.run(
-                ['open', '-a', 'TradingView'],
-                capture_output=True, timeout=3,
-            )
-        except Exception:
-            logger.debug("Failed to activate TradingView", exc_info=True)
+        tv_pid = _get_tv_pid()
+        if not tv_pid:
+            logger.debug("TradingView PID not found")
             return False
 
-        await asyncio.sleep(0.4)
-
-        # ── Send Cmd+A → Cmd+V ───────────────────────────────────
         try:
-            kb = Controller()
-            kb.press(Key.cmd)
-            kb.press('a')
-            kb.release('a')
-            kb.release(Key.cmd)
+            _send_cmd_key(tv_pid, _KCD_A)
             await asyncio.sleep(0.25)
-
-            kb.press(Key.cmd)
-            kb.press('v')
-            kb.release('v')
-            kb.release(Key.cmd)
+            _send_cmd_key(tv_pid, _KCD_V)
             await asyncio.sleep(0.25)
-
-            logger.debug("Sent Cmd+A/V via pynput")
+            logger.debug("Dispatched Cmd+A/V via CGEventPostToPid")
             return True
         except Exception:
-            logger.debug("pynput keystrokes failed — missing Accessibility permission?", exc_info=True)
+            logger.debug("CGEventPostToPid failed", exc_info=True)
             return False
 
     async def _paste_via_cdp(self) -> None:
@@ -279,15 +297,9 @@ class DomUtils:
 
     async def read_text_monaco(self, selectors: list[str],
                                 timeout: float = 5.0) -> str | None:
-        """Read full source from a Monaco editor via system clipboard + OS-level Cmd+C.
+        """Read full source from a Monaco editor via system clipboard + CGEventPostToPid Cmd+C.
 
-        .. warning::
-
-           Same macOS limitation as ``type_text_monaco`` — Cmd-modified CDP
-           keystrokes don't trigger copy ClipboardEvents.  We use pynput for
-           the Cmd+A / Cmd+C step, falling back to CDP on other platforms.
-
-        Pipeline: clear clipboard → focus textarea → Cmd+A → Cmd+C → clipboard readText
+        Pipeline: bringToFront → clear clipboard → focus textarea → CGEventPostToPid Cmd+A+C → clipboard readText
         """
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
@@ -295,13 +307,17 @@ class DomUtils:
 
         import asyncio
 
-        # Step 0: Clear stale clipboard from previous writes
+        # Step 0: Ensure page focus
+        await self._cdp._send_command("Page.bringToFront", {})
+        await asyncio.sleep(0.3)
+
+        # Step 1: Clear stale clipboard from previous writes
         await self._cdp.execute_js(
             "(async () => { try { await navigator.clipboard.writeText(''); } catch(e) {} })()",
             await_promise=True,
         )
 
-        # Step 1: Focus the textarea via JS
+        # Step 2: Focus the textarea via JS
         await self._cdp.execute_js("""
         (() => {
             const ta = document.querySelector('#pine-editor-dialog textarea.inputarea');
@@ -315,11 +331,14 @@ class DomUtils:
         """)
         await asyncio.sleep(0.2)
 
-        # Step 2: Cmd+A → Cmd+C (via pynput or CDP fallback)
-        if not await self._copy_via_pynput():
+        # Step 3: Cmd+A → Cmd+C (via CGEventPostToPid or CDP fallback)
+        if not await self._copy_via_cgevent():
             await self._copy_via_cdp()
 
-        # Step 3: Read from system clipboard
+        # Step 4: Read from system clipboard
+        await self._cdp._send_command("Page.bringToFront", {})
+        await asyncio.sleep(0.2)
+
         read_js = """
         (async () => {
             try {
@@ -335,42 +354,26 @@ class DomUtils:
             return None
         return text
 
-    async def _copy_via_pynput(self) -> bool:
-        """Send Cmd+A then Cmd+C via pynput (real OS keystrokes)."""
-        try:
-            from pynput.keyboard import Controller, Key
-        except ImportError:
+    async def _copy_via_cgevent(self) -> bool:
+        """Send Cmd+A then Cmd+C via CGEventPostToPid."""
+        if not _has_accessibility_permission():
+            logger.debug("No Accessibility permission — using CDP fallback")
             return False
 
-        import asyncio, subprocess, logging
-        logger = logging.getLogger(__name__)
-
-        try:
-            subprocess.run(['open', '-a', 'TradingView'], capture_output=True, timeout=3)
-        except Exception:
-            logger.debug("Failed to activate TradingView", exc_info=True)
+        tv_pid = _get_tv_pid()
+        if not tv_pid:
+            logger.debug("TradingView PID not found")
             return False
 
-        await asyncio.sleep(0.4)
-
         try:
-            kb = Controller()
-            kb.press(Key.cmd)
-            kb.press('a')
-            kb.release('a')
-            kb.release(Key.cmd)
+            _send_cmd_key(tv_pid, _KCD_A)
             await asyncio.sleep(0.25)
-
-            kb.press(Key.cmd)
-            kb.press('c')
-            kb.release('c')
-            kb.release(Key.cmd)
+            _send_cmd_key(tv_pid, _KCD_C)
             await asyncio.sleep(0.25)
-
-            logger.debug("Sent Cmd+A/C via pynput")
+            logger.debug("Dispatched Cmd+A/C via CGEventPostToPid")
             return True
         except Exception:
-            logger.debug("pynput keystrokes failed", exc_info=True)
+            logger.debug("CGEventPostToPid failed", exc_info=True)
             return False
 
     async def _copy_via_cdp(self) -> None:

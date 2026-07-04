@@ -61,11 +61,11 @@
         "approach": "pine_editor",
         "pine_code_required": true,
         "open_pine_editor": "button[data-name=\"pine-dialog-button\"]",
-        "write_method": "clipboard_paste_via_pynput_or_cdp",
-        "macos_accessibility_required": true,
+        "write_method": "clipboard_via_base64_then_CGEventPostToPid_CmdAV",
         "compile_button_selector": "button[title=\"Add to chart\"]",
         "compile_verified": true,
-        "note": "Write step requires macOS Accessibility permission for pynput (Cmd+V paste). Compile works via JS element.click(). On systems without Accessibility, indicator_apply may fail at write step."
+        "prerequisites": "Page.bringToFront + macOS Accessibility permission (AXIsProcessTrusted) + TradingView running with CDP port 8315",
+        "note": "Write uses base64 clipboard + CGEventPostToPid Cmd+A/V (ADR-0006). Compile uses JS element.click() on Add to chart button. Full round-trip confirmed 2026-07-03."
       }
     },
     "indicator_remove": {
@@ -325,7 +325,8 @@
         "textarea_selectors": [
           ".monaco-editor textarea.inputarea",
           "#pine-editor-dialog textarea"
-        ]
+        ],
+        "note": "Read uses Page.bringToFront + CGEventPostToPid Cmd+A+C (ADR-0006). Confirmed working 2026-07-03. Requires macOS Accessibility permission."
       }
     },
     "pine_write": {
@@ -340,7 +341,8 @@
         "textarea_selectors": [
           ".monaco-editor textarea.inputarea",
           "#pine-editor-dialog textarea"
-        ]
+        ],
+        "note": "Write uses base64 clipboard + Page.bringToFront + CGEventPostToPid Cmd+A+V (ADR-0006). Confirmed working 2026-07-03. Requires macOS Accessibility permission."
       }
     },
     "pine_compile": {

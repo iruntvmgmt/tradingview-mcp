@@ -39,30 +39,30 @@
     },
     {
       "capability": "indicator_apply",
-      "severity": "major",
-      "summary": "Write step requires macOS Accessibility permission for pynput paste. Compile (Add to chart button) works via JS click. Without Accessibility, apply() fails at write step — old content stays in editor. Workaround: grant Accessibility to Terminal/VS Code in System Preferences → Privacy → Accessibility.",
-      "detail_ref": "docs/monaco-editor-integration.md#macos-limitation",
-      "blocks_goal": true,
+      "severity": "minor",
+      "summary": "Fixed: now uses CGEventPostToPid for paste (ADR-0006). Requires macOS Accessibility permission (AXIsProcessTrusted). Write verified via base64 clipboard + CGEventPostToPid Cmd+A+V, compile via JS click on button[title=\"Add to chart\"]. Full round-trip confirmed 2026-07-03. compile timing may need tuning (delay after paste before compile).",
+      "detail_ref": "docs/adr/0006-cdp-cmd-key-clipboard-limitation.md",
+      "blocks_goal": false,
       "opened": "2026-07-03",
-      "status": "open"
+      "status": "fixed"
     },
     {
       "capability": "pine_read",
-      "severity": "major",
-      "summary": "Same macOS Accessibility limitation as pine_write/indicator_apply — Cmd+C via CDP doesn't trigger Monaco's copy handler. Read returns empty or truncated viewport text.",
-      "detail_ref": "docs/monaco-editor-integration.md#macos-limitation",
+      "severity": "minor",
+      "summary": "Fixed: now uses Page.bringToFront + CGEventPostToPid Cmd+A+C (ADR-0006). Read round-trip confirmed 2026-07-03 (118 chars read back correctly). Requires macOS Accessibility permission.",
+      "detail_ref": "docs/adr/0006-cdp-cmd-key-clipboard-limitation.md",
       "blocks_goal": false,
       "opened": "2026-07-03",
-      "status": "open"
+      "status": "fixed"
     },
     {
       "capability": "pine_write",
-      "severity": "major",
-      "summary": "Same macOS Accessibility limitation — Cmd+V via CDP doesn't trigger Monaco's paste handler. pynput requires Accessibility permission.",
-      "detail_ref": "docs/monaco-editor-integration.md#macos-limitation",
-      "blocks_goal": true,
+      "severity": "minor",
+      "summary": "Fixed: now uses base64 clipboard + Page.bringToFront + CGEventPostToPid Cmd+A+V (ADR-0006). Write verified 2026-07-03 (4-line script round-tripped). Requires macOS Accessibility permission.",
+      "detail_ref": "docs/adr/0006-cdp-cmd-key-clipboard-limitation.md",
+      "blocks_goal": false,
       "opened": "2026-07-03",
-      "status": "open"
+      "status": "fixed"
     },
     {
       "capability": "ohlcv_read",
