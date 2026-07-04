@@ -205,9 +205,6 @@ class DomBacktestBackend(BacktestBackend):
             return True
         except Exception:
             return False
-            return True
-        except Exception:
-            return False
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -745,86 +742,62 @@ class DomPineScriptBackend(PineScriptBackend):
     async def compile(self, script_name: str) -> dict[str, Any]:
         """Compile and add the script to the chart.
 
-        **Primary**: Finds the Pine Editor toolbar's Save button and
-        clicks it via JS ``element.click()``.  This triggers React's
-        synthetic event system, which CDP ``Input.dispatchMouseEvent``
-        and ``Input.dispatchKeyEvent`` do **not** reach.
+        **Primary**: Clicks the Pine Editor toolbar's "Add to chart" button
+        via JS ``element.click()``.  The button is identified by its
+        ``title="Add to chart"`` attribute.
 
-        **Fallback**: CDP ``Cmd+Enter`` keystroke (trusted) if the Save
-        button cannot be found.
-
-        See ``docs/monaco-editor-integration.md`` § "CDP vs React" for
-        the full investigation.
+        **Fallback**: CDP ``Cmd+Enter`` keystroke (same macOS limitation
+        as write — may not trigger React's handler on macOS without
+        Accessibility permissions).
         """
         detail = _cap(self._caps, "pine_compile")
-        import asyncio
+        import asyncio, logging
+        logger = logging.getLogger(__name__)
 
-        # ── Primary: JS click on Save button ──────────────────────
+        # ── Primary: JS click on "Add to chart" button ────────────
         click_js = """
         (() => {
+            // Try title attribute first
+            const btn = document.querySelector('button[title="Add to chart"]');
+            if (btn) { btn.click(); return 'add_to_chart_clicked'; }
+            
+            // Fallback: search all buttons in the Pine Editor area
             const btns = document.querySelectorAll('button');
             for (let i = 0; i < btns.length; i++) {
-                const t = (btns[i].textContent || '').trim();
-                // The Save button text is "SaveSave" (text node + inner span)
-                if (t.startsWith('Save') && t.length < 20) {
-                    const r = btns[i].getBoundingClientRect();
-                    // Only click if in the Pine Editor toolbar area
-                    if (r.x > 1300 && r.y < 200) {
-                        btns[i].click();
-                        return 'save_clicked';
-                    }
+                const t = (btns[i].title || '').trim();
+                if (t === 'Add to chart') {
+                    btns[i].click();
+                    return 'add_to_chart_clicked_fallback';
                 }
             }
-            return 'save_not_found';
+            return 'add_to_chart_not_found';
         })()
         """
         result = await self._cdp.execute_js(click_js)
         status = result.get("result", {}).get("value", "")
 
-        # ── Fallback: CDP Cmd+Enter ───────────────────────────────
-        if status != "save_clicked":
-            bounds_js = """
-            (() => {
-                const el = document.querySelector('.monaco-editor');
-                if (!el) return null;
-                const r = el.getBoundingClientRect();
-                return { x: r.x + r.width / 2, y: r.y + 100 };
-            })()
-            """
-            bounds_result = await self._cdp.execute_js(bounds_js)
-            bv = bounds_result.get("result", {}).get("value", {})
-            cx = (bv.get("x", 0) or 0)
-            cy = (bv.get("y", 0) or 0)
+        if "clicked" in str(status):
+            logger.debug("Add to chart button clicked via JS")
+            await asyncio.sleep(1.5)  # Wait for compilation
+            return {"success": True, "method": "add_to_chart_button"}
 
-            if cx and cy:
-                await self._cdp._send_command("Input.dispatchMouseEvent", {
-                    "type": "mousePressed", "x": cx, "y": cy,
-                    "button": "left", "clickCount": 1,
-                })
-                await self._cdp._send_command("Input.dispatchMouseEvent", {
-                    "type": "mouseReleased", "x": cx, "y": cy,
-                    "button": "left", "clickCount": 1,
-                })
-                await asyncio.sleep(0.15)
+        # ── Fallback: try "Save script" button ───────────────────
+        click_js2 = """
+        (() => {
+            const btn = document.querySelector('button[title="Save script"]');
+            if (btn) { btn.click(); return 'save_clicked'; }
+            return 'save_not_found';
+        })()
+        """
+        result2 = await self._cdp.execute_js(click_js2)
+        status2 = result2.get("result", {}).get("value", "")
+        if "clicked" in str(status2):
+            logger.debug("Save script button clicked via JS")
+            await asyncio.sleep(1.5)
+            return {"success": True, "method": "save_script_button"}
 
-            await self._cdp._send_command("Input.dispatchKeyEvent", {
-                "type": "rawKeyDown", "modifiers": 8, "key": "Meta",
-                "code": "MetaLeft", "windowsVirtualKeyCode": 91,
-            })
-            await self._cdp._send_command("Input.dispatchKeyEvent", {
-                "type": "rawKeyDown", "modifiers": 8, "key": "Enter",
-                "code": "Enter", "windowsVirtualKeyCode": 13,
-            })
-            await self._cdp._send_command("Input.dispatchKeyEvent", {
-                "type": "keyUp", "modifiers": 8, "key": "Enter",
-                "code": "Enter", "windowsVirtualKeyCode": 13,
-            })
-            await self._cdp._send_command("Input.dispatchKeyEvent", {
-                "type": "keyUp", "modifiers": 0, "key": "Meta",
-                "code": "MetaLeft", "windowsVirtualKeyCode": 91,
-            })
-
-        return {"success": True, "method": status}
+        logger.warning("Could not find Add to chart or Save button in Pine Editor")
+        return {"success": False, "error": "compile_button_not_found", "method": status}
 
     async def read_compile_errors(self) -> list[dict[str, Any]]:
         sels = _cap(self._caps, "pine_compile_errors_read").get("console_selectors", [])

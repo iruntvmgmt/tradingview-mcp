@@ -123,16 +123,24 @@ class DomUtils:
 
     async def type_text_monaco(self, selectors: list[str], text: str,
                                timeout: float = 5.0) -> None:
-        """Write *text* into a Monaco editor via system clipboard + real Cmd+V.
+        """Write *text* into a Monaco editor via system clipboard + OS-level paste.
 
-        See ``docs/monaco-editor-integration.md`` for full rationale.
-        Synthetic clipboard events are NOT trusted by Monaco (``isTrusted``
-        check).  The ONLY way to trigger Monaco's native paste handler
-        is through real keystrokes dispatched via CDP.
+        .. warning::
 
-        Pipeline: clipboard writeText → CDP click editor → Cmd+A → Cmd+V
+           CDP ``Input.dispatchKeyEvent`` with Meta/Cmd modifier does **not**
+           trigger ``paste`` ClipboardEvents on macOS — the OS intercepts
+           Cmd-modified keystrokes.  We therefore use ``pynput`` to send
+           real Cmd+A / Cmd+V keystrokes at the OS level.
+
+        Pipeline:
+            1. Write text to system clipboard via JS ``navigator.clipboard.writeText``
+            2. Focus the Monaco textarea via JS ``ta.focus() + ta.select()``
+            3. Send Cmd+A + Cmd+V via ``pynput.keyboard.Controller`` (real OS keystrokes)
+
+        Falls back to CDP ``Input.dispatchKeyEvent`` if pynput is unavailable
+        (Windows/Linux or missing permission — though paste may not work there either).
         """
-        import base64
+        import asyncio
 
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
@@ -140,17 +148,13 @@ class DomUtils:
                 f"No textarea selector matched (tried {len(selectors)})",
                 details={"selectors": selectors, "timeout": timeout},
             )
-        b64 = base64.b64encode(text.encode("utf-8")).decode("ascii")
 
-        # Step 1: Write the full text to the system clipboard
+        # ── Step 1: Write to system clipboard ──────────────────────
+        safe_text = json.dumps(text)
         clip_js = f"""
         (async () => {{
-            const binary = atob({json.dumps(b64)});
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-            const decoded = new TextDecoder().decode(bytes);
             try {{
-                await navigator.clipboard.writeText(decoded);
+                await navigator.clipboard.writeText({safe_text});
                 return 'clipboard_ok';
             }} catch(e) {{
                 return 'clipboard_fail: ' + e.message;
@@ -163,80 +167,127 @@ class DomUtils:
             import logging
             logging.getLogger(__name__).warning("Clipboard write failed: %s", ret_val)
 
-        # Step 2: Focus the visible Monaco editor container via CDP click
-        import asyncio
-        bounds_js = """
+        # ── Step 2: Focus the Monaco textarea ──────────────────────
+        await self._cdp.execute_js("""
         (() => {
-            const el = document.querySelector('.monaco-editor');
-            if (!el) return null;
-            const r = el.getBoundingClientRect();
-            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+            const ta = document.querySelector('#pine-editor-dialog textarea.inputarea');
+            if (ta) { ta.focus(); ta.select(); return 'focused'; }
+            // Fallback: any visible .monaco-editor textarea
+            const all = document.querySelectorAll('.monaco-editor textarea.inputarea');
+            for (let i = 0; i < all.length; i++) {
+                if (all[i].offsetWidth > 0) { all[i].focus(); all[i].select(); return 'focused-fallback'; }
+            }
+            return 'no-textarea';
         })()
+        """)
+        await asyncio.sleep(0.2)
+
+        # ── Step 3: OS-level Cmd+A → Cmd+V ─────────────────────────
+        if not await self._paste_via_pynput():
+            # Fallback: CDP keystrokes (may not trigger paste on macOS)
+            await self._paste_via_cdp()
+
+        await asyncio.sleep(0.3)
+
+    async def _paste_via_pynput(self) -> bool:
+        """Send Cmd+A then Cmd+V via pynput (real OS keystrokes).
+
+        Activates TradingView first so keystrokes reach the right app.
+        Returns True if pynput is available and keystrokes were sent.
+
+        **macOS Accessibility Permission Required**: The terminal (or VS Code)
+        must be granted Accessibility permission in:
+        System Preferences → Privacy & Security → Accessibility.
+
+        If not granted, pynput/cgEvent/osascript will silently fail —
+        the CDP fallback will be used instead.
         """
-        bounds_result = await self._cdp.execute_js(bounds_js)
-        bv = bounds_result.get("result", {}).get("value", {})
-        cx = (bv.get("x", 0) or 0)
-        cy = (bv.get("y", 0) or 0)
+        import asyncio, subprocess, logging
+        logger = logging.getLogger(__name__)
 
-        if cx and cy:
-            await self._cdp._send_command("Input.dispatchMouseEvent", {
-                "type": "mousePressed", "x": cx, "y": cy,
-                "button": "left", "clickCount": 1,
-            })
-            await self._cdp._send_command("Input.dispatchMouseEvent", {
-                "type": "mouseReleased", "x": cx, "y": cy,
-                "button": "left", "clickCount": 1,
-            })
-            await asyncio.sleep(0.2)
+        # ── Check for pynput ──────────────────────────────────────
+        try:
+            from pynput.keyboard import Controller, Key
+        except ImportError:
+            logger.debug("pynput not installed — using CDP fallback")
+            return False
 
-        # Step 3: Cmd+A → Cmd+X (cut) → Cmd+V (paste)
-        # Cmd+X triggers Monaco's native cut handler which reliably removes
-        # the selected content from the internal model.  Delete/Backspace
-        # key events are NOT reliably intercepted by Monaco via CDP.
+        # ── Activate TradingView ──────────────────────────────────
+        try:
+            subprocess.run(
+                ['open', '-a', 'TradingView'],
+                capture_output=True, timeout=3,
+            )
+        except Exception:
+            logger.debug("Failed to activate TradingView", exc_info=True)
+            return False
+
+        await asyncio.sleep(0.4)
+
+        # ── Send Cmd+A → Cmd+V ───────────────────────────────────
+        try:
+            kb = Controller()
+            kb.press(Key.cmd)
+            kb.press('a')
+            kb.release('a')
+            kb.release(Key.cmd)
+            await asyncio.sleep(0.25)
+
+            kb.press(Key.cmd)
+            kb.press('v')
+            kb.release('v')
+            kb.release(Key.cmd)
+            await asyncio.sleep(0.25)
+
+            logger.debug("Sent Cmd+A/V via pynput")
+            return True
+        except Exception:
+            logger.debug("pynput keystrokes failed — missing Accessibility permission?", exc_info=True)
+            return False
+
+    async def _paste_via_cdp(self) -> None:
+        """Fallback: Cmd+A → Cmd+V via CDP Input.dispatchKeyEvent.
+
+        NOTE: On macOS, Meta-modified CDP keystrokes are intercepted by the OS
+        and do NOT trigger ``paste`` ClipboardEvents.  This fallback only
+        works reliably on Windows/Linux where Ctrl (modifier=2) is used
+        instead of Meta/Cmd.
+        """
+        import asyncio
+
         # Cmd+A
         await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "rawKeyDown", "modifiers": 8, "key": "a",
+            "type": "rawKeyDown", "modifiers": 4, "key": "a",
             "code": "KeyA", "windowsVirtualKeyCode": 65,
         })
         await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "keyUp", "modifiers": 8, "key": "a",
+            "type": "keyUp", "modifiers": 4, "key": "a",
             "code": "KeyA", "windowsVirtualKeyCode": 65,
         })
         await asyncio.sleep(0.3)
-        # Cmd+X (cut — Monaco reliably intercepts this)
+
+        # Cmd+V
         await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "rawKeyDown", "modifiers": 8, "key": "x",
-            "code": "KeyX", "windowsVirtualKeyCode": 88,
-        })
-        await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "keyUp", "modifiers": 8, "key": "x",
-            "code": "KeyX", "windowsVirtualKeyCode": 88,
-        })
-        await asyncio.sleep(0.3)
-        # Cmd+V (paste)
-        await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "rawKeyDown", "modifiers": 8, "key": "v",
+            "type": "rawKeyDown", "modifiers": 4, "key": "v",
             "code": "KeyV", "windowsVirtualKeyCode": 86,
         })
         await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "keyUp", "modifiers": 8, "key": "v",
+            "type": "keyUp", "modifiers": 4, "key": "v",
             "code": "KeyV", "windowsVirtualKeyCode": 86,
         })
         await asyncio.sleep(0.3)
 
     async def read_text_monaco(self, selectors: list[str],
                                 timeout: float = 5.0) -> str | None:
-        """Read the full source from a Monaco editor via real Cmd+C + clipboard.
+        """Read full source from a Monaco editor via system clipboard + OS-level Cmd+C.
 
-        See ``docs/monaco-editor-integration.md`` for full rationale.
+        .. warning::
 
-        IMPORTANT: Clears the system clipboard BEFORE reading to avoid
-        stale data from a previous ``type_text_monaco`` write (which also
-        uses the clipboard).  Without this, Cmd+C might race with the
-        clipboard read and return the *written* content instead of the
-        *editor* content.
+           Same macOS limitation as ``type_text_monaco`` — Cmd-modified CDP
+           keystrokes don't trigger copy ClipboardEvents.  We use pynput for
+           the Cmd+A / Cmd+C step, falling back to CDP on other platforms.
 
-        Pipeline: clear clipboard → CDP click editor → Cmd+A → Cmd+C → readText
+        Pipeline: clear clipboard → focus textarea → Cmd+A → Cmd+C → clipboard readText
         """
         sel = await self.resolve_selector(selectors, timeout=timeout)
         if sel is None:
@@ -250,54 +301,25 @@ class DomUtils:
             await_promise=True,
         )
 
-        # Step 1: Click the visible editor container to focus it
-        bounds_js = """
+        # Step 1: Focus the textarea via JS
+        await self._cdp.execute_js("""
         (() => {
-            const el = document.querySelector('.monaco-editor');
-            if (!el) return null;
-            const r = el.getBoundingClientRect();
-            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+            const ta = document.querySelector('#pine-editor-dialog textarea.inputarea');
+            if (ta) { ta.focus(); return 'focused'; }
+            const all = document.querySelectorAll('.monaco-editor textarea.inputarea');
+            for (let i = 0; i < all.length; i++) {
+                if (all[i].offsetWidth > 0) { all[i].focus(); return 'focused-fallback'; }
+            }
+            return 'no-textarea';
         })()
-        """
-        bounds_result = await self._cdp.execute_js(bounds_js)
-        bv = bounds_result.get("result", {}).get("value", {})
-        cx = (bv.get("x", 0) or 0)
-        cy = (bv.get("y", 0) or 0)
-
-        if cx and cy:
-            await self._cdp._send_command("Input.dispatchMouseEvent", {
-                "type": "mousePressed", "x": cx, "y": cy,
-                "button": "left", "clickCount": 1,
-            })
-            await self._cdp._send_command("Input.dispatchMouseEvent", {
-                "type": "mouseReleased", "x": cx, "y": cy,
-                "button": "left", "clickCount": 1,
-            })
-            await asyncio.sleep(0.3)
-
-        # Step 2: Cmd+A (select all)
-        await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "rawKeyDown", "modifiers": 8, "key": "a",
-            "code": "KeyA", "windowsVirtualKeyCode": 65,
-        })
-        await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "keyUp", "modifiers": 8, "key": "a",
-            "code": "KeyA", "windowsVirtualKeyCode": 65,
-        })
+        """)
         await asyncio.sleep(0.2)
 
-        # Step 3: Cmd+C (copy to system clipboard)
-        await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "rawKeyDown", "modifiers": 8, "key": "c",
-            "code": "KeyC", "windowsVirtualKeyCode": 67,
-        })
-        await self._cdp._send_command("Input.dispatchKeyEvent", {
-            "type": "keyUp", "modifiers": 8, "key": "c",
-            "code": "KeyC", "windowsVirtualKeyCode": 67,
-        })
-        await asyncio.sleep(0.3)
+        # Step 2: Cmd+A → Cmd+C (via pynput or CDP fallback)
+        if not await self._copy_via_pynput():
+            await self._copy_via_cdp()
 
-        # Step 4: Read from system clipboard
+        # Step 3: Read from system clipboard
         read_js = """
         (async () => {
             try {
@@ -312,6 +334,68 @@ class DomUtils:
         if not text or "read_fail" in str(text):
             return None
         return text
+
+    async def _copy_via_pynput(self) -> bool:
+        """Send Cmd+A then Cmd+C via pynput (real OS keystrokes)."""
+        try:
+            from pynput.keyboard import Controller, Key
+        except ImportError:
+            return False
+
+        import asyncio, subprocess, logging
+        logger = logging.getLogger(__name__)
+
+        try:
+            subprocess.run(['open', '-a', 'TradingView'], capture_output=True, timeout=3)
+        except Exception:
+            logger.debug("Failed to activate TradingView", exc_info=True)
+            return False
+
+        await asyncio.sleep(0.4)
+
+        try:
+            kb = Controller()
+            kb.press(Key.cmd)
+            kb.press('a')
+            kb.release('a')
+            kb.release(Key.cmd)
+            await asyncio.sleep(0.25)
+
+            kb.press(Key.cmd)
+            kb.press('c')
+            kb.release('c')
+            kb.release(Key.cmd)
+            await asyncio.sleep(0.25)
+
+            logger.debug("Sent Cmd+A/C via pynput")
+            return True
+        except Exception:
+            logger.debug("pynput keystrokes failed", exc_info=True)
+            return False
+
+    async def _copy_via_cdp(self) -> None:
+        """Fallback: Cmd+A → Cmd+C via CDP (may not work on macOS)."""
+        import asyncio
+
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "rawKeyDown", "modifiers": 4, "key": "a",
+            "code": "KeyA", "windowsVirtualKeyCode": 65,
+        })
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "keyUp", "modifiers": 4, "key": "a",
+            "code": "KeyA", "windowsVirtualKeyCode": 65,
+        })
+        await asyncio.sleep(0.2)
+
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "rawKeyDown", "modifiers": 4, "key": "c",
+            "code": "KeyC", "windowsVirtualKeyCode": 67,
+        })
+        await self._cdp._send_command("Input.dispatchKeyEvent", {
+            "type": "keyUp", "modifiers": 4, "key": "c",
+            "code": "KeyC", "windowsVirtualKeyCode": 67,
+        })
+        await asyncio.sleep(0.3)
 
     # ── Extract text / table data ───────────────────────────────
 

@@ -228,6 +228,49 @@ The recon file now has three tiers of selectors for Pine operations:
 
 ---
 
+## macOS Limitation: Cmd-Modified CDP Keystrokes
+
+**Status**: Confirmed — July 3, 2026
+
+On macOS, `Input.dispatchKeyEvent` with the Meta (Cmd) modifier does **not**
+trigger `paste` or `copy` ClipboardEvents.  The macOS window server intercepts
+Cmd-modified keystrokes and routes them through the system menu/responder chain
+before they reach the page's DOM event handlers.  This means:
+
+- **CDP `Cmd+V`** → keyboard events reach the textarea but no `paste` event fires
+- **CDP `Cmd+C`** → same — no `copy` event fires
+- **CDP `Cmd+A`** → same — no selection change in Monaco's internal model
+
+**Verified**: Event monitoring confirms `keydown` with `metaKey: true` and
+`isTrusted: true` reaches the textarea, but the corresponding `paste`/`copy`
+ClipboardEvent never fires.
+
+### Solution: OS-Level Keystrokes via pynput
+
+The workaround uses `pynput.keyboard.Controller` to send real Cmd+A, Cmd+C,
+Cmd+V keystrokes at the OS level.  These trigger the native macOS paste/copy
+handlers which generate trusted ClipboardEvents that Monaco processes correctly.
+
+**Requirement**: macOS Accessibility permission must be granted to the
+terminal (or VS Code) in:
+```
+System Preferences → Privacy & Security → Accessibility
+```
+
+If Accessibility is not granted, pynput keystrokes silently fail and the
+code falls back to CDP keystrokes (which don't trigger paste on macOS).
+
+### Code Architecture
+
+The `type_text_monaco` and `read_text_monaco` methods in `dom_utils.py`
+now have a two-tier approach:
+1. **Primary**: pynput OS-level keystrokes (requires Accessibility permission)
+2. **Fallback**: CDP `Input.dispatchKeyEvent` (works on Windows/Linux, not macOS)
+
+The compile step uses JS `element.click()` on the `button[title="Add to chart"]`
+button — this works cross-platform because it triggers React's synthetic event
+system directly.
+
 ## Common Pitfalls
 
 ### 1. Never read/write `textarea.value` for Monaco
@@ -236,8 +279,8 @@ window**, not a document store.  Reading it gives you ~1000 chars at most.
 
 ### 2. Synthetic events have `isTrusted: false`
 `new ClipboardEvent(...)` + `dispatchEvent(...)` produces untrusted events that
-Monaco ignores.  The only way to produce trusted events is via CDP's
-`Input.dispatchKeyEvent` or genuine user input.
+Monaco ignores.  The only way to produce trusted events is via genuine user
+interaction or OS-level keystrokes (pynput).
 
 ### 3. CDP `Input.insertText` is unreliable for bulk text
 Chrome's renderer process can crash or truncate when `Input.insertText` is
@@ -257,6 +300,9 @@ proper focus.
 Passing 27K+ character strings through JSON in `Runtime.evaluate` causes
 escaping issues and potential renderer crashes.  Always base64-encode in
 Python and decode in the browser.
+
+### 7. CDP Meta/Cmd keystrokes don't trigger clipboard events on macOS
+See "macOS Limitation" section above.  Use pynput with Accessibility permission.
 
 ### 7. 🚨 CDP mouse/key events don't trigger React handlers
 TradingView Desktop is a React application.  React uses its own **synthetic

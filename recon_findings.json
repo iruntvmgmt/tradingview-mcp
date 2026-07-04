@@ -56,16 +56,16 @@
     },
     "indicator_apply": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
-        "editor_selectors": [
-          "button[data-name=\"open-indicators-dialog\"]",
-          "button:has(div:text(\"Indicators\"))"
-        ],
-        "add_to_chart_selectors": [
-          "button:has(div:text(\"Indicators\"))",
-          "button[data-name=\"open-indicators-dialog\"]"
-        ]
+        "approach": "pine_editor",
+        "pine_code_required": true,
+        "open_pine_editor": "button[data-name=\"pine-dialog-button\"]",
+        "write_method": "clipboard_paste_via_pynput_or_cdp",
+        "macos_accessibility_required": true,
+        "compile_button_selector": "button[title=\"Add to chart\"]",
+        "compile_verified": true,
+        "note": "Write step requires macOS Accessibility permission for pynput (Cmd+V paste). Compile works via JS element.click(). On systems without Accessibility, indicator_apply may fail at write step."
       }
     },
     "indicator_remove": {
@@ -320,7 +320,8 @@
           "#pine-editor-dialog div[class*=\"monaco-editor\"]",
           "#pine-editor-dialog div[role=\"textbox\"]"
         ],
-        "open_tab_selectors": [],
+        "open_tab_selectors": ["button[data-name=\"pine-dialog-button\"]"],
+        "open_button_selector": "button[data-name=\"pine-dialog-button\"]",
         "textarea_selectors": [
           ".monaco-editor textarea.inputarea",
           "#pine-editor-dialog textarea"

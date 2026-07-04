@@ -39,12 +39,30 @@
     },
     {
       "capability": "indicator_apply",
-      "severity": "blocker",
-      "summary": "Fixed: now delegates to DomPineScriptBackend.write (clipboard-based, per ADR-0002) instead of broken ta.value=. Marked verified:false pending live-session test per ADR-0003.",
-      "detail_ref": "docs/adr/0002-monaco-editor-clipboard-write-strategy.md",
+      "severity": "major",
+      "summary": "Write step requires macOS Accessibility permission for pynput paste. Compile (Add to chart button) works via JS click. Without Accessibility, apply() fails at write step — old content stays in editor. Workaround: grant Accessibility to Terminal/VS Code in System Preferences → Privacy → Accessibility.",
+      "detail_ref": "docs/monaco-editor-integration.md#macos-limitation",
       "blocks_goal": true,
       "opened": "2026-07-03",
-      "status": "fixed"
+      "status": "open"
+    },
+    {
+      "capability": "pine_read",
+      "severity": "major",
+      "summary": "Same macOS Accessibility limitation as pine_write/indicator_apply — Cmd+C via CDP doesn't trigger Monaco's copy handler. Read returns empty or truncated viewport text.",
+      "detail_ref": "docs/monaco-editor-integration.md#macos-limitation",
+      "blocks_goal": false,
+      "opened": "2026-07-03",
+      "status": "open"
+    },
+    {
+      "capability": "pine_write",
+      "severity": "major",
+      "summary": "Same macOS Accessibility limitation — Cmd+V via CDP doesn't trigger Monaco's paste handler. pynput requires Accessibility permission.",
+      "detail_ref": "docs/monaco-editor-integration.md#macos-limitation",
+      "blocks_goal": true,
+      "opened": "2026-07-03",
+      "status": "open"
     },
     {
       "capability": "ohlcv_read",
