@@ -133,20 +133,43 @@ pynput/CGEvent probe) at startup and report Accessibility status in
   `_copy_via_pynput()` / `_copy_via_cdp()`.
   **Still needs**: `Page.bringToFront` call before clipboard operations.
 - **`DomPineScriptBackend.compile`** (dom_backend.py): Updated to click
-  `button[title="Add to chart"]` via JS (works cross-platform, no
-  Accessibility dependency).
+  `button[title="Add to chart"]` / `button[title="Update on chart"]` via JS
+  (works cross-platform, no Accessibility dependency).
+
+## Regression hazard: `open -a TradingView` activation step
+
+**Discovered 2026-07-04.**  The CGEventPostToPid mechanism silently fails
+if TradingView is not the frontmost application.  Even though
+`CGEventPostToPid` targets a specific PID, macOS does not deliver keyboard
+events to the app's focused text field unless the app is frontmost.  The
+`_paste_via_cgevent` and `_copy_via_cgevent` methods in `dom_utils.py`
+must call `subprocess.run(['open', '-a', 'TradingView'])` before
+dispatching keystrokes.
+
+**This step was dropped once already** between the ad hoc test script that
+proved the CGEventPostToPid mechanism (which always called `open -a`
+first) and the version that landed in dom_utils.py during the same
+session.  The absence does not throw an error — CGEventPostToPid returns
+successfully, and the debug log says "Dispatched Cmd+A/V via
+CGEventPostToPid" — but the keystrokes never reach Monaco's textarea.
+**If anyone touches the CGEventPostToPid code path in the future, they
+must confirm the `open -a TradingView` activation step is present.**
+This is the kind of dependency that's easy to silently regress.
 
 ## Evidence
 
 Full reproduction steps and event-monitoring logs are in the session
-transcript for 2026-07-03b.  Key empirical findings:
+transcripts for 2026-07-03 and 2026-07-04.  Key empirical findings:
 
 1. `Page.bringToFront` → clipboard write succeeds; without it, fails
    with "Document is not focused".
 2. Event monitoring on `#pine-editor-dialog textarea.inputarea` confirms
    CDP keystrokes arrive (`keydown`, `metaKey: true`, `isTrusted: true`)
    but no `paste`/`copy` ClipboardEvent follows.
-3. JS `element.click()` on `button[title="Add to chart"]` successfully
-   triggers React's synthetic event → compile works.
-4. `isTrusted` cannot be overridden on ClipboardEvent — it is a native
+3. `open -a TradingView` required before CGEventPostToPid keystrokes
+   reach the app — confirmed by 2026-07-04 session debugging.
+4. JS `element.click()` on `button[title="Add to chart"]` /
+   `button[title="Update on chart"]` successfully triggers React's
+   synthetic event → compile works.
+5. `isTrusted` cannot be overridden on ClipboardEvent — it is a native
    (C++-level) getter, not a JavaScript property.

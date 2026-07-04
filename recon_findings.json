@@ -275,9 +275,11 @@
     },
     "settings_list_fields": {
       "path": "dom",
-      "verified": true,
+      "verified": false,
       "detail": {
+        "_stale_selector_note": "div[data-name=\"indicator-properties-dialog\"] does NOT exist in TV Desktop 3.2.0 DOM. Actual settings dialog is div[data-name=\"series-properties-dialog\"] (opened via [data-qa-id=\"legend-settings-action\"]), but it shows chart-level tabs (Symbol, Status line, etc.), not indicator Inputs/Style/Visibility. The indicator-specific properties dialog was not found. Settings backend selectors need recon for TV 3.2.0.",
         "dialog_selector": "div[data-name=\"indicator-properties-dialog\"]",
+        "actual_dialog_in_3_2_0": "div[data-name=\"series-properties-dialog\"]",
         "inputs_tab_selector": "button#inputs",
         "row_label_selector": "div.cell-RLntasnw.first-RLntasnw",
         "row_cell_template": "div.cell-RLntasnw.first-RLntasnw",
@@ -291,7 +293,7 @@
     },
     "settings_read": {
       "path": "dom",
-      "verified": true,
+      "verified": false,
       "detail": {
         "dialog_selector": "div[data-name=\"indicator-properties-dialog\"]",
         "inputs_tab_selector": "button#inputs",
@@ -301,7 +303,7 @@
     },
     "settings_write": {
       "path": "dom",
-      "verified": true,
+      "verified": false,
       "detail": {
         "dialog_selector": "div[data-name=\"indicator-properties-dialog\"]",
         "inputs_tab_selector": "button#inputs",
