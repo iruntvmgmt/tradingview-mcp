@@ -460,7 +460,11 @@ class DomSettingsBackend(SettingsBackend):
         self._caps = capabilities
 
     async def list_fields(self, study_name: str) -> list[dict[str, Any]]:
-        """Open the Settings dialog and enumerate all Inputs tab fields.
+        """Open the Settings dialog and enumerate all fields.
+
+        Opens the dialog via CDP mouse hover+click on the indicator's
+        gear icon (legend-settings-action), then reads structured fields
+        from the Inputs/Style tab.
 
         Returns a list of dicts with keys: name, type (number/checkbox/
         dropdown/string), current_value.
@@ -470,7 +474,10 @@ class DomSettingsBackend(SettingsBackend):
         if not dialog_sel:
             return []
 
-        # Use injected JS to read the entire dialog structure in one round-trip
+        # ── 1. Ensure the dialog is open ──────────────────────────
+        await self._open_settings_dialog(study_name)
+
+        # ── 2. Read fields ────────────────────────────────────────
         row_label_sel = detail.get("row_label_selector", "div.cell-RLntasnw.first-RLntasnw")
         input_sel = detail.get("input_selector_within_row", "input, select, button[role='combobox']")
 
@@ -489,8 +496,11 @@ class DomSettingsBackend(SettingsBackend):
                 const cells = Array.from(row.children);
                 const labelIdx = cells.indexOf(labelDiv);
                 const valueCell = cells[labelIdx + 1];
-                if (!valueCell) return;
-                const input = valueCell.querySelector(%s);
+                // Check BOTH the value cell and the label cell itself for inputs
+                // (checkboxes are nested inside the label cell's inner-RLntasnw subtree)
+                let input = null;
+                if (valueCell) input = valueCell.querySelector(%s);
+                if (!input) input = labelDiv.querySelector(%s);
                 if (!input) return;
                 let fieldType = 'string';
                 let currentValue = null;
@@ -514,10 +524,82 @@ class DomSettingsBackend(SettingsBackend):
             });
             return results;
         })()
-        """ % (json.dumps(dialog_sel), json.dumps(row_label_sel), json.dumps(input_sel))
+        """ % (json.dumps(dialog_sel), json.dumps(row_label_sel), json.dumps(input_sel), json.dumps(input_sel))
 
         result = await self._cdp.execute_js(js)
         return result.get("result", {}).get("value", []) or []
+
+    async def _open_settings_dialog(self, study_name: str) -> None:
+        """Open the indicator-properties-dialog via CDP mouse hover+click.
+
+        Uses CDP ``Input.dispatchMouseEvent`` to hover over the
+        indicator's legend row (revealing the gear icon via CSS :hover),
+        then clicks the gear at ``[data-qa-id=\"legend-settings-action\"]``.
+
+        This is the ONLY mechanism confirmed to open the indicator
+        settings dialog programmatically — CGEventPostToPid and
+        JS ``.click()`` do not trigger CSS :hover or React's event
+        delegation for this button.
+        """
+        import asyncio
+
+        # Check if dialog is already open
+        check_js = """
+        (() => {
+            const d = document.querySelector(%s);
+            return !!(d && d.getBoundingClientRect().width > 0);
+        })()
+        """ % json.dumps(_cap(self._caps, "settings_list_fields").get("dialog_selector", ""))
+        result = await self._cdp.execute_js(check_js)
+        if result.get("result", {}).get("value"):
+            return  # Already open
+
+        # Find the indicator's legend row and gear icon coordinates
+        find_js = """
+        (() => {
+            const titles = document.querySelectorAll('.title-YTFIJ62h');
+            for (let i = 0; i < titles.length; i++) {
+                if (titles[i].textContent.trim() === %s) {
+                    const item = titles[i].closest('[class*="study"], [class*="item"]');
+                    const parent = item ? item.parentElement : titles[i].parentElement;
+                    const gear = parent.querySelector('[data-qa-id="legend-settings-action"]');
+                    if (gear) {
+                        const tr = titles[i].getBoundingClientRect();
+                        const gr = gear.getBoundingClientRect();
+                        return {
+                            titleX: tr.x + tr.width / 2,
+                            titleY: tr.y + tr.height / 2,
+                            gearX: gr.x + gr.width / 2,
+                            gearY: gr.y + gr.height / 2,
+                        };
+                    }
+                }
+            }
+            return null;
+        })()
+        """ % json.dumps(study_name)
+        result = await self._cdp.execute_js(find_js)
+        coords = result.get("result", {}).get("value")
+        if not coords:
+            return  # Indicator not found in legend
+
+        # Step 1: CDP mouseMoved to legend row (triggers CSS :hover → gear visible)
+        await self._cdp._send_command("Input.dispatchMouseEvent", {
+            "type": "mouseMoved", "x": coords["titleX"], "y": coords["titleY"],
+            "modifiers": 0,
+        })
+        await asyncio.sleep(0.4)
+
+        # Step 2: CDP click on gear icon
+        await self._cdp._send_command("Input.dispatchMouseEvent", {
+            "type": "mousePressed", "x": coords["gearX"], "y": coords["gearY"],
+            "button": "left", "clickCount": 1,
+        })
+        await self._cdp._send_command("Input.dispatchMouseEvent", {
+            "type": "mouseReleased", "x": coords["gearX"], "y": coords["gearY"],
+            "button": "left", "clickCount": 1,
+        })
+        await asyncio.sleep(0.5)
 
     async def read(self, study_name: str) -> dict[str, Any]:
         """Read current input values from the Settings dialog.
@@ -555,11 +637,13 @@ class DomSettingsBackend(SettingsBackend):
                     const cells = Array.from(row.children);
                     const idx = cells.indexOf(labelDiv);
                     const valueCell = cells[idx + 1];
-                    if (!valueCell) return {error: 'no value cell'};
 
-                    // Checkbox
-                    const cb = valueCell.querySelector('input[type=\"checkbox\"]');
+                    // Checkbox — may be in value cell OR inside label cell's inner-RLntasnw
+                    let cb = valueCell ? valueCell.querySelector('input[type=\"checkbox\"]') : null;
+                    if (!cb) cb = labelDiv.querySelector('input[type=\"checkbox\"]');
                     if (cb) return {type: 'checkbox', checked: cb.checked, id: cb.id};
+
+                    if (!valueCell) return {error: 'no value cell'};
 
                     // Combobox dropdown
                     const combo = valueCell.querySelector('button[role=\"combobox\"]');
@@ -605,7 +689,8 @@ class DomSettingsBackend(SettingsBackend):
                             const cells = Array.from(row.children);
                             const idx = cells.indexOf(labelDiv);
                             const valueCell = cells[idx + 1];
-                            const cb = valueCell.querySelector('input[type=\"checkbox\"]');
+                            let cb = valueCell ? valueCell.querySelector('input[type=\"checkbox\"]') : null;
+                            if (!cb) cb = labelDiv.querySelector('input[type=\"checkbox\"]');
                             if (cb) { cb.click(); return {toggled: true}; }
                             return {error: 'checkbox disappeared'};
                         }

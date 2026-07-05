@@ -2,10 +2,10 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-04 20:57 UTC
+Last generated: 2026-07-05 03:18 UTC
 Source: `recon_findings.json` (schema v2)
 
-**13/33** capabilities recon-verified · **7** have open known issues that override that verification (see table).
+**16/33** capabilities recon-verified · **7** have open known issues that override that verification (see table).
 
 ## Capability matrix
 
@@ -39,9 +39,9 @@ Source: `recon_findings.json` (schema v2)
 | `replay_state_read` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `replay_step` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `screenshot` | `cdp` | verified | 🟢 Verified | — |
-| `settings_list_fields` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
-| `settings_read` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
-| `settings_write` | `dom` | unverified | ⚪ Unverified (untested against live app) | 🟡 Dropdown (combobox) writes confirmed working via backend.write() on Source field (Open→High). Checkbox writes NOT YET VERIFIED. The dialog selector div[data-name="indicator-properties-dialog"] in recon_findings.json is STALE — this element does not exist in TradingView Desktop 3.2.0's DOM. The actual settings dialog is div[data-name="series-properties-dialog"] (w=750,h=1130), opened via [data-qa-id="legend-settings-action"]. However, this dialog shows chart-level settings (Symbol, Status line, Scales, Canvas, Trading, Alerts, Events tabs) — NOT indicator Inputs/Style tabs. The indicator-specific properties dialog (with Inputs/Style/Visibility tabs and checkbox fields like plot visibility) was not found. Needs: (a) recon to find the correct dialog selector for indicator-specific settings in TV 3.2.0, or (b) confirmation that indicator inputs are only accessible via a different UI path (Pine Editor toolbar? right-click context menu?). Blocked until the real dialog is identified. |
+| `settings_list_fields` | `dom` | verified | 🟢 Verified | — |
+| `settings_read` | `dom` | verified | 🟢 Verified | — |
+| `settings_write` | `dom` | verified | 🟢 Verified | — |
 | `symbol_control` | `dom` | verified | 🟢 Verified | — |
 | `timeframe_control` | `dom` | verified | 🟢 Verified | — |
 
@@ -53,13 +53,6 @@ Source: `recon_findings.json` (schema v2)
 - **Blocks primary goal:** no
 - **Opened:** 2026-07-03
 - **Detail:** docs/handoff/2026-07-03-audit-findings.md#ohlcv
-
-### 🟡 `settings_write` — Dropdown (combobox) writes confirmed working via backend.write() on Source field (Open→High). Checkbox writes NOT YET VERIFIED. The dialog selector div[data-name="indicator-properties-dialog"] in recon_findings.json is STALE — this element does not exist in TradingView Desktop 3.2.0's DOM. The actual settings dialog is div[data-name="series-properties-dialog"] (w=750,h=1130), opened via [data-qa-id="legend-settings-action"]. However, this dialog shows chart-level settings (Symbol, Status line, Scales, Canvas, Trading, Alerts, Events tabs) — NOT indicator Inputs/Style tabs. The indicator-specific properties dialog (with Inputs/Style/Visibility tabs and checkbox fields like plot visibility) was not found. Needs: (a) recon to find the correct dialog selector for indicator-specific settings in TV 3.2.0, or (b) confirmation that indicator inputs are only accessible via a different UI path (Pine Editor toolbar? right-click context menu?). Blocked until the real dialog is identified.
-
-- **Severity:** minor
-- **Blocks primary goal:** no
-- **Opened:** 2026-07-03
-- **Detail:** docs/adr/0004-settings-dialog-selector-fragility.md
 
 ## Test coverage caveat
 

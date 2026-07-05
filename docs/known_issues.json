@@ -76,11 +76,11 @@
     {
       "capability": "settings_write",
       "severity": "minor",
-      "summary": "Dropdown (combobox) writes confirmed working via backend.write() on Source field (Open→High). Checkbox writes NOT YET VERIFIED. The dialog selector div[data-name=\"indicator-properties-dialog\"] in recon_findings.json is STALE — this element does not exist in TradingView Desktop 3.2.0's DOM. The actual settings dialog is div[data-name=\"series-properties-dialog\"] (w=750,h=1130), opened via [data-qa-id=\"legend-settings-action\"]. However, this dialog shows chart-level settings (Symbol, Status line, Scales, Canvas, Trading, Alerts, Events tabs) — NOT indicator Inputs/Style tabs. The indicator-specific properties dialog (with Inputs/Style/Visibility tabs and checkbox fields like plot visibility) was not found. Needs: (a) recon to find the correct dialog selector for indicator-specific settings in TV 3.2.0, or (b) confirmation that indicator inputs are only accessible via a different UI path (Pine Editor toolbar? right-click context menu?). Blocked until the real dialog is identified.",
+      "summary": "Fixed: checkbox write now works through DomSettingsBackend.write(). Dialog opens via CDP mouseMoved+click on gear icon ([data-qa-id=\"legend-settings-action\"]). Checkbox input is inside the label cell (inner-RLntasnw subtree), not the value cell — both list_fields and write updated to search label cell as fallback. Checkbox JS .click() confirmed to toggle state (True↔False). Full round-trip write→read confirmed 2026-07-04.",
       "detail_ref": "docs/adr/0004-settings-dialog-selector-fragility.md",
       "blocks_goal": false,
       "opened": "2026-07-03",
-      "status": "open"
+      "status": "fixed"
     }
   ]
 }
