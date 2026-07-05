@@ -83,13 +83,14 @@
       "verified": true,
       "detail": {
         "tab_selectors": [
-          "button[data-name=\"strategy-tester-tab\"]",
-          "button:has(div:text(\"Strategy Tester\"))"
+          "button[id=\"strategy-report-summary\"]",
+          "button[role=\"tab\"][id=\"strategy-report-summary\"]"
         ],
         "bottom_panel_selectors": [
           ".chart-widget__bottom--themed-dark",
           "[class*='chart-widget__bottom']"
-        ]
+        ],
+        "_note": "Strategy Tester panel auto-opens when a strategy is applied to chart. The 'Overview' tab button (id=strategy-report-summary) confirms it's open."
       }
     },
     "backtest_summary": {
