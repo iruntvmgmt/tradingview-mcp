@@ -204,18 +204,17 @@ class TestDomOrderBackend:
 class TestDomBacktestBackend:
     @pytest.mark.asyncio
     async def test_get_trade_list(self, mock_cdp, mock_dom):
-        caps = {
-            "backtest_trade_list": {
-                "detail": {
-                    "table_selectors": ["#trades-table"],
-                    "row_selectors": [".trade-row"],
-                }
-            }
+        caps = {"backtest_trade_list": {"detail": {}}}
+        # Mock innerText to return a trade list
+        mock_cdp.execute_js.return_value = {
+            "result": {"value": "List of trades\n\nTrade number\n\n1long\n\nExit\nEntry\n\nJun 08, 2026, 00:15\nJun 07, 2026, 22:40\n\n29,180.00\nUSD\n29,198.75\nUSD\n\n1\n583.98 KUSD\n\n-375\nUSD\n\n-0.06%"}
         }
         backend = DomBacktestBackend(mock_cdp, mock_dom, caps)
         result = await backend.get_trade_list()
         assert len(result) == 1
-        assert result[0]["col1"] == "val1"
+        assert result[0]["trade_number"] == 1
+        assert result[0]["direction"] == "long"
+        assert result[0]["net_pnl"] == -375.0
 
 
 class TestDomReplayBackend:

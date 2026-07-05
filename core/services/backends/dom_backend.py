@@ -183,12 +183,111 @@ class DomBacktestBackend(BacktestBackend):
         return result
 
     async def get_trade_list(self) -> list[dict[str, Any]]:
-        detail = _cap(self._caps, "backtest_trade_list")
-        rows = await self._dom.extract_table(
-            detail.get("table_selectors", []),
-            detail.get("row_selectors"),
-        )
-        return [dict(zip(rows[0], row)) for row in rows[1:]] if rows else []
+        """Return structured trade records from the Strategy Tester.
+
+        The trade list is rendered as ``innerText`` within the DOM.
+        Each trade block follows this line layout::
+
+            N<direction>
+            <tab><tab>Exit<tab>Entry<tab>
+            <exit_date><tab><entry_date><tab>
+            <exit_price> USD <entry_price> USD <tab>
+            <size> <value>KUSD <tab>
+            <pnl> USD <tab>
+            <return_pct>%
+        """
+        import re
+
+        js = """
+        (() => {
+            const body = document.body.innerText;
+            const idx = body.indexOf('List of trades');
+            if (idx < 0) return '';
+            return body.slice(idx, idx + 8000);
+        })()
+        """
+        result = await self._cdp.execute_js(js)
+        text = result.get("result", {}).get("value", "") or ""
+        if not isinstance(text, str) or "List of trades" not in text:
+            return []
+
+        lines = text.strip().split('\n')
+        trades: list[dict[str, Any]] = []
+        i = 0
+
+        while i < len(lines):
+            line = lines[i].strip()
+
+            # Detect trade header: "<num><direction>" e.g. "1long"
+            m = re.match(r'^(\d+)(long|short)$', line)
+            if not m:
+                i += 1
+                continue
+
+            trade: dict[str, Any] = {
+                "trade_number": int(m.group(1)),
+                "direction": m.group(2),
+            }
+
+            # Skip to the Exit/Entry line and past it
+            while i < len(lines) and lines[i].strip() not in ('Exit', 'Entry'):
+                i += 1
+            # Consume the Exit/Entry lines (usually 2 lines: "Exit" then "Entry")
+            while i < len(lines) and lines[i].strip() in ('Exit', 'Entry'):
+                i += 1
+
+            # Next non-empty lines after Exit/Entry are dates
+            while i < len(lines) and not lines[i].strip():
+                i += 1
+            if i < len(lines):
+                trade["exit_datetime"] = lines[i].strip()
+                i += 1
+            while i < len(lines) and not lines[i].strip():
+                i += 1
+            if i < len(lines):
+                trade["entry_datetime"] = lines[i].strip()
+                i += 1
+
+            # Skip to prices (after dates, skip tabs/blanks)
+            while i < len(lines) and not re.match(r'^[\d,]+\.\d{2}$', lines[i].strip()):
+                i += 1
+            if i < len(lines):
+                trade["exit_price"] = float(lines[i].strip().replace(',', ''))
+                i += 1
+            i += 1  # Skip USD
+            if i < len(lines) and re.match(r'^[\d,]+\.\d{2}$', lines[i].strip()):
+                trade["entry_price"] = float(lines[i].strip().replace(',', ''))
+                i += 1
+            i += 1  # Skip USD
+
+            # Skip to size line
+            while i < len(lines) and not re.match(r'^\d+$', lines[i].strip()):
+                i += 1
+            if i < len(lines):
+                trade["size"] = int(lines[i].strip())
+                i += 1
+            i += 1  # Skip value (KUSD)
+
+            # Next is PnL
+            while i < len(lines) and not re.match(r'^[+\u2212-]?[\d,]+$', lines[i].strip()):
+                i += 1
+            if i < len(lines):
+                pnl_str = lines[i].strip().replace('\u2212', '-').replace(',', '')
+                trade["net_pnl"] = float(pnl_str)
+                i += 1
+            i += 1  # Skip USD
+
+            # Next is return pct
+            while i < len(lines) and not re.match(r'^[+\u2212-]?[\d]+\.[\d]{2}%$', lines[i].strip()):
+                i += 1
+            if i < len(lines):
+                ret_str = lines[i].strip().replace('\u2212', '-').replace('%', '')
+                trade["return_pct"] = float(ret_str)
+                i += 1
+
+            trades.append(trade)
+
+        return trades
 
     async def get_equity_curve(self) -> list[dict[str, Any]]:
         raise CapabilityUnavailable(

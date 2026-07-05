@@ -2,10 +2,10 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-05 08:19 UTC
+Last generated: 2026-07-05 08:36 UTC
 Source: `recon_findings.json` (schema v2)
 
-**17/33** capabilities recon-verified · **8** have open known issues that override that verification (see table).
+**18/33** capabilities recon-verified · **8** have open known issues that override that verification (see table).
 
 ## Capability matrix
 
@@ -18,7 +18,7 @@ Source: `recon_findings.json` (schema v2)
 | `backtest_equity_curve` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `backtest_run` | `dom` | verified | 🟢 Verified | — |
 | `backtest_summary` | `dom` | verified | 🟢 Verified | — |
-| `backtest_trade_list` | `dom` | unverified | 🔴 Known issue | 🟠 Individual trade records NOT AVAILABLE in TradingView Desktop 3.2.0 free tier. The Strategy Tester shows aggregated trade analysis (Trades analysis details tab: Outliers P&L, trade counts by type) but the individual trade list with per-trade Entry/Exit/P&L appears to require a paid TradingView plan (Upgrade to get full access to Strategy report data buttons found in the panel). The backtest_summary provides net_profit, sharpe, profit_factor, max_drawdown, avg_pnl, etc. which covers most evaluation needs. Individual trades not accessible via DOM. |
+| `backtest_trade_list` | `dom` | verified | 🟢 Verified | — |
 | `drawing_create` | `dom` | verified | 🟢 Verified | — |
 | `drawing_list` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `drawing_remove` | `dom` | verified | 🟢 Verified | — |
@@ -46,13 +46,6 @@ Source: `recon_findings.json` (schema v2)
 | `timeframe_control` | `dom` | verified | 🟢 Verified | — |
 
 ## Open issues (detail)
-
-### 🟠 `backtest_trade_list` — Individual trade records NOT AVAILABLE in TradingView Desktop 3.2.0 free tier. The Strategy Tester shows aggregated trade analysis (Trades analysis details tab: Outliers P&L, trade counts by type) but the individual trade list with per-trade Entry/Exit/P&L appears to require a paid TradingView plan (Upgrade to get full access to Strategy report data buttons found in the panel). The backtest_summary provides net_profit, sharpe, profit_factor, max_drawdown, avg_pnl, etc. which covers most evaluation needs. Individual trades not accessible via DOM.
-
-- **Severity:** major
-- **Blocks primary goal:** no
-- **Opened:** 2026-07-05
-- **Detail:** docs/handoff/2026-07-05-pine-errors-and-trade-list.md
 
 ### 🟠 `ohlcv_read` — Dead end on both implemented paths. DOM backend punts to network path with a CapabilityUnavailable; network backend's get_ohlcv also unconditionally raises CapabilityUnavailable despite its own docstring claiming OHLCV is the one thing the network path supports. No working OHLCV read exists.
 

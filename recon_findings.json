@@ -114,11 +114,12 @@
     },
     "backtest_trade_list": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
-        "table_selectors": ["div[class*=\"trades-list\"]"],
-        "row_selectors": ["div[class*=\"trade-row\"]"],
-        "pagination": "scroll"
+        "tab_selectors": ["List of trades section in Strategy Tester bottom panel"],
+        "data_source": "document.body.innerText parsing (unified text block, not individual DOM elements)",
+        "columns": ["trade_number", "direction", "entry_datetime", "exit_datetime", "entry_price", "exit_price", "size", "net_pnl", "return_pct"],
+        "note": "Trade data rendered as innerText block under 'List of trades' section. Parser uses line-by-line regex matching. Confirmed 2026-07-05: 11 trades parsed, entry/exit prices match screenshot, parameter change (Fast MA 9→7) produced different trade values."
       }
     },
     "backtest_equity_curve": {
