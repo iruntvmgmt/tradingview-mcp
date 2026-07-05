@@ -323,6 +323,91 @@ class TestValidationCheck:
         assert result["verdict"] == "fail"
         assert result["divergence_pct"] == pytest.approx(50.0, abs=0.1)
 
+    # ── Regression: double-append bug ─────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_exactly_one_event_appended_per_check(self, tmp_path: Path):
+        """run_validation_check must append exactly ONE event to the log
+        per call — no placeholder, no duplicate.  (Regression test for
+        the double-append bug that corrupted consecutive-pass counts.)"""
+        settings = _make_mock_controller("settings", read={"length": 14}, write=None, list_fields=[])
+        ctrl = _make_controller(tmp_path, settings=settings)
+        gid = await ctrl.start_generation()
+        await ctrl.run_iteration(gid, "settings", {"length": 21}, "Change")
+
+        # Count validation_check events in the log before
+        before = sum(1 for e in ctrl._log.read_generation(gid) if e["event"] == "validation_check")
+
+        await ctrl.run_validation_check(gid)
+
+        after = sum(1 for e in ctrl._log.read_generation(gid) if e["event"] == "validation_check")
+        assert after == before + 1, (
+            f"Expected exactly 1 validation_check event appended per call. "
+            f"Before: {before}, After: {after} (expected {before + 1})"
+        )
+
+    @pytest.mark.asyncio
+    async def test_consecutive_passes_equals_exactly_three_after_three_passes(self, tmp_path: Path):
+        """After 3 genuine consecutive validation passes,
+        consecutive_validation_passes() must return exactly 3, not 6.
+        (Regression test for the double-append bug.)"""
+        settings = _make_mock_controller("settings", read={"length": 14}, write=None, list_fields=[])
+        # Each backtest returns PF=1.8 → divergence 0% → always "pass"
+        backtest = _make_mock_controller("backtest",
+            run_strategy=None, wait_for_complete=True,
+            get_performance_summary={"profit_factor": 1.8, "max_drawdown": 15.0},
+            get_trade_list=[{"trade_number": 1}] * 50,
+        )
+        ctrl = _make_controller(tmp_path, settings=settings, backtest=backtest)
+        gid = await ctrl.start_generation()
+        await ctrl.run_iteration(gid, "settings", {"length": 21}, "Change")
+
+        # Run 3 validation checks — all should be "pass"
+        for i in range(3):
+            await ctrl.run_validation_check(gid)
+
+        assert ctrl._log.consecutive_validation_passes(gid) == 3, (
+            f"Expected 3 consecutive passes after 3 pass calls, got "
+            f"{ctrl._log.consecutive_validation_passes(gid)}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_pass_pass_fail_pass_returns_one(self, tmp_path: Path):
+        """Controller-level parallel of the log-level pass/pass/fail/pass
+        test.  After fail resets the streak, a subsequent pass must return
+        exactly 1, not 3 or any other inflated count."""
+        settings = _make_mock_controller("settings", read={"length": 14}, write=None, list_fields=[])
+        backtest = _make_mock_controller("backtest",
+            run_strategy=None, wait_for_complete=True,
+            get_performance_summary={"profit_factor": 1.8, "max_drawdown": 15.0},
+            get_trade_list=[{"trade_number": 1}] * 50,
+        )
+        ctrl = _make_controller(tmp_path, settings=settings, backtest=backtest)
+        gid = await ctrl.start_generation()
+        await ctrl.run_iteration(gid, "settings", {"length": 21}, "Change")
+
+        # Pass #1
+        await ctrl.run_validation_check(gid)
+        # Pass #2
+        await ctrl.run_validation_check(gid)
+        # Fail — override backtest to force divergence > threshold
+        backtest.get_performance_summary.return_value = {
+            "profit_factor": 0.5,  # >30% divergence → fail
+            "max_drawdown": 15.0,
+        }
+        await ctrl.run_validation_check(gid)
+        # Pass #4 (after fail — streak should be 1, not 3)
+        backtest.get_performance_summary.return_value = {
+            "profit_factor": 1.8,  # back to pass territory
+            "max_drawdown": 15.0,
+        }
+        await ctrl.run_validation_check(gid)
+
+        assert ctrl._log.consecutive_validation_passes(gid) == 1, (
+            f"After pass/pass/fail/pass, consecutive passes should be 1, "
+            f"got {ctrl._log.consecutive_validation_passes(gid)}"
+        )
+
 
 class TestRollback:
     @pytest.mark.asyncio

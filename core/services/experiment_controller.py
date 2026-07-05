@@ -428,20 +428,15 @@ class ExperimentController:
 
         verdict = "pass" if divergence_pct <= self._thresholds["divergence_threshold_pct"] else "fail"
 
-        # Count consecutive passes (including this check)
-        self._log.append_event({
-            "event": "validation_check",
-            "generation_id": generation_id,
-            "at_iteration_num": latest.get("iteration_num"),
-            "train_metrics": train_metrics,
-            "validation_metrics": validation_metrics,
-            "divergence_pct": round(divergence_pct, 2),
-            "verdict": verdict,
-            "consecutive_passes_after_this": 0,  # placeholder, computed below
-        })
-        consecutive = self._log.consecutive_validation_passes(generation_id)
+        # Compute consecutive passes BEFORE appending anything — use the
+        # log state as it exists prior to this check, then adjust for
+        # this check's verdict.
+        previous_consecutive = self._log.consecutive_validation_passes(generation_id)
+        consecutive = previous_consecutive + 1 if verdict == "pass" else 0
 
-        # Find recommended rollback point on fail
+        # Find recommended rollback point on fail (look at existing log
+        # events only — this check hasn't been written yet, so the
+        # "most recent prior pass" is unambiguous).
         recommended_rollback = None
         if verdict == "fail":
             gen_events = self._log.read_generation(generation_id)
@@ -454,6 +449,7 @@ class ExperimentController:
                     recommended_rollback = e["at_iteration_num"]
                     break
 
+        # Append exactly ONE validation_check event — no placeholder.
         validation_event: dict[str, Any] = {
             "event": "validation_check",
             "generation_id": generation_id,
@@ -467,11 +463,6 @@ class ExperimentController:
         if verdict == "fail":
             validation_event["recommended_rollback_to_iteration_num"] = recommended_rollback
 
-        # The event was already appended for counting; update it via a second append
-        # (append-only means we can't rewrite, but we need the correct count.
-        #  The pattern is: first append with placeholder=0 for counting, then
-        #  append the final version with correct count.  Both exist in the log
-        #  but readers use the last one for each check.)
         self._log.append_event(validation_event)
         return validation_event
 
