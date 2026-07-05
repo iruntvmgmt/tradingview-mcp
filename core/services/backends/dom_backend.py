@@ -880,9 +880,65 @@ class DomPineScriptBackend(PineScriptBackend):
         return {"success": False, "error": "compile_button_not_found", "method": status}
 
     async def read_compile_errors(self) -> list[dict[str, Any]]:
-        sels = _cap(self._caps, "pine_compile_errors_read").get("console_selectors", [])
-        text = await self._dom.extract_text(sels, timeout=3.0)
-        return [{"message": text}] if text else []
+        """Read compile errors from the Pine Editor console panel.
+
+        Returns a list of dicts with keys: type (error/warning), line,
+        column, message, timestamp.  Only returns errors from the most
+        recent compilation (entries after the last "Compiling..." line).
+
+        Uses the structural classes discovered in the Pine Editor console:
+        - ``.selectable-v4HmQr2o.error-v4HmQr2o`` → error entries
+        - ``.selectable-v4HmQr2o.warning-v4HmQr2o`` → warning entries
+        - ``.time-v4HmQr2o`` → timestamp child element
+        """
+        js = """
+        (() => {
+            const d = document.getElementById('pine-editor-dialog');
+            if (!d) return [];
+
+            // Find all console entries
+            const entries = d.querySelectorAll('.selectable-v4HmQr2o');
+            const results = [];
+
+            // Find the index of the last "Compiling..." entry
+            let lastCompileIdx = -1;
+            entries.forEach((e, i) => {
+                if (e.textContent.includes('Compiling...')) lastCompileIdx = i;
+            });
+
+            entries.forEach((e, i) => {
+                // Only process entries after the last compile
+                if (i <= lastCompileIdx) return;
+
+                const cls = e.className;
+                const isError = cls.includes('error-v4HmQr2o');
+                const isWarning = cls.includes('warning-v4HmQr2o');
+                if (!isError && !isWarning) return;
+
+                const text = e.textContent.trim();
+                if (!text) return;
+
+                // Parse: "HH:MM:SS AMError at LINE:COL MESSAGE" or
+                //        "HH:MM:SS AMWarning at LINE:COL MESSAGE"
+                const match = text.match(/(?:\\d{1,2}:\\d{2}:\\d{2}\\s*(?:AM|PM))?(Error|Warning)\\s+at\\s+(\\d+):(\\d+)\\s+(.+)/);
+                if (match) {
+                    results.push({
+                        type: match[1].toLowerCase(),
+                        line: parseInt(match[2]),
+                        column: parseInt(match[3]),
+                        message: match[4].trim()
+                    });
+                } else {
+                    // Fallback: return raw text if parse fails
+                    results.push({type: isError ? 'error' : 'warning', message: text});
+                }
+            });
+
+            return results;
+        })()
+        """
+        result = await self._cdp.execute_js(js)
+        return result.get("result", {}).get("value", []) or []
 
     async def read_logs(self, script_name: str) -> list[dict[str, Any]]:
         detail = _cap(self._caps, "pine_logs_read")

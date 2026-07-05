@@ -81,6 +81,15 @@
       "blocks_goal": false,
       "opened": "2026-07-03",
       "status": "fixed"
+    },
+    {
+      "capability": "backtest_trade_list",
+      "severity": "major",
+      "summary": "Individual trade records NOT AVAILABLE in TradingView Desktop 3.2.0 free tier. The Strategy Tester shows aggregated trade analysis (Trades analysis details tab: Outliers P&L, trade counts by type) but the individual trade list with per-trade Entry/Exit/P&L appears to require a paid TradingView plan (Upgrade to get full access to Strategy report data buttons found in the panel). The backtest_summary provides net_profit, sharpe, profit_factor, max_drawdown, avg_pnl, etc. which covers most evaluation needs. Individual trades not accessible via DOM.",
+      "detail_ref": "docs/handoff/2026-07-05-pine-errors-and-trade-list.md",
+      "blocks_goal": false,
+      "opened": "2026-07-05",
+      "status": "open"
     }
   ]
 }

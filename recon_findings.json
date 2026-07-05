@@ -364,9 +364,16 @@
     },
     "pine_compile_errors_read": {
       "path": "dom",
-      "verified": false,
+      "verified": true,
       "detail": {
-        "console_selectors": ["div[class*=\"monaco-workbench\"]"]
+        "console_selectors": [".selectable-v4HmQr2o.error-v4HmQr2o", ".selectable-v4HmQr2o.warning-v4HmQr2o"],
+        "message_class": "selectable-v4HmQr2o",
+        "error_class": "error-v4HmQr2o",
+        "warning_class": "warning-v4HmQr2o",
+        "time_class": "time-v4HmQr2o",
+        "only_after_last_compile": true,
+        "parse_pattern": "Error|Warning at LINE:COL MESSAGE (with optional HH:MM:SS AM/PM prefix)",
+        "note": "Only returns errors after the last 'Compiling...' entry to avoid stale errors. Parses line/column/message/type from each error entry. Confirmed 2026-07-05."
       }
     },
     "pine_logs_read": {
