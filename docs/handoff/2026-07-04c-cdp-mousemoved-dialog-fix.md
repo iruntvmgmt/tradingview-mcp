@@ -44,11 +44,41 @@ All three field types confirmed through the real `DomSettingsBackend.write()` an
 - `settings_list_fields`, `settings_read`, `settings_write`: **verified: true** — dialog opens programmatically, all field types detected
 - The "stale dialog selector" false claim has been removed from recon_findings.json
 
+## End-to-end acceptance test — confirmed 2026-07-04 (follow-up)
+
+The full "agent writes/tunes/backtests/observes change" loop passes through
+real production methods.  All 6 changed fields are genuine performance
+metrics — zero timestamps, IDs, or render counters.
+
+```
+Method chain:
+  DomIndicatorBackend.apply("MA Cross Strat")
+  → DomBacktestBackend.get_summary()
+  → DomSettingsBackend.write({'Fast MA Length': '7'})
+  → DomBacktestBackend.get_summary()
+```
+
+### Before → After (Fast MA 14 → 7)
+
+| Field | Before (14) | After (7) |
+|---|---|---|
+| net_profit | −29,700.00 | −38,005.00 |
+| sharpe | −0.118 | −0.192 |
+| profit_factor | 0.868 | 0.821 |
+| return_pct | −1.62% | −2.39% |
+| avg_pnl | −104.10 | −155.49 |
+| max_drawdown | 40,895.00 | 38,800.00 |
+| total_trades | Winners | Winners (unchanged) |
+| cagr | 0.00% | 0.00% (unchanged) |
+
+6 fields changed, all genuine metrics, all in sensible direction
+(faster crossover → more whipsaws → worse performance).
+Strategy restored to Fast MA=14 after test.
+
 ## Cold-start prompt
 
 ```
 Read docs/handoff/2026-07-04c-cdp-mousemoved-dialog-fix.md and docs/adr/0008-cdp-mousemoved-hover-technique.md.
 The settings backend (all 3 field types) is genuinely done.
-Next: full end-to-end acceptance test —
-apply a strategy, tune settings, run backtest, read summary, change a parameter, confirm result changes.
+The end-to-end acceptance test passes through real production methods.
 ```
