@@ -560,12 +560,19 @@ class DomSettingsBackend(SettingsBackend):
             const titles = document.querySelectorAll('.title-YTFIJ62h');
             for (let i = 0; i < titles.length; i++) {
                 if (titles[i].textContent.trim() === %s) {
-                    const item = titles[i].closest('[class*="study"], [class*="item"]');
-                    const parent = item ? item.parentElement : titles[i].parentElement;
-                    const gear = parent.querySelector('[data-qa-id="legend-settings-action"]');
-                    if (gear) {
-                        const tr = titles[i].getBoundingClientRect();
-                        const gr = gear.getBoundingClientRect();
+                    const tr = titles[i].getBoundingClientRect();
+                    // Find the gear icon closest in Y-position to this title
+                    // (multiple studies share a parent row; querySelector alone
+                    //  picks the wrong gear)
+                    const gears = document.querySelectorAll('[data-qa-id="legend-settings-action"]');
+                    let bestGear = null, bestDist = Infinity;
+                    gears.forEach(g => {
+                        const gr = g.getBoundingClientRect();
+                        const dist = Math.abs(gr.y - tr.y);
+                        if (dist < bestDist) { bestDist = dist; bestGear = g; }
+                    });
+                    if (bestGear) {
+                        const gr = bestGear.getBoundingClientRect();
                         return {
                             titleX: tr.x + tr.width / 2,
                             titleY: tr.y + tr.height / 2,
@@ -583,14 +590,30 @@ class DomSettingsBackend(SettingsBackend):
         if not coords:
             return  # Indicator not found in legend
 
-        # Step 1: CDP mouseMoved to legend row (triggers CSS :hover → gear visible)
+        # Step 1: Click indicator title to select it (so dialog opens for THIS indicator)
+        await self._cdp._send_command("Input.dispatchMouseEvent", {
+            "type": "mouseMoved", "x": coords["titleX"], "y": coords["titleY"],
+            "modifiers": 0,
+        })
+        await asyncio.sleep(0.2)
+        await self._cdp._send_command("Input.dispatchMouseEvent", {
+            "type": "mousePressed", "x": coords["titleX"], "y": coords["titleY"],
+            "button": "left", "clickCount": 1,
+        })
+        await self._cdp._send_command("Input.dispatchMouseEvent", {
+            "type": "mouseReleased", "x": coords["titleX"], "y": coords["titleY"],
+            "button": "left", "clickCount": 1,
+        })
+        await asyncio.sleep(0.3)
+
+        # Step 2: Hover over legend row (triggers CSS :hover → gear visible)
         await self._cdp._send_command("Input.dispatchMouseEvent", {
             "type": "mouseMoved", "x": coords["titleX"], "y": coords["titleY"],
             "modifiers": 0,
         })
         await asyncio.sleep(0.4)
 
-        # Step 2: CDP click on gear icon
+        # Step 3: Click on gear icon
         await self._cdp._send_command("Input.dispatchMouseEvent", {
             "type": "mousePressed", "x": coords["gearX"], "y": coords["gearY"],
             "button": "left", "clickCount": 1,
