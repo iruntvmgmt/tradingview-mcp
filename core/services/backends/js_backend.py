@@ -42,6 +42,8 @@ class JsChartBackend(_JsStubMixin, ChartBackend):
         self._unavailable("set_symbol")
     async def set_timeframe(self, timeframe: str) -> None:
         self._unavailable("set_timeframe")
+    async def set_visible_range(self, start: str, end: str) -> None:
+        self._unavailable("set_visible_range")
     async def get_ohlcv(self, limit: int = 500) -> list[dict]:
         self._unavailable("get_ohlcv")
     async def health_check(self) -> bool:

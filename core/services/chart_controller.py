@@ -32,6 +32,13 @@ class TVChartController:
         """Change the chart timeframe (e.g. '1h', '4h', '1D')."""
         await self._chart.set_timeframe(timeframe)
 
+    async def set_visible_range(self, start: str, end: str) -> None:
+        """Set the chart's visible date range.
+
+        *start* and *end* are ISO-format date strings (``YYYY-MM-DD``).
+        """
+        await self._chart.set_visible_range(start, end)
+
     # ── OHLCV ──────────────────────────────────────────────────
 
     async def get_ohlcv(self, limit: int = 500) -> list[dict[str, Any]]:

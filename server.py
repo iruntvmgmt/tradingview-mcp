@@ -31,6 +31,11 @@ from core.services.errors import (
     TvMcpError,
     OrderSubmissionBlocked,
 )
+from core.services.experiment_controller import (
+    ExperimentController,
+    load_experiment_config,
+)
+from core.services.experiment_log import ExperimentLog
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -71,6 +76,22 @@ _ctrl_order = TVOrderController(_cdp, _recon, allow_unverified=True)
 _ctrl_replay = TVReplayController(_cdp, _recon, allow_unverified=True)
 _ctrl_settings = TVSettingsController(_cdp, _recon, allow_unverified=True)
 _ctrl_pine = TVPineScriptController(_cdp, _recon, allow_unverified=True)
+
+# ── Experiment controller ──
+try:
+    _experiment_config = load_experiment_config()
+    _experiment_log = ExperimentLog(Path(__file__).parent / "logs" / "experiment_log.jsonl")
+    _ctrl_experiment = ExperimentController(
+        _ctrl_chart,
+        _ctrl_settings,
+        _ctrl_pine,
+        _ctrl_backtest,
+        _experiment_config,
+        _experiment_log,
+    )
+except Exception as exc:
+    logger.warning("Experiment controller not available: %s", exc)
+    _ctrl_experiment = None
 
 # Tool name → (handler, Tool definition)
 _tools_def: list[Tool] = []
@@ -243,6 +264,48 @@ _register("tv_pine_compile_errors", "Read Pine Script compile errors",
 _register("tv_pine_logs", "Read Pine Logs output",
           {"type": "object", "properties": {"script_name": {"type": "string"}}, "required": ["script_name"]},
           lambda script_name: _ctrl_pine.read_logs(script_name))
+
+# ── Experiment ──
+_register("tv_experiment_start", "Start a new experiment generation",
+          {"type": "object", "properties": {"notes": {"type": "string", "default": ""}}},
+          lambda notes="": _ctrl_experiment.start_generation(notes) if _ctrl_experiment else (_ for _ in ()).throw(RuntimeError("Experiment controller unavailable")))
+
+_register("tv_experiment_iterate", "Run one iteration (one-param change, train window)",
+          {"type": "object", "properties": {
+              "generation_id": {"type": "string"},
+              "change_type": {"type": "string"},
+              "change": {"type": "object"},
+              "description": {"type": "string"},
+          }, "required": ["generation_id", "change_type", "change", "description"]},
+          lambda generation_id, change_type, change, description: _ctrl_experiment.run_iteration(generation_id, change_type, change, description) if _ctrl_experiment else (_ for _ in ()).throw(RuntimeError("Experiment controller unavailable")))
+
+_register("tv_experiment_validate", "Run validation check (divergence gate)",
+          {"type": "object", "properties": {"generation_id": {"type": "string"}}, "required": ["generation_id"]},
+          lambda generation_id: _ctrl_experiment.run_validation_check(generation_id) if _ctrl_experiment else (_ for _ in ()).throw(RuntimeError("Experiment controller unavailable")))
+
+_register("tv_experiment_rollback", "Roll back to a prior iteration",
+          {"type": "object", "properties": {
+              "generation_id": {"type": "string"},
+              "to_iteration_num": {"type": "integer"},
+              "reason": {"type": "string"},
+          }, "required": ["generation_id", "to_iteration_num", "reason"]},
+          lambda generation_id, to_iteration_num, reason: _ctrl_experiment.rollback(generation_id, to_iteration_num, reason) if _ctrl_experiment else (_ for _ in ()).throw(RuntimeError("Experiment controller unavailable")))
+
+_register("tv_experiment_holdout", "Run holdout check (one-time, gated by consecutive validation passes)",
+          {"type": "object", "properties": {"generation_id": {"type": "string"}}, "required": ["generation_id"]},
+          lambda generation_id: _ctrl_experiment.run_holdout_check(generation_id) if _ctrl_experiment else (_ for _ in ()).throw(RuntimeError("Experiment controller unavailable")))
+
+_register("tv_experiment_sensitivity", "Run sensitivity check (noise-fit probe for a parameter)",
+          {"type": "object", "properties": {
+              "generation_id": {"type": "string"},
+              "param_name": {"type": "string"},
+              "current_value": {"type": "number"},
+          }, "required": ["generation_id", "param_name", "current_value"]},
+          lambda generation_id, param_name, current_value: _ctrl_experiment.run_sensitivity_check(generation_id, param_name, current_value) if _ctrl_experiment else (_ for _ in ()).throw(RuntimeError("Experiment controller unavailable")))
+
+_register("tv_experiment_report", "Generate experiment Markdown report",
+          {"type": "object", "properties": {"generation_id": {"type": "string"}}},
+          lambda generation_id=None: _ctrl_experiment.report(generation_id) if _ctrl_experiment else (_ for _ in ()).throw(RuntimeError("Experiment controller unavailable")))
 
 
 # ═══════════════════════════════════════════════════════════════

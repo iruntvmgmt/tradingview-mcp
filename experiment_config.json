@@ -1,0 +1,19 @@
+{
+  "_comment": "User-tunable experiment parameters. No value is hardcoded in experiment_controller.py — every threshold and window boundary comes from this file.",
+
+  "windows": {
+    "train":      {"start": "2023-06-01", "end": "2025-07-01"},
+    "validation": {"start": "2025-07-02", "end": "2025-12-01"},
+    "holdout":    {"start": "2025-12-02", "end": "2026-07-01"}
+  },
+
+  "thresholds": {
+    "min_trades_for_significance": 30,
+    "max_acceptable_drawdown_pct": 20.0,
+    "min_profit_factor": 1.2,
+    "divergence_threshold_pct": 30.0,
+    "validation_passes_required_before_holdout": 3,
+    "sensitivity_swing_pct": 15.0,
+    "sensitivity_max_pf_delta_pct": 40.0
+  }
+}

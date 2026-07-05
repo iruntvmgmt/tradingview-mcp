@@ -74,6 +74,40 @@ class DomChartBackend(ChartBackend):
         resolved = [s.replace("{tf}", str(val)) for s in raw_sels]
         await self._dom.click(resolved)
 
+    async def set_visible_range(self, start: str, end: str) -> None:
+        """Set the chart visible range via TradingView chart API.
+
+        Converts ISO date strings to Unix timestamps (seconds) and calls
+        ``chartWidget.setVisibleRange()`` through CDP.
+        """
+        from datetime import datetime, timezone
+
+        def _to_timestamp(date_str: str) -> int:
+            dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            return int(dt.timestamp())
+
+        start_ts = _to_timestamp(start)
+        end_ts = _to_timestamp(end)
+
+        js = f"""
+        (() => {{
+            const iframe = document.querySelector('iframe');
+            const win = iframe ? iframe.contentWindow : window;
+            const widget = win.TradingView || win.tvWidget || win.widget;
+            if (!widget) return 'no_widget';
+            const chart = widget.chart ? widget.chart() : (widget.activeChart ? widget.activeChart() : null);
+            if (!chart) return 'no_chart';
+            chart.setVisibleRange({{ from: {start_ts}, to: {end_ts} }}, {{ applyDefaultRightMargin: false }});
+            return 'ok';
+        }})()
+        """
+        result = await self._cdp.execute_js(js, await_promise=True)
+        value = result.get("result", {}).get("value", "")
+        if value == "no_widget":
+            logger.warning("set_visible_range: TradingView widget not found in DOM")
+        elif value == "no_chart":
+            logger.warning("set_visible_range: chart instance not found on widget")
+
     async def get_ohlcv(self, limit: int = 500) -> list[dict]:
         raise CapabilityUnavailable(
             "OHLCV read is not available via DOM — use network path",

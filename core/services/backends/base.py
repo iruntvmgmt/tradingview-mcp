@@ -21,6 +21,14 @@ class ChartBackend(ABC):
         ...
 
     @abstractmethod
+    async def set_visible_range(self, start: str, end: str) -> None:
+        """Set the chart's visible date range.
+
+        *start* and *end* are ISO-format date strings (``YYYY-MM-DD``).
+        """
+        ...
+
+    @abstractmethod
     async def get_ohlcv(self, limit: int = 500) -> list[dict]:
         ...
 

@@ -65,3 +65,39 @@ class ReplayStateError(TvMcpError):
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__("REPLAY_STATE_ERROR", message, details)
+
+
+class WindowConfigurationError(TvMcpError):
+    """Experiment window configuration is invalid (misordered, overlapping,
+    or unparseable dates)."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__("WINDOW_CONFIG_ERROR", message, details)
+
+
+class MultipleChangesError(TvMcpError):
+    """Raised when an iteration call specifies more than one change, or
+    zero changes. One change per iteration is a hard rule, not a
+    convention — enforce it in code, not just in the prompt the caller
+    happens to follow."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__("MULTIPLE_CHANGES_ERROR", message, details)
+
+
+class HoldoutAlreadyUsedError(TvMcpError):
+    """Raised on a second holdout check for the same generation.
+    Message must explain: to test again, start a new generation."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__("HOLDOUT_ALREADY_USED", message, details)
+
+
+class PrematureHoldoutError(TvMcpError):
+    """Raised if holdout is requested before
+    validation_passes_required_before_holdout consecutive PASS verdicts
+    have been recorded for this generation. Message states current
+    consecutive-pass count vs required."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__("PREMATURE_HOLDOUT", message, details)
