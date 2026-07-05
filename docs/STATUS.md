@@ -2,7 +2,7 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-05 08:36 UTC
+Last generated: 2026-07-05 13:01 UTC
 Source: `recon_findings.json` (schema v2)
 
 **18/33** capabilities recon-verified · **8** have open known issues that override that verification (see table).
@@ -18,7 +18,7 @@ Source: `recon_findings.json` (schema v2)
 | `backtest_equity_curve` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `backtest_run` | `dom` | verified | 🟢 Verified | — |
 | `backtest_summary` | `dom` | verified | 🟢 Verified | — |
-| `backtest_trade_list` | `dom` | verified | 🟢 Verified | — |
+| `backtest_trade_list` | `dom` | verified | 🟢 Verified | 🟡 Standing risk: parser relies on innerText line-position order, not stable selectors. A TV wording/line-order change could silently corrupt field mapping. Manual spot-check required after each TradingView Desktop update (see ADR-0009). |
 | `drawing_create` | `dom` | verified | 🟢 Verified | — |
 | `drawing_list` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `drawing_remove` | `dom` | verified | 🟢 Verified | — |
@@ -46,6 +46,13 @@ Source: `recon_findings.json` (schema v2)
 | `timeframe_control` | `dom` | verified | 🟢 Verified | — |
 
 ## Open issues (detail)
+
+### 🟡 `backtest_trade_list` — Standing risk: parser relies on innerText line-position order, not stable selectors. A TV wording/line-order change could silently corrupt field mapping. Manual spot-check required after each TradingView Desktop update (see ADR-0009).
+
+- **Severity:** minor
+- **Blocks primary goal:** no
+- **Opened:** 2026-07-05
+- **Detail:** docs/adr/0009-trade-list-text-position-parsing-fragility.md
 
 ### 🟠 `ohlcv_read` — Dead end on both implemented paths. DOM backend punts to network path with a CapabilityUnavailable; network backend's get_ohlcv also unconditionally raises CapabilityUnavailable despite its own docstring claiming OHLCV is the one thing the network path supports. No working OHLCV read exists.
 

@@ -90,6 +90,15 @@
       "blocks_goal": false,
       "opened": "2026-07-05",
       "status": "fixed"
+    },
+    {
+      "capability": "backtest_trade_list",
+      "severity": "minor",
+      "summary": "Standing risk: parser relies on innerText line-position order, not stable selectors. A TV wording/line-order change could silently corrupt field mapping. Manual spot-check required after each TradingView Desktop update (see ADR-0009).",
+      "detail_ref": "docs/adr/0009-trade-list-text-position-parsing-fragility.md",
+      "blocks_goal": false,
+      "opened": "2026-07-05",
+      "status": "open"
     }
   ]
 }
