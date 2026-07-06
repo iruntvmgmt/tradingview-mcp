@@ -101,3 +101,15 @@ class PrematureHoldoutError(TvMcpError):
 
     def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__("PREMATURE_HOLDOUT", message, details)
+
+
+class WindowGuardError(TvMcpError):
+    """Raised when an experiment cannot proceed because the active chart
+    backend does not satisfy ADR-0010 window requirements.
+
+    Possible causes: backend only supports preset/trailing ranges,
+    Free-tier bar budget exceeded, missing timeframe in config.
+    """
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__("WINDOW_GUARD_ERROR", message, details)

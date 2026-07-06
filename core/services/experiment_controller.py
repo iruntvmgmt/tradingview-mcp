@@ -56,6 +56,7 @@ from core.services.errors import (
     MultipleChangesError,
     PrematureHoldoutError,
     WindowConfigurationError,
+    WindowGuardError,
 )
 from core.services.experiment_log import ExperimentLog
 
@@ -63,6 +64,19 @@ from core.services.experiment_log import ExperimentLog
 DEFAULT_CONFIG_PATH = Path(__file__).parents[2] / "experiment_config.json"
 DEFAULT_LOG_PATH = Path(__file__).parents[2] / "logs" / "experiment_log.jsonl"
 REPORT_PATH = Path(__file__).parents[2] / "docs" / "EXPERIMENT_LOG.md"
+
+# ── Timeframe → minutes mapping (for bar-budget estimation) ───
+_BAR_MINUTES: dict[str, int] = {
+    "1m": 1,
+    "5m": 5,
+    "15m": 15,
+    "30m": 30,
+    "1h": 60,
+    "4h": 240,
+    "1D": 1440,
+    "1W": 10080,
+    "1M": 43200,
+}
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -73,7 +87,8 @@ def load_experiment_config(path: Path | None = None) -> dict[str, Any]:
     """Load and validate ``experiment_config.json``.
 
     Returns the parsed config dict.  Raises ``WindowConfigurationError``
-    if any date window check fails.
+    if any date window check fails, ``WindowGuardError`` if bar-budget
+    checks fail.
     """
     path = path or DEFAULT_CONFIG_PATH
     if not path.exists():
@@ -83,6 +98,7 @@ def load_experiment_config(path: Path | None = None) -> dict[str, Any]:
         config: dict[str, Any] = json.load(f)
 
     _validate_windows(config.get("windows", {}))
+    _validate_bar_budget(config)
     return config
 
 
@@ -149,6 +165,70 @@ def _validate_windows(windows: dict[str, Any]) -> None:
         )
 
 
+def _validate_bar_budget(config: dict[str, Any]) -> None:
+    """Check that configured windows are feasible under the TradingView
+    tier's bar limit.
+
+    Raises ``WindowGuardError`` if any intraday window exceeds the bar
+    budget.  Daily-or-higher timeframes skip the intraday check.
+    """
+    tier_cfg = config.get("tradingview_tier", {})
+    tier = tier_cfg.get("tier", "free")
+    bar_limit = tier_cfg.get("intraday_bar_limit", 5000)
+    deep_enabled = tier_cfg.get("deep_backtesting_enabled", False)
+
+    # If deep backtesting is enabled, skip bar-budget checks entirely
+    if deep_enabled:
+        return
+
+    timeframe = config.get("timeframe", "")
+    if not timeframe:
+        raise WindowGuardError(
+            "experiment_config.json is missing the required 'timeframe' field. "
+            "Add e.g. \"timeframe\": \"1h\" to enable bar-budget validation.",
+            details={"tier": tier},
+        )
+
+    bar_minutes = _BAR_MINUTES.get(timeframe)
+    if bar_minutes is None:
+        raise WindowGuardError(
+            f"Unsupported timeframe '{timeframe}'. Supported: "
+            f"{', '.join(sorted(_BAR_MINUTES.keys()))}",
+            details={"timeframe": timeframe},
+        )
+
+    # Daily or higher — intraday bar limits don't apply in the same way;
+    # skip the check (daily bars are not "intraday").
+    if bar_minutes >= 1440:
+        return
+
+    windows = config.get("windows", {})
+    for win_name in ("train", "validation", "holdout"):
+        w = windows.get(win_name, {})
+        try:
+            sd = datetime.strptime(w["start"], "%Y-%m-%d")
+            ed = datetime.strptime(w["end"], "%Y-%m-%d")
+        except (KeyError, ValueError):
+            continue
+        span_minutes = (ed - sd).total_seconds() / 60
+        estimated_bars = int(span_minutes / bar_minutes)
+
+        if estimated_bars > bar_limit:
+            raise WindowGuardError(
+                f"{win_name} window needs approximately {estimated_bars} bars "
+                f"on {timeframe}, but TradingView tier {tier} is configured "
+                f"for {bar_limit} intraday bars. Use a shorter window, "
+                f"higher timeframe, or higher TradingView tier.",
+                details={
+                    "window": win_name,
+                    "estimated_bars": estimated_bars,
+                    "bar_limit": bar_limit,
+                    "timeframe": timeframe,
+                    "tier": tier,
+                },
+            )
+
+
 # ═══════════════════════════════════════════════════════════════
 # Controller
 # ═══════════════════════════════════════════════════════════════
@@ -193,9 +273,52 @@ class ExperimentController:
     # ── Window helpers ────────────────────────────────────────
 
     async def _set_window(self, window: str) -> None:
-        """Set the chart's visible date range to *window*."""
+        """Set the chart's visible date range to *window*.
+
+        Raises ``WindowGuardError`` if the chart backend does not support
+        absolute date windows (ADR-0010 requirement).
+        """
+        self._assert_absolute_date_support()
         w = self._windows[window]
         await self._chart.set_visible_range(w["start"], w["end"])
+
+    def _assert_absolute_date_support(self) -> None:
+        """Raise ``WindowGuardError`` if the active chart backend cannot
+        set exact absolute date windows.
+
+        ADR-0010 requires chronological, non-overlapping train/validation/
+        holdout windows.  Preset-based backends (1D, 5D, 1M, etc.) silently
+        produce approximate windows and must be rejected explicitly.
+        """
+        # Access the chart backend through the chart controller's
+        # internal _chart reference (the concrete backend instance).
+        backend = getattr(self._chart, "_chart", None)
+        if backend is None:
+            raise WindowGuardError(
+                "Cannot determine chart backend capabilities — "
+                "chart controller has no '_chart' attribute.",
+                details={"controller_type": type(self._chart).__name__},
+            )
+        if not hasattr(backend, "supports_absolute_visible_range"):
+            raise WindowGuardError(
+                f"Chart backend {type(backend).__name__} does not expose "
+                f"'supports_absolute_visible_range()'. "
+                f"ADR-0010 requires absolute date-window support.",
+                details={"backend_type": type(backend).__name__},
+            )
+        if not backend.supports_absolute_visible_range():
+            raise WindowGuardError(
+                "This chart backend only supports preset/trailing date ranges "
+                "(1D, 5D, 1M, 3M, 6M, 1Y, 5Y, All). ADR-0010 requires exact "
+                "absolute chronological windows. Live experiment execution is "
+                "blocked until absolute date control is implemented for "
+                "TradingView Desktop 3.2.0. See "
+                "docs/adr/0010-experiment-window-discipline.md.",
+                details={
+                    "backend_type": type(backend).__name__,
+                    "supports_absolute": False,
+                },
+            )
 
     # ── Backtest helpers ──────────────────────────────────────
 

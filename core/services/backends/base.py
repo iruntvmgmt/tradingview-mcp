@@ -29,6 +29,18 @@ class ChartBackend(ABC):
         ...
 
     @abstractmethod
+    def supports_absolute_visible_range(self) -> bool:
+        """Return ``True`` if this backend can set **exact** absolute date
+        windows (not presets, not trailing ranges).
+
+        ADR-0010 requires chronological, non-overlapping train/validation/
+        holdout windows.  Backends that only support preset ranges (1D, 5D,
+        1M, etc.) must return ``False`` so the experiment controller can
+        refuse to run unsafe experiments.
+        """
+        ...
+
+    @abstractmethod
     async def get_ohlcv(self, limit: int = 500) -> list[dict]:
         ...
 

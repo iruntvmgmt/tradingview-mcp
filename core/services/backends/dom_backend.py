@@ -210,6 +210,10 @@ class DomChartBackend(ChartBackend):
         except Exception:
             return False
 
+    def supports_absolute_visible_range(self) -> bool:
+        """TV Desktop 3.2.0 only supports preset date ranges (1D–All)."""
+        return False
+
 
 # ═══════════════════════════════════════════════════════════════
 # Indicators

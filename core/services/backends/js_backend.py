@@ -46,6 +46,8 @@ class JsChartBackend(_JsStubMixin, ChartBackend):
         self._unavailable("set_visible_range")
     async def get_ohlcv(self, limit: int = 500) -> list[dict]:
         self._unavailable("get_ohlcv")
+    def supports_absolute_visible_range(self) -> bool:
+        return False
     async def health_check(self) -> bool:
         return False
 

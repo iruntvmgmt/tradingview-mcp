@@ -15,10 +15,12 @@ from core.services.errors import (
     MultipleChangesError,
     PrematureHoldoutError,
     WindowConfigurationError,
+    WindowGuardError,
 )
 from core.services.experiment_controller import (
     ExperimentController,
     _validate_windows,
+    _validate_bar_budget,
     load_experiment_config,
 )
 from core.services.experiment_log import ExperimentLog
@@ -26,6 +28,12 @@ from core.services.experiment_log import ExperimentLog
 # ── Shared config fixture ──────────────────────────────────────
 
 VALID_CONFIG = {
+    "timeframe": "1h",
+    "tradingview_tier": {
+        "tier": "free",
+        "intraday_bar_limit": 5000,
+        "deep_backtesting_enabled": False,
+    },
     "windows": {
         "train":      {"start": "2023-01-01", "end": "2024-01-01"},
         "validation": {"start": "2024-01-02", "end": "2024-06-01"},
@@ -65,6 +73,10 @@ def _make_controller(tmp_path: Path, config: dict | None = None, **overrides):
     chart = _make_mock_controller("chart",
         set_visible_range=None,        # no-op
     )
+    chart.supports_absolute_visible_range = MagicMock(return_value=True)
+    # Make the chart controller expose a mock backend with the method
+    chart._chart = MagicMock()
+    chart._chart.supports_absolute_visible_range = MagicMock(return_value=True)
     settings = _make_mock_controller("settings",
         read={},
         write=None,
@@ -829,3 +841,102 @@ class TestReport:
             f"Best section should show iteration 5's PF (1.8). "
             f"Best section:\n{best_section[:500]}"
         )
+
+
+class TestWindowGuard:
+    """Preflight safety layer: ADR-0010 absolute-date support and Free-tier bar budgets."""
+
+    @pytest.mark.asyncio
+    async def test_backend_without_absolute_date_support_blocks_live_experiment(self, tmp_path: Path):
+        """If chart._chart.supports_absolute_visible_range() returns False,
+        _set_window must raise WindowGuardError."""
+        settings = _make_mock_controller("settings", read={"length": 14}, write=None, list_fields=[])
+        chart = _make_mock_controller("chart", set_visible_range=None)
+        chart._chart = MagicMock()
+        chart._chart.supports_absolute_visible_range = MagicMock(return_value=False)
+        ctrl = _make_controller(tmp_path, settings=settings, chart=chart)
+        gid = await ctrl.start_generation()
+        # Guard fires on _set_window during run_iteration (train window)
+        with pytest.raises(WindowGuardError) as exc:
+            await ctrl.run_iteration(gid, "settings", {"length": 21}, "Test change")
+        assert "preset" in str(exc.value).lower() or "absolute" in str(exc.value).lower()
+
+    @pytest.mark.asyncio
+    async def test_backend_with_absolute_date_support_proceeds(self, tmp_path: Path):
+        """If supports_absolute_visible_range() returns True,
+        _set_window should not raise."""
+        settings = _make_mock_controller("settings", read={"length": 14}, write=None, list_fields=[])
+        ctrl = _make_controller(tmp_path, settings=settings)
+        gid = await ctrl.start_generation()
+        await ctrl.run_iteration(gid, "settings", {"length": 21}, "Test change")
+        # Should not raise
+        await ctrl.run_validation_check(gid)
+
+
+class TestBarBudget:
+    """Free-tier bar-budget validation."""
+
+    def test_feasible_intraday_window_passes(self):
+        """15m window of ~30 days (~2880 bars) should pass under 5000 limit."""
+        config = {
+            "timeframe": "15m",
+            "tradingview_tier": {"tier": "free", "intraday_bar_limit": 5000, "deep_backtesting_enabled": False},
+            "windows": {
+                "train": {"start": "2024-01-01", "end": "2024-02-01"},
+                "validation": {"start": "2024-02-02", "end": "2024-03-01"},
+                "holdout": {"start": "2024-03-02", "end": "2024-04-01"},
+            },
+        }
+        _validate_bar_budget(config)  # no exception
+
+    def test_infeasible_intraday_window_fails(self):
+        """1m window of 2 years (~1M bars) must fail."""
+        config = {
+            "timeframe": "1m",
+            "tradingview_tier": {"tier": "free", "intraday_bar_limit": 5000, "deep_backtesting_enabled": False},
+            "windows": {
+                "train": {"start": "2023-01-01", "end": "2025-01-01"},
+                "validation": {"start": "2025-01-02", "end": "2025-06-01"},
+                "holdout": {"start": "2025-06-02", "end": "2025-12-01"},
+            },
+        }
+        with pytest.raises(WindowGuardError) as exc:
+            _validate_bar_budget(config)
+        assert "5000" in str(exc.value)
+        assert "1m" in str(exc.value)
+
+    def test_missing_timeframe_fails(self):
+        """Config without 'timeframe' must raise WindowGuardError."""
+        config = {
+            "tradingview_tier": {"tier": "free", "intraday_bar_limit": 5000, "deep_backtesting_enabled": False},
+            "windows": {"train": {"start": "2024-01-01", "end": "2024-02-01"}},
+        }
+        with pytest.raises(WindowGuardError) as exc:
+            _validate_bar_budget(config)
+        assert "timeframe" in str(exc.value).lower()
+
+    def test_daily_timeframe_skips_intraday_check(self):
+        """1D timeframe should skip the intraday bar budget check entirely."""
+        config = {
+            "timeframe": "1D",
+            "tradingview_tier": {"tier": "free", "intraday_bar_limit": 5000, "deep_backtesting_enabled": False},
+            "windows": {
+                "train": {"start": "2010-01-01", "end": "2025-01-01"},
+                "validation": {"start": "2025-01-02", "end": "2025-06-01"},
+                "holdout": {"start": "2025-06-02", "end": "2025-12-01"},
+            },
+        }
+        _validate_bar_budget(config)  # no exception — 1D skips intraday check
+
+    def test_deep_backtesting_enabled_skips_check(self):
+        """deep_backtesting_enabled: true skips bar-budget entirely."""
+        config = {
+            "timeframe": "1m",
+            "tradingview_tier": {"tier": "premium", "intraday_bar_limit": 5000, "deep_backtesting_enabled": True},
+            "windows": {
+                "train": {"start": "2020-01-01", "end": "2026-01-01"},
+                "validation": {"start": "2026-01-02", "end": "2026-06-01"},
+                "holdout": {"start": "2026-06-02", "end": "2026-12-01"},
+            },
+        }
+        _validate_bar_budget(config)  # no exception
