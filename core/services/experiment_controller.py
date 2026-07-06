@@ -46,6 +46,7 @@ authoritative record — no in-memory state is trusted across calls.
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -59,6 +60,8 @@ from core.services.errors import (
     WindowGuardError,
 )
 from core.services.experiment_log import ExperimentLog
+
+logger = logging.getLogger(__name__)
 
 # ── Constants ─────────────────────────────────────────────────
 DEFAULT_CONFIG_PATH = Path(__file__).parents[2] / "experiment_config.json"
@@ -272,6 +275,7 @@ class ExperimentController:
         self._strategy_name = strategy_name
         self._windows = config["windows"]
         self._thresholds = config["thresholds"]
+        self._mode = config.get("experiment_mode", "disciplined_live_experiment")
         _validate_windows(self._windows)
         _validate_bar_budget(config)
 
@@ -289,22 +293,36 @@ class ExperimentController:
 
     def _assert_absolute_date_support(self) -> None:
         """Raise ``WindowGuardError`` if the active chart backend cannot
-        set exact absolute date windows.
+        set exact absolute date windows — UNLESS experiment_mode is
+        ``preset_smoke_test``, in which case only a warning is logged.
 
         ADR-0010 requires chronological, non-overlapping train/validation/
         holdout windows.  Preset-based backends (1D, 5D, 1M, etc.) silently
-        produce approximate windows and must be rejected explicitly.
+        produce approximate windows and must be rejected in disciplined mode.
         """
-        # Access the chart backend through the chart controller's
-        # internal _chart reference (the concrete backend instance).
+        mode = self._mode
         backend = getattr(self._chart, "_chart", None)
         if backend is None:
+            if mode == "preset_smoke_test":
+                logger.warning(
+                    "Cannot determine chart backend capabilities — "
+                    "preset_smoke_test mode proceeding without guard."
+                )
+                return
             raise WindowGuardError(
                 "Cannot determine chart backend capabilities — "
                 "chart controller has no '_chart' attribute.",
                 details={"controller_type": type(self._chart).__name__},
             )
         if not hasattr(backend, "supports_absolute_visible_range"):
+            if mode == "preset_smoke_test":
+                logger.warning(
+                    "Chart backend %s does not expose "
+                    "supports_absolute_visible_range() — "
+                    "preset_smoke_test mode proceeding.",
+                    type(backend).__name__,
+                )
+                return
             raise WindowGuardError(
                 f"Chart backend {type(backend).__name__} does not expose "
                 f"'supports_absolute_visible_range()'. "
@@ -312,6 +330,13 @@ class ExperimentController:
                 details={"backend_type": type(backend).__name__},
             )
         if not backend.supports_absolute_visible_range():
+            if mode == "preset_smoke_test":
+                logger.warning(
+                    "This chart backend only supports preset/trailing "
+                    "date ranges (1D, 5D, 1M, ...). preset_smoke_test "
+                    "mode: experiment results are NOT ADR-0010 compliant."
+                )
+                return
             raise WindowGuardError(
                 "This chart backend only supports preset/trailing date ranges "
                 "(1D, 5D, 1M, 3M, 6M, 1Y, 5Y, All). ADR-0010 requires exact "

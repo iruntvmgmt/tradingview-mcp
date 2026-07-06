@@ -1,6 +1,9 @@
 {
   "_comment": "User-tunable experiment parameters. No value is hardcoded in experiment_controller.py — every threshold and window boundary comes from this file.",
 
+  "_experiment_mode_comment": "disciplined_live_experiment: requires exact Strategy Tester date-window support (ADR-0010 — blocked on Free tier). preset_smoke_test: allows preset windows for plumbing verification only, NOT ADR-0010 compliant.",
+  "experiment_mode": "preset_smoke_test",
+
   "timeframe": "4h",
 
   "tradingview_tier": {
