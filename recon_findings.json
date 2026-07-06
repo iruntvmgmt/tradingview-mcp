@@ -533,7 +533,7 @@
       "path": "dom",
       "verified": false,
       "detail": {
-        "_warning": "set_visible_range uses Strategy Tester presets (1D-ALL), not absolute dates. ADR-0010 requires non-overlapping windows \u2014 this is NOT adequate. No experiment_controller guard is implemented yet; do not trust ADR-0010 live runs until absolute date control or an explicit guard exists.",
+        "_warning": "set_visible_range uses Strategy Tester presets (1D-ALL), not absolute dates. ADR-0010 requires non-overlapping windows \u2014 this is NOT adequate. ExperimentController now guards against unsafe live runs. Live TV Desktop 3.2.0 investigation found no usable internal range API; Accessibility-enabled Alt+G remains the next viable path.",
         "date_menu_selector": "[data-name=\"date-ranges-menu\"]",
         "preset_selectors": {
           "1D": "[data-name=\"date-range-tab-1D\"]",
