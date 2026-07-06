@@ -75,38 +75,89 @@ class DomChartBackend(ChartBackend):
         await self._dom.click(resolved)
 
     async def set_visible_range(self, start: str, end: str) -> None:
-        """Set the chart visible range via TradingView chart API.
+        """Set the Strategy Tester's backtest date range to the nearest
+        preset that covers *start* to *end*.
 
-        Converts ISO date strings to Unix timestamps (seconds) and calls
-        ``chartWidget.setVisibleRange()`` through CDP.
+        TV Desktop 3.2.0 does not expose a JS API for
+        ``setVisibleRange()`` — the chart is rendered in the main page
+        (zero iframes) and ``_exposed_chartWidgetCollection`` provides
+        no chart navigation methods.  The Strategy Tester's date-range
+        toolbar exposes preset tabs (1D, 5D, 1M, 3M, 6M, YTD, 1Y, 5Y,
+        All) via ``data-name`` attributes.  This method clicks the
+        widest preset that covers the requested span.
+
+        For spans longer than 5 years, clicks "All".  For shorter
+        spans, clicks the smallest preset that covers the span.
         """
-        from datetime import datetime, timezone
+        from datetime import datetime, timedelta
 
-        def _to_timestamp(date_str: str) -> int:
-            dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-            return int(dt.timestamp())
+        try:
+            sd = datetime.strptime(start, "%Y-%m-%d")
+            ed = datetime.strptime(end, "%Y-%m-%d")
+        except ValueError:
+            logger.warning(
+                "set_visible_range: unparseable dates %s / %s, "
+                "using 'All' preset",
+                start, end,
+            )
+            await self._click_date_preset("date-range-tab-ALL")
+            return
 
-        start_ts = _to_timestamp(start)
-        end_ts = _to_timestamp(end)
+        span_days = (ed - sd).days
 
-        js = f"""
+        # Map span to preset (widest that covers it)
+        if span_days <= 1:
+            preset = "date-range-tab-1D"
+        elif span_days <= 5:
+            preset = "date-range-tab-5D"
+        elif span_days <= 31:
+            preset = "date-range-tab-1M"
+        elif span_days <= 92:
+            preset = "date-range-tab-3M"
+        elif span_days <= 183:
+            preset = "date-range-tab-6M"
+        elif span_days <= 366:
+            preset = "date-range-tab-12M"
+        elif span_days <= 1826:
+            preset = "date-range-tab-60M"
+        else:
+            preset = "date-range-tab-ALL"
+
+        await self._click_date_preset(preset)
+
+    async def _click_date_preset(self, preset_data_name: str) -> None:
+        """Open the Strategy Tester date-range dropdown and click the
+        preset tab with the given ``data-name`` attribute.
+        """
+        # Click the date-range menu button to expand the presets
+        js_open = """
+        (() => {
+            const btn = document.querySelector('[data-name=\"date-ranges-menu\"]');
+            if (btn) { btn.click(); return 'opened'; }
+            return 'no_menu_button';
+        })()
+        """
+        await self._cdp.execute_js(js_open)
+        await asyncio.sleep(0.3)
+
+        # Click the target preset tab
+        js_click = f"""
         (() => {{
-            const iframe = document.querySelector('iframe');
-            const win = iframe ? iframe.contentWindow : window;
-            const widget = win.TradingView || win.tvWidget || win.widget;
-            if (!widget) return 'no_widget';
-            const chart = widget.chart ? widget.chart() : (widget.activeChart ? widget.activeChart() : null);
-            if (!chart) return 'no_chart';
-            chart.setVisibleRange({{ from: {start_ts}, to: {end_ts} }}, {{ applyDefaultRightMargin: false }});
-            return 'ok';
+            const tab = document.querySelector('[data-name=\"{preset_data_name}\"]');
+            if (tab) {{ tab.click(); return 'clicked {preset_data_name}'; }}
+            return 'no_preset';
         }})()
         """
-        result = await self._cdp.execute_js(js, await_promise=True)
+        result = await self._cdp.execute_js(js_click)
         value = result.get("result", {}).get("value", "")
-        if value == "no_widget":
-            logger.warning("set_visible_range: TradingView widget not found in DOM")
-        elif value == "no_chart":
-            logger.warning("set_visible_range: chart instance not found on widget")
+        if "no_menu_button" in str(value):
+            logger.warning(
+                "set_visible_range: date-ranges-menu button not found"
+            )
+        elif "no_preset" in str(value):
+            logger.warning(
+                "set_visible_range: preset %s not found", preset_data_name
+            )
 
     async def get_ohlcv(self, limit: int = 500) -> list[dict]:
         raise CapabilityUnavailable(

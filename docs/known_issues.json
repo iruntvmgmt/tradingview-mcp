@@ -111,8 +111,8 @@
     },
     {
       "capability": "chart_set_visible_range",
-      "severity": "major",
-      "summary": "DomChartBackend.set_visible_range assumes window.TradingView/tvWidget/widget object inside an iframe, but TV Desktop 3.2.0 renders the chart in the main page with zero iframes, and the real internal API (window._exposed_chartWidgetCollection.activeChartWidget) has no chart()/setVisibleRange()/range method found so far.",
+      "severity": "minor",
+      "summary": "Partial fix: set_visible_range now uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes) instead of non-existent JS API. No arbitrary date boundaries \u2014 windows are approximate. TV Desktop 3.2.0 has zero iframes; _exposed_chartWidgetCollection.activeChartWidget has only _listeners/_value, no chart()/setVisibleRange(). React fiber keys not found on DOM nodes.",
       "detail_ref": "docs/handoff/2026-07-05-live-pipeline-attempt.md",
       "blocks_goal": true,
       "opened": "2026-07-05",
@@ -125,6 +125,15 @@
       "detail_ref": "docs/handoff/2026-07-05-live-pipeline-attempt.md",
       "blocks_goal": true,
       "opened": "2026-07-05",
+      "status": "open"
+    },
+    {
+      "capability": "symbol_control",
+      "severity": "major",
+      "summary": "DomChartBackend.set_symbol() fails on TV Desktop 3.2.0 \u2014 selector input[data-name=\"symbol-search\"] does not match. The symbol search input's data-name attribute has changed in this version.",
+      "detail_ref": "docs/handoff/2026-07-06-set-visible-range-fix.md",
+      "blocks_goal": true,
+      "opened": "2026-07-06",
       "status": "open"
     }
   ]
