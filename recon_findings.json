@@ -13,6 +13,7 @@
           "button[class*=\"button-JQZ\"]"
         ],
         "symbol_search_input_selectors": [
+          "input[role=\"searchbox\"][placeholder*=\"Symbol\"]",
           "input[data-name=\"symbol-search\"]",
           "input[placeholder*=\"Search\"]"
         ]
@@ -110,7 +111,7 @@
       "verified": true,
       "detail": {
         "tab_selectors": [
-          "button[id=\"strategy-report-summary\"]",
+          "button[role=\"tab\"][id=\"Strategy report\"][data-name=\"light-tab-0\"]",
           "button[role=\"tab\"][id=\"strategy-report-summary\"]"
         ],
         "bottom_panel_selectors": [
@@ -532,7 +533,19 @@
       "path": "dom",
       "verified": false,
       "detail": {
-        "_note": "DomChartBackend.set_visible_range() assumes window.TradingView/tvWidget inside an iframe, but TV Desktop 3.2.0 renders the chart in the main page with zero iframes. The real internal API (window._exposed_chartWidgetCollection.activeChartWidget) has no chart()/setVisibleRange() method found so far (session 2026-07-05)."
+        "_warning": "set_visible_range uses Strategy Tester presets (1D-ALL), not absolute dates. ADR-0010 requires non-overlapping windows \u2014 this is NOT adequate. Guard added in DomChartBackend.",
+        "date_menu_selector": "[data-name=\"date-ranges-menu\"]",
+        "preset_selectors": {
+          "1D": "[data-name=\"date-range-tab-1D\"]",
+          "5D": "[data-name=\"date-range-tab-5D\"]",
+          "1M": "[data-name=\"date-range-tab-1M\"]",
+          "3M": "[data-name=\"date-range-tab-3M\"]",
+          "6M": "[data-name=\"date-range-tab-6M\"]",
+          "1Y": "[data-name=\"date-range-tab-12M\"]",
+          "5Y": "[data-name=\"date-range-tab-60M\"]",
+          "ALL": "[data-name=\"date-range-tab-ALL\"]"
+        },
+        "absolute_date_support": "NOT SUPPORTED \u2014 TV 3.2.0 has no JS chart API for setVisibleRange. Alt+G dialog or date range picker exploration needed."
       }
     }
   },

@@ -2,7 +2,7 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-06 16:53 UTC
+Last generated: 2026-07-06 18:11 UTC
 Source: `recon_findings.json` (schema v2)
 
 **19/35** capabilities recon-verified · **12** have open known issues that override that verification (see table).
@@ -16,7 +16,7 @@ Source: `recon_findings.json` (schema v2)
 | `alert_edit` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `alert_list` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `backtest_equity_curve` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
-| `backtest_run` | `dom` | verified | 🔴 Known issue | 🟠 recon_findings.json's selector for the backtest Summary tab (button[id="strategy-report-summary"]) does not match the actual DOM on TV Desktop 3.2.0, where the real tab id is "Strategy report" (with a space) and tabs use data-name="light-tab-0"/"light-tab-1" instead. backtest_run is currently marked verified:true in recon_findings.json but is running against a stale selector — the verified flag is unreliable for this capability until selectors are corrected and recon is rerun. |
+| `backtest_run` | `dom` | verified | 🟢 Verified | — |
 | `backtest_summary` | `dom` | verified | 🟢 Verified | — |
 | `backtest_trade_list` | `dom` | verified | 🟢 Verified | 🟡 Standing risk: parser relies on innerText line-position order, not stable selectors. A TV wording/line-order change could silently corrupt field mapping. Manual spot-check required after each TradingView Desktop update (see ADR-0009). |
 | `chart_set_visible_range` | `dom` | unverified | ⚪ Unverified (untested against live app) | 🟡 Partial fix: set_visible_range now uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes) instead of non-existent JS API. No arbitrary date boundaries — windows are approximate. TV Desktop 3.2.0 has zero iframes; _exposed_chartWidgetCollection.activeChartWidget has only _listeners/_value, no chart()/setVisibleRange(). React fiber keys not found on DOM nodes. |
@@ -48,13 +48,6 @@ Source: `recon_findings.json` (schema v2)
 | `timeframe_control` | `dom` | verified | 🟢 Verified | — |
 
 ## Open issues (detail)
-
-### 🟠 `backtest_run` — recon_findings.json's selector for the backtest Summary tab (button[id="strategy-report-summary"]) does not match the actual DOM on TV Desktop 3.2.0, where the real tab id is "Strategy report" (with a space) and tabs use data-name="light-tab-0"/"light-tab-1" instead. backtest_run is currently marked verified:true in recon_findings.json but is running against a stale selector — the verified flag is unreliable for this capability until selectors are corrected and recon is rerun.
-
-- **Severity:** major
-- **Blocks primary goal:** yes
-- **Opened:** 2026-07-05
-- **Detail:** docs/handoff/2026-07-05-live-pipeline-attempt.md
 
 ### 🟡 `backtest_trade_list` — Standing risk: parser relies on innerText line-position order, not stable selectors. A TV wording/line-order change could silently corrupt field mapping. Manual spot-check required after each TradingView Desktop update (see ADR-0009).
 

@@ -161,10 +161,18 @@ class TestDomChartBackend:
                 "detail": {"selectors": ["#sym-btn"], "symbol_search_input_selectors": ["#sym-input"]}
             }
         }
+        # set_symbol now uses JS click + native setter via cdp.execute_js
+        mock_cdp.execute_js = AsyncMock(return_value={"result": {"value": "clicked opener"}})
         backend = DomChartBackend(mock_cdp, mock_dom, caps)
         await backend.set_symbol("AAPL")
-        mock_dom.click.assert_awaited_once_with(["#sym-btn"])
-        mock_dom.type_text.assert_awaited_once_with(["#sym-input"], "AAPL", clear_first=True)
+        # Verify CDP execute_js was called twice: opener click + type/Enter
+        assert mock_cdp.execute_js.await_count >= 2
+        # First call should contain the opener selector
+        first_call_args = mock_cdp.execute_js.await_args_list[0][0]
+        assert "#sym-btn" in str(first_call_args)
+        # Second call should contain the symbol
+        second_call_args = mock_cdp.execute_js.await_args_list[1][0]
+        assert "AAPL" in str(second_call_args)
 
     @pytest.mark.asyncio
     async def test_health_check_ok(self, mock_cdp, mock_dom):

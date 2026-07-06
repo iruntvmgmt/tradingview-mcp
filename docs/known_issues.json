@@ -121,11 +121,11 @@
     {
       "capability": "backtest_run",
       "severity": "major",
-      "summary": "recon_findings.json's selector for the backtest Summary tab (button[id=\"strategy-report-summary\"]) does not match the actual DOM on TV Desktop 3.2.0, where the real tab id is \"Strategy report\" (with a space) and tabs use data-name=\"light-tab-0\"/\"light-tab-1\" instead. backtest_run is currently marked verified:true in recon_findings.json but is running against a stale selector \u2014 the verified flag is unreliable for this capability until selectors are corrected and recon is rerun.",
+      "summary": "Fixed: backtest_run tab_selectors updated to button[role=\"tab\"][id=\"Strategy report\"][data-name=\"light-tab-0\"] which matches TV 3.2.0's real DOM. Tab click verified live \u2014 'Strategy report' tab selects correctly, Overview content appears. Verified: true flag in recon_findings.json is now reliable for this capability.",
       "detail_ref": "docs/handoff/2026-07-05-live-pipeline-attempt.md",
       "blocks_goal": true,
       "opened": "2026-07-05",
-      "status": "open"
+      "status": "fixed"
     },
     {
       "capability": "symbol_control",

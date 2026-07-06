@@ -55,15 +55,52 @@ class DomChartBackend(ChartBackend):
         self._caps = capabilities
 
     async def set_symbol(self, symbol: str) -> None:
+        """Change the chart symbol via the symbol search dialog.
+
+        Clicks the opener button via JS ``.click()`` (which reliably
+        triggers React handlers), types the symbol into the searchbox
+        that appears, then presses Enter to select the first match.
+        """
         detail = _cap(self._caps, "symbol_control")
-        # Click the symbol search button to open the dialog
-        await self._dom.click(detail.get("selectors", []))
-        # Type the symbol into the search input
-        input_sels = detail.get("symbol_search_input_selectors", [])
-        if input_sels:
-            await self._dom.type_text(input_sels, symbol, clear_first=True)
-        else:
-            await self._dom.type_text(detail.get("selectors", []), symbol)
+        opener_selectors = detail.get("selectors", [])
+
+        # Step 1: click the symbol opener via JS click()
+        js_click = "(() => {"
+        for i, sel in enumerate(opener_selectors):
+            js_click += f"const el{i}=document.querySelector({json.dumps(sel)});"
+        js_click += "for(const el of["
+        js_click += ",".join(f"el{i}" for i in range(len(opener_selectors)))
+        js_click += "]){if(el){el.click();return'clicked '+(el.id||el.getAttribute('data-name')||'');}}"
+        js_click += "return'none';})()"
+        result = await self._cdp.execute_js(js_click)
+        logger.info("set_symbol opener: %s", result.get("result", {}).get("value", ""))
+        await asyncio.sleep(0.5)
+
+        # Step 2: type into the searchbox and press Enter
+        js_type = f"""
+        (() => {{
+            const input = document.querySelector(
+                'input[role=\"searchbox\"]'
+            );
+            if (!input) return 'no_searchbox';
+            input.value = '';
+            input.focus();
+            const nativeSetter = Object.getOwnPropertyDescriptor(
+                window.HTMLInputElement.prototype, 'value'
+            ).set;
+            nativeSetter.call(input, {json.dumps(symbol)});
+            input.dispatchEvent(new Event('input', {{ bubbles: true }}));
+            // Small delay for suggestions to appear, then Enter
+            setTimeout(() => {{
+                input.dispatchEvent(
+                    new KeyboardEvent('keydown', {{ key: 'Enter', code: 'Enter', keyCode: 13, bubbles: true }})
+                );
+            }}, 500);
+            return 'typed {symbol}';
+        }})()
+        """
+        result2 = await self._cdp.execute_js(js_type)
+        logger.info("set_symbol type: %s", result2.get("result", {}).get("value", ""))
 
     async def set_timeframe(self, timeframe: str) -> None:
         detail = _cap(self._caps, "timeframe_control")
