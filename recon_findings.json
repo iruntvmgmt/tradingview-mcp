@@ -129,6 +129,13 @@
         "fallback": "numeric_table_if_present_else_null"
       }
     },
+    "experiment_report": {
+      "path": "orchestration",
+      "verified": true,
+      "detail": {
+        "note": "ExperimentController.report() generates a Markdown report from logs/experiment_log.jsonl. This is pure Python orchestration — no DOM automation, no recon selectors needed. 'Best iteration' selection now filters to validation-confirmed, non-rolled-back iterations only (fix 2026-07-05)."
+      }
+    },
     "alert_create": {
       "path": "dom",
       "verified": true,

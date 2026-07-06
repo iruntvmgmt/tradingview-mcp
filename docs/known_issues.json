@@ -99,6 +99,15 @@
       "blocks_goal": false,
       "opened": "2026-07-05",
       "status": "open"
+    },
+    {
+      "capability": "experiment_report",
+      "severity": "minor",
+      "summary": "Fixed: the 'best iteration' selection in report() previously ignored validation outcomes and rollback events — an iteration with high train-window PF that failed validation and was rolled back would still be surfaced as the headline number. Now restricts candidates to validation-confirmed, non-rolled-back iterations only.",
+      "detail_ref": "docs/handoff/2026-07-05-validation-check-double-append-fix.md",
+      "blocks_goal": false,
+      "opened": "2026-07-05",
+      "status": "fixed"
     }
   ]
 }

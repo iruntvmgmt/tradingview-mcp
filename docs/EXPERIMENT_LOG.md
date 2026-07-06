@@ -2,32 +2,38 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `logs/experiment_log.jsonl` by `ExperimentController.report()`.
 
-Last generated: 2026-07-05 14:26 UTC
+Last generated: 2026-07-06 00:47 UTC
 
-## Generation `23e6dc9b90d0`
+## Generation `dacd78627ab6`
 
 | Metric | Value |
 |---|---|
-| Started | 2026-07-05T14:26:55.111797+00:00 |
-| Notes | test report |
-| Iterations | 1 total (1 accepted, 0 rejected) |
-| Validation checks | 0 |
-| Rollbacks | 0 |
+| Started | 2026-07-06T00:47:40.772466+00:00 |
+| Notes | overfit regression test |
+| Iterations | 3 total (3 accepted, 0 rejected) |
+| Validation checks | 2 |
+| Rollbacks | 1 |
 | Holdout | not yet |
 | Sensitivity checks | 0 |
 
-### Best accepted iteration
+### Best validation-confirmed iteration
+
+_Iterations that failed validation or were rolled back are excluded from this selection even if their raw train-window numbers looked better._
 
 | Field | Value |
 |---|---|
 | Iteration # | 1 |
-| Change | Test change |
-| net_profit | 5000 |
-| profit_factor | 1.8 |
-| max_drawdown | 15.0 |
-| sharpe | 1.2 |
-| total_trades | 50 |
+| Change | Iter 1: length=21 |
+| profit_factor | 1.55 |
+| max_drawdown | 12.0 |
 | Trade count | 50 |
+
+### Validation history
+
+| # | At Iter | Divergence % | Verdict | Consecutive Passes |
+|---|---|---|---|---|
+| 1 | 2 | 53.4% | **fail** | 0 |
+| 2 | 3 | 4.3% | **pass** | 1 |
 
 ---
 

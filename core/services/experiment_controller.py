@@ -690,23 +690,65 @@ class ExperimentController:
             lines.append(f"| Sensitivity checks | {len(sens)} |")
             lines.append("")
 
-            # Best metrics from accepted iterations
-            best = None
-            for it in accepted:
-                pf = float(it.get("metrics", {}).get("profit_factor", 0))
-                if best is None or pf > float(best.get("metrics", {}).get("profit_factor", 0)):
-                    best = it
-            if best:
-                lines.append(f"### Best accepted iteration")
-                lines.append(f"")
-                lines.append(f"| Field | Value |")
-                lines.append(f"|---|---|")
+            # ── Best validation-confirmed iteration ────────────────
+            # Candidates must be (a) accepted, (b) not rolled back,
+            # and (c) have at least one validation_check with
+            # verdict == "pass" at or after that iteration_num.
+            rolled_back_targets = {
+                rb["rolled_back_to_iteration_num"]
+                for rb in rollbacks
+            }
+            validation_passes_at = {
+                vc["at_iteration_num"]
+                for vc in val_checks
+                if vc.get("verdict") == "pass"
+            }
+
+            def _is_confirmed(it: dict) -> bool:
+                num = it["iteration_num"]
+                # Must have a validation pass at or after this iteration
+                return any(p >= num for p in validation_passes_at)
+
+            def _is_rolled_back(it: dict) -> bool:
+                num = it["iteration_num"]
+                # Disqualified if any rollback targets an iteration
+                # earlier than this one (meaning this iteration's
+                # changes were undone).
+                return any(num > target for target in rolled_back_targets)
+
+            candidates = [
+                it for it in accepted
+                if not _is_rolled_back(it) and _is_confirmed(it)
+            ]
+
+            if candidates:
+                best = max(
+                    candidates,
+                    key=lambda it: float(it.get("metrics", {}).get("profit_factor", 0)),
+                )
+                lines.append("### Best validation-confirmed iteration")
+                lines.append("")
+                lines.append(
+                    "_Iterations that failed validation or were rolled back "
+                    "are excluded from this selection even if their raw "
+                    "train-window numbers looked better._"
+                )
+                lines.append("")
+                lines.append("| Field | Value |")
+                lines.append("|---|---|")
                 lines.append(f"| Iteration # | {best['iteration_num']} |")
                 lines.append(f"| Change | {best.get('change_description', '—')[:100]} |")
                 m = best.get("metrics", {})
                 for k, v in m.items():
                     lines.append(f"| {k} | {v} |")
                 lines.append(f"| Trade count | {best.get('trade_count', '?')} |")
+                lines.append("")
+            else:
+                lines.append("### Best validation-confirmed iteration")
+                lines.append("")
+                lines.append(
+                    "_No accepted iteration has been validation-confirmed yet._"
+                )
                 lines.append("")
 
             # Validation history

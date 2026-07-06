@@ -592,3 +592,110 @@ class TestReport:
         assert "Generation" in report_text
         assert gid in report_text
         assert "Experiment Log" in report_text
+
+    @pytest.mark.asyncio
+    async def test_best_iteration_excludes_overfit_rolled_back_result(self, tmp_path: Path):
+        """Regression test: an iteration with high PF that failed validation
+        and was rolled back must NOT appear as the 'best' iteration in the
+        report — even though its raw train-window PF (2.90) beats the
+        validation-confirmed candidates (1.55, 1.62).
+
+        Scenario:
+          Iter 1: PF=1.55, accepted, later validation-passes
+          Iter 2: PF=2.90, accepted, validation-FAILS (53% divergence),
+                  gets rolled back
+          Iter 3: PF=1.62, accepted, later validation-passes
+        """
+        settings = _make_mock_controller("settings", read={"length": 14}, write=None, list_fields=[])
+        ctrl = _make_controller(tmp_path, settings=settings)
+        gid = await ctrl.start_generation("overfit regression test")
+
+        # Seed the log directly to control exact PF values and outcomes
+        ctrl._log.append_event({
+            "event": "iteration",
+            "generation_id": gid,
+            "iteration_num": 1,
+            "change_type": "settings",
+            "change_description": "Iter 1: length=21",
+            "before_value": {"length": 14},
+            "after_value": {"length": 21},
+            "window": "train",
+            "metrics": {"profit_factor": 1.55, "max_drawdown": 12.0},
+            "trade_count": 50,
+            "accepted": True,
+            "reject_reason": None,
+        })
+        ctrl._log.append_event({
+            "event": "iteration",
+            "generation_id": gid,
+            "iteration_num": 2,
+            "change_type": "settings",
+            "change_description": "Iter 2: length=7 (overfit)",
+            "before_value": {"length": 21},
+            "after_value": {"length": 7},
+            "window": "train",
+            "metrics": {"profit_factor": 2.90, "max_drawdown": 8.0},
+            "trade_count": 50,
+            "accepted": True,
+            "reject_reason": None,
+        })
+        ctrl._log.append_event({
+            "event": "validation_check",
+            "generation_id": gid,
+            "at_iteration_num": 2,
+            "train_metrics": {"profit_factor": 2.90},
+            "validation_metrics": {"profit_factor": 1.35},
+            "divergence_pct": 53.4,
+            "verdict": "fail",
+            "consecutive_passes_after_this": 0,
+        })
+        ctrl._log.append_event({
+            "event": "rollback",
+            "generation_id": gid,
+            "rolled_back_to_iteration_num": 1,
+            "reason": "Validation failed — rolling back to iter 1",
+        })
+        ctrl._log.append_event({
+            "event": "iteration",
+            "generation_id": gid,
+            "iteration_num": 3,
+            "change_type": "settings",
+            "change_description": "Iter 3: length=25 (safer)",
+            "before_value": {"length": 21},
+            "after_value": {"length": 25},
+            "window": "train",
+            "metrics": {"profit_factor": 1.62, "max_drawdown": 14.0},
+            "trade_count": 50,
+            "accepted": True,
+            "reject_reason": None,
+        })
+        ctrl._log.append_event({
+            "event": "validation_check",
+            "generation_id": gid,
+            "at_iteration_num": 3,
+            "train_metrics": {"profit_factor": 1.62},
+            "validation_metrics": {"profit_factor": 1.55},
+            "divergence_pct": 4.3,
+            "verdict": "pass",
+            "consecutive_passes_after_this": 1,
+        })
+
+        report_text = ctrl.report(generation_id=gid)
+
+        # The "best" section must NOT contain iteration 2's PF (2.90)
+        assert "2.90" not in report_text or "2.9" not in report_text, (
+            f"Report must not surface the overfit PF (2.90) in the 'best' "
+            f"section. Report:\n{report_text}"
+        )
+
+        # The section header must use the new label
+        assert "Best validation-confirmed iteration" in report_text, (
+            f"Report must use 'Best validation-confirmed iteration' header. "
+            f"Report:\n{report_text}"
+        )
+
+        # The exclusion note must be present
+        assert "failed validation or were rolled back" in report_text, (
+            f"Report must explain that failed/rolled-back iterations are "
+            f"excluded. Report:\n{report_text}"
+        )
