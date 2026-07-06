@@ -112,8 +112,8 @@
     {
       "capability": "chart_set_visible_range",
       "severity": "minor",
-      "summary": "Open: set_visible_range still uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes), not absolute dates. Live investigation found no usable internal TV Desktop 3.2.0 range API across known globals. ExperimentController guards against unsafe preset-window execution and Free-tier bar-budget overrun; Accessibility-enabled Alt+G remains the next viable investigation path.",
-      "detail_ref": "docs/handoff/2026-07-07-absolute-date-window-investigation.md",
+      "summary": "Open: Strategy Tester backtest range remains preset-only (1D/5D/1M/3M/6M/1Y/5Y/All). Accessibility-enabled Alt+G opens a Go to Date Custom range dialog with exact start/end inputs, but that controls only the chart canvas visible range and does not change Strategy Tester backtest calculations. ExperimentController guards against unsafe preset-window execution and Free-tier bar-budget overrun.",
+      "detail_ref": "docs/handoff/2026-07-07-accessibility-alt-g-date-dialog.md",
       "blocks_goal": true,
       "opened": "2026-07-05",
       "status": "open"

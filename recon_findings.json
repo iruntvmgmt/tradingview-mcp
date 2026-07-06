@@ -533,7 +533,7 @@
       "path": "dom",
       "verified": false,
       "detail": {
-        "_warning": "set_visible_range uses Strategy Tester presets (1D-ALL), not absolute dates. ADR-0010 requires non-overlapping windows \u2014 this is NOT adequate. ExperimentController now guards against unsafe live runs. Live TV Desktop 3.2.0 investigation found no usable internal range API; Accessibility-enabled Alt+G remains the next viable path.",
+        "_warning": "Strategy Tester backtest ranges are preset-only (1D-ALL), not absolute dates. ADR-0010 requires non-overlapping windows \u2014 this is NOT adequate. ExperimentController guards against unsafe live runs. Accessibility-enabled Alt+G opens an exact Custom range dialog for the chart canvas, but it does not change Strategy Tester backtest calculations.",
         "date_menu_selector": "[data-name=\"date-ranges-menu\"]",
         "preset_selectors": {
           "1D": "[data-name=\"date-range-tab-1D\"]",
@@ -545,7 +545,7 @@
           "5Y": "[data-name=\"date-range-tab-60M\"]",
           "ALL": "[data-name=\"date-range-tab-ALL\"]"
         },
-        "absolute_date_support": "NOT SUPPORTED \u2014 TV 3.2.0 has no JS chart API for setVisibleRange. Alt+G dialog or date range picker exploration needed."
+        "absolute_date_support": "NOT SUPPORTED for Strategy Tester backtest ranges \u2014 TV 3.2.0 has no JS setVisibleRange API, and Alt+G Custom range affects chart view only."
       }
     }
   },
