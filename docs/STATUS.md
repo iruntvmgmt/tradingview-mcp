@@ -2,7 +2,7 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-06 18:40 UTC
+Last generated: 2026-07-06 18:46 UTC
 Source: `recon_findings.json` (schema v2)
 
 **19/35** capabilities recon-verified · **12** have open known issues that override that verification (see table).
@@ -19,7 +19,7 @@ Source: `recon_findings.json` (schema v2)
 | `backtest_run` | `dom` | verified | 🟢 Verified | — |
 | `backtest_summary` | `dom` | verified | 🟢 Verified | — |
 | `backtest_trade_list` | `dom` | verified | 🟢 Verified | 🟡 Standing risk: parser relies on innerText line-position order, not stable selectors. A TV wording/line-order change could silently corrupt field mapping. Manual spot-check required after each TradingView Desktop update (see ADR-0009). |
-| `chart_set_visible_range` | `dom` | unverified | ⚪ Unverified (untested against live app) | 🟡 Open: set_visible_range still uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes), not absolute dates. This cannot satisfy ADR-0010 non-overlapping train/validation/holdout windows. TV Desktop 3.2.0 has zero iframes; _exposed_chartWidgetCollection.activeChartWidget has only _listeners/_value, no chart()/setVisibleRange(). Alt+G/date-picker investigation still needed. |
+| `chart_set_visible_range` | `dom` | unverified | ⚪ Unverified (untested against live app) | 🟡 Open: set_visible_range still uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes), not absolute dates. This cannot satisfy ADR-0010 non-overlapping train/validation/holdout windows. ExperimentController now guards against unsafe preset-window execution and Free-tier bar-budget overrun, but Alt+G/date-picker absolute range control is still needed. |
 | `drawing_create` | `dom` | verified | 🟢 Verified | — |
 | `drawing_list` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `drawing_remove` | `dom` | verified | 🟢 Verified | — |
@@ -56,7 +56,7 @@ Source: `recon_findings.json` (schema v2)
 - **Opened:** 2026-07-05
 - **Detail:** docs/adr/0009-trade-list-text-position-parsing-fragility.md
 
-### 🟡 `chart_set_visible_range` — Open: set_visible_range still uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes), not absolute dates. This cannot satisfy ADR-0010 non-overlapping train/validation/holdout windows. TV Desktop 3.2.0 has zero iframes; _exposed_chartWidgetCollection.activeChartWidget has only _listeners/_value, no chart()/setVisibleRange(). Alt+G/date-picker investigation still needed.
+### 🟡 `chart_set_visible_range` — Open: set_visible_range still uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes), not absolute dates. This cannot satisfy ADR-0010 non-overlapping train/validation/holdout windows. ExperimentController now guards against unsafe preset-window execution and Free-tier bar-budget overrun, but Alt+G/date-picker absolute range control is still needed.
 
 - **Severity:** minor
 - **Blocks primary goal:** yes

@@ -35,9 +35,9 @@ VALID_CONFIG = {
         "deep_backtesting_enabled": False,
     },
     "windows": {
-        "train":      {"start": "2023-01-01", "end": "2024-01-01"},
-        "validation": {"start": "2024-01-02", "end": "2024-06-01"},
-        "holdout":    {"start": "2024-06-02", "end": "2024-12-01"},
+        "train":      {"start": "2024-01-01", "end": "2024-02-15"},
+        "validation": {"start": "2024-02-16", "end": "2024-03-15"},
+        "holdout":    {"start": "2024-03-16", "end": "2024-04-15"},
     },
     "thresholds": {
         "min_trades_for_significance": 30,
@@ -877,17 +877,34 @@ class TestBarBudget:
     """Free-tier bar-budget validation."""
 
     def test_feasible_intraday_window_passes(self):
-        """15m window of ~30 days (~2880 bars) should pass under 5000 limit."""
+        """15m total envelope of ~15 days should pass under 5000 limit."""
         config = {
             "timeframe": "15m",
             "tradingview_tier": {"tier": "free", "intraday_bar_limit": 5000, "deep_backtesting_enabled": False},
             "windows": {
-                "train": {"start": "2024-01-01", "end": "2024-02-01"},
-                "validation": {"start": "2024-02-02", "end": "2024-03-01"},
-                "holdout": {"start": "2024-03-02", "end": "2024-04-01"},
+                "train": {"start": "2024-01-01", "end": "2024-01-05"},
+                "validation": {"start": "2024-01-06", "end": "2024-01-10"},
+                "holdout": {"start": "2024-01-11", "end": "2024-01-16"},
             },
         }
         _validate_bar_budget(config)  # no exception
+
+    def test_total_intraday_envelope_fails_even_when_individual_windows_are_short(self):
+        """Three separated 15m windows can each be under 5000 bars, while
+        the train-start to holdout-end envelope is not available on Free."""
+        config = {
+            "timeframe": "15m",
+            "tradingview_tier": {"tier": "free", "intraday_bar_limit": 5000, "deep_backtesting_enabled": False},
+            "windows": {
+                "train": {"start": "2024-01-01", "end": "2024-01-20"},
+                "validation": {"start": "2024-02-15", "end": "2024-03-05"},
+                "holdout": {"start": "2024-03-25", "end": "2024-04-12"},
+            },
+        }
+        with pytest.raises(WindowGuardError) as exc:
+            _validate_bar_budget(config)
+        assert "train\u2192holdout" in str(exc.value)
+        assert "15m" in str(exc.value)
 
     def test_infeasible_intraday_window_fails(self):
         """1m window of 2 years (~1M bars) must fail."""
@@ -940,3 +957,16 @@ class TestBarBudget:
             },
         }
         _validate_bar_budget(config)  # no exception
+
+    def test_controller_init_runs_bar_budget_validation(self, tmp_path: Path):
+        """Direct ExperimentController construction must not bypass the
+        Free-tier bar-budget guard."""
+        bad_config = dict(VALID_CONFIG)
+        bad_config["timeframe"] = "1m"
+        bad_config["windows"] = {
+            "train": {"start": "2024-01-01", "end": "2024-06-01"},
+            "validation": {"start": "2024-06-02", "end": "2024-08-01"},
+            "holdout": {"start": "2024-08-02", "end": "2024-10-01"},
+        }
+        with pytest.raises(WindowGuardError):
+            _make_controller(tmp_path, config=bad_config)

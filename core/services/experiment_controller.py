@@ -169,8 +169,9 @@ def _validate_bar_budget(config: dict[str, Any]) -> None:
     """Check that configured windows are feasible under the TradingView
     tier's bar limit.
 
-    Raises ``WindowGuardError`` if any intraday window exceeds the bar
-    budget.  Daily-or-higher timeframes skip the intraday check.
+    Raises ``WindowGuardError`` if the full train→holdout intraday
+    history envelope exceeds the bar budget.  Daily-or-higher timeframes
+    skip the intraday check.
     """
     tier_cfg = config.get("tradingview_tier", {})
     tier = tier_cfg.get("tier", "free")
@@ -203,30 +204,32 @@ def _validate_bar_budget(config: dict[str, Any]) -> None:
         return
 
     windows = config.get("windows", {})
-    for win_name in ("train", "validation", "holdout"):
-        w = windows.get(win_name, {})
-        try:
-            sd = datetime.strptime(w["start"], "%Y-%m-%d")
-            ed = datetime.strptime(w["end"], "%Y-%m-%d")
-        except (KeyError, ValueError):
-            continue
-        span_minutes = (ed - sd).total_seconds() / 60
-        estimated_bars = int(span_minutes / bar_minutes)
+    try:
+        envelope_start = datetime.strptime(windows["train"]["start"], "%Y-%m-%d")
+        envelope_end = datetime.strptime(windows["holdout"]["end"], "%Y-%m-%d")
+    except (KeyError, ValueError):
+        return
 
-        if estimated_bars > bar_limit:
-            raise WindowGuardError(
-                f"{win_name} window needs approximately {estimated_bars} bars "
-                f"on {timeframe}, but TradingView tier {tier} is configured "
-                f"for {bar_limit} intraday bars. Use a shorter window, "
-                f"higher timeframe, or higher TradingView tier.",
-                details={
-                    "window": win_name,
-                    "estimated_bars": estimated_bars,
-                    "bar_limit": bar_limit,
-                    "timeframe": timeframe,
-                    "tier": tier,
-                },
-            )
+    span_minutes = (envelope_end - envelope_start).total_seconds() / 60
+    estimated_bars = int(span_minutes / bar_minutes)
+
+    if estimated_bars > bar_limit:
+        raise WindowGuardError(
+            f"Configured train→holdout window envelope needs approximately "
+            f"{estimated_bars} bars on {timeframe}, but TradingView tier "
+            f"{tier} is configured for {bar_limit} intraday bars. Use a "
+            f"shorter total experiment span, higher timeframe, or higher "
+            f"TradingView tier.",
+            details={
+                "window": "train_to_holdout",
+                "start": str(envelope_start.date()),
+                "end": str(envelope_end.date()),
+                "estimated_bars": estimated_bars,
+                "bar_limit": bar_limit,
+                "timeframe": timeframe,
+                "tier": tier,
+            },
+        )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -269,6 +272,8 @@ class ExperimentController:
         self._strategy_name = strategy_name
         self._windows = config["windows"]
         self._thresholds = config["thresholds"]
+        _validate_windows(self._windows)
+        _validate_bar_budget(config)
 
     # ── Window helpers ────────────────────────────────────────
 

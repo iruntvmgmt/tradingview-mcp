@@ -181,6 +181,10 @@ class TestDomChartBackend:
         result = await backend.health_check()
         assert result is True
 
+    def test_dom_chart_does_not_support_absolute_visible_range(self, mock_cdp, mock_dom):
+        backend = DomChartBackend(mock_cdp, mock_dom, {})
+        assert backend.supports_absolute_visible_range() is False
+
 
 class TestDomOrderBackend:
     @pytest.mark.asyncio
@@ -249,6 +253,7 @@ class TestJsBackends:
     @pytest.mark.asyncio
     async def test_js_chart_unavailable(self, mock_cdp, mock_dom):
         backend = JsChartBackend(mock_cdp, mock_dom, {})
+        assert backend.supports_absolute_visible_range() is False
         with pytest.raises(CapabilityUnavailable):
             await backend.set_symbol("AAPL")
 

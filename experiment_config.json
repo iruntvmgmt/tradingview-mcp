@@ -1,7 +1,7 @@
 {
   "_comment": "User-tunable experiment parameters. No value is hardcoded in experiment_controller.py — every threshold and window boundary comes from this file.",
 
-  "timeframe": "15m",
+  "timeframe": "4h",
 
   "tradingview_tier": {
     "_comment": "Constraints mirror TradingView plan limits. Adjust if you upgrade.",
@@ -11,7 +11,7 @@
   },
 
   "windows": {
-    "train":      {"start": "2023-06-01", "end": "2025-07-01"},
+    "train":      {"start": "2024-10-01", "end": "2025-07-01"},
     "validation": {"start": "2025-07-02", "end": "2025-12-01"},
     "holdout":    {"start": "2025-12-02", "end": "2026-07-01"}
   },

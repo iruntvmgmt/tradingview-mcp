@@ -112,7 +112,7 @@
     {
       "capability": "chart_set_visible_range",
       "severity": "minor",
-      "summary": "Open: set_visible_range still uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes), not absolute dates. This cannot satisfy ADR-0010 non-overlapping train/validation/holdout windows. TV Desktop 3.2.0 has zero iframes; _exposed_chartWidgetCollection.activeChartWidget has only _listeners/_value, no chart()/setVisibleRange(). Alt+G/date-picker investigation still needed.",
+      "summary": "Open: set_visible_range still uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes), not absolute dates. This cannot satisfy ADR-0010 non-overlapping train/validation/holdout windows. ExperimentController now guards against unsafe preset-window execution and Free-tier bar-budget overrun, but Alt+G/date-picker absolute range control is still needed.",
       "detail_ref": "docs/handoff/2026-07-07-fix-blockers.md#absolute-date-window-control",
       "blocks_goal": true,
       "opened": "2026-07-05",
