@@ -1,0 +1,1760 @@
+//@version=5
+// ===-----------------------------------------------------------------------------------------------------===
+// Indicator:   PatternForge™ Pro v5.24 — Multi-Pattern Overlord Engine
+// Short Title: PF Pro
+// Author:      IRUNTV // PatternForge™ Architect
+//
+// Description:
+// This is not just a pattern detector — it is a fully adaptive, non-repainting, 
+// volume-confirmed, divergence-aware, apex-expiring, whipsaw-recovering, 
+// multi-level TP/SL-projecting, confidence-scoring, overlap-proof pattern 
+// recognition system. Built on a 3-tier pivot engine with Renko-style noise 
+// filtering, it detects:
+//    • Head & Shoulders (H&S) / Inverse H&S
+//    • Double Top / Double Bottom (with RSI Divergence)
+//    • Triangles (Ascending, Descending, Symmetrical)
+//    • Wedges (Rising & Falling — Bearish/Bullish)
+//    • Flags & Pennants (with Pole Validation)
+//
+// █████╗  █████╗  ████████╗ ████████╗ ███████╗ ██████╗  █████╗  ██████╗  ███████╗
+// ██╔══██╗██╔══██╗╚══██╔══╝ ╚══██╔══╝ ██╔════╝██╔════╝ ██╔══██╗██╔═══██╗ ██╔════╝
+// ██████╔╝███████║   ██║      ██║    █████╗  ██║  ███╗███████║██║   ██║ █████╗  
+// ██╔═══╝ ██╔══██║   ██║      ██║    ██╔══╝  ██║   ██║██╔══██║██║   ██║ ██╔══╝  
+// ██║     ██║  ██║   ██║      ██║    ███████╗╚██████╔╝██║  ██║╚██████╔╝ ███████╗
+// ╚═╝     ╚═╝  ╚═╝   ╚═╝      ╚═╝    ╚══════╝ ╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚══════╝
+// 
+//            PATTERNFORGE™ PRO v5.24 — THE OVERLORD EDITION
+//
+// v5.24.3 (Clutter-Control Patch):
+// - FIXED: The "Price Targets" toggle (showProjections) now correctly hides
+//   all TP/SL/Entry lines AND labels when disabled.
+// - All array-bound and loop-syntax errors from v5.24.2 are confirmed fixed.
+//
+// This is the final form. No repaints. No leaks. No mercy.
+// ===-----------------------------------------------------------------------------------------------------===
+indicator(
+     title = "PatternForge™ Pro v5.24.3 | Flags • Pennants • Wedges",
+     shorttitle = "PatternForge™",
+     overlay = true,
+     max_lines_count = 500,
+     max_labels_count = 500,
+     max_boxes_count = 100,
+     max_bars_back = 2000)
+
+
+// Optional: Add this near the top
+var table titleBar = table.new(position.top_left, 1, 1, bgcolor=color.new(#1a1a1a, 90), border_width=1)
+if barstate.islast
+    table.cell(titleBar, 0, 0, 
+         "PatternForge™ Pro", 
+         text_color=color.new(#00ff88, 0), text_size=size.large, 
+         bgcolor=color.new(#000000, 85))
+
+// ========== PATTERN SELECTION ==========
+patternGroup = "Pattern Selection"
+detectHS = input.bool(true, "Head & Shoulders", group=patternGroup, inline="p1")
+hsLastPivot = input.string("down", "", ["up", "down", "both"], group=patternGroup, inline="p1")
+
+detectIHS = input.bool(true, "Inverse H&S", group=patternGroup, inline="p2")
+ihsLastPivot = input.string("up", "", ["up", "down", "both"], group=patternGroup, inline="p2")
+
+detectDT = input.bool(true, "Double Top", group=patternGroup, inline="p3")
+dtLastPivot = input.string("down", "", ["up", "down", "both"], group=patternGroup, inline="p3")
+
+detectDB = input.bool(true, "Double Bottom", group=patternGroup, inline="p4")
+dbLastPivot = input.string("up", "", ["up","down", "both"], group=patternGroup, inline="p4")
+
+detectTriangle = input.bool(true, "Triangles (Wedges)", group=patternGroup, inline="p5")
+triLastPivot = input.string("both", "", ["up", "down", "both"], group=patternGroup, inline="p5")
+
+detectFlag = input.bool(true, "Flags & Pennants", group=patternGroup, inline="p6")
+
+// ========== GLOBAL DETECTION SETTINGS ==========
+globalGroup = "Global Detection Settings"
+uRenko = input.bool(false, title='Use Renko Style Pivots', group=globalGroup, inline="g1", tooltip="Use open/close for high/low, similar to Renko bricks. This affects ALL pattern detection and helps filter noise.")
+
+// ========== FLAG POLE SETTINGS ==========
+flagGroup = "Flag Pole Settings"
+poleMinBars = input.int(5, "Pole: Min Bars", group=flagGroup, inline="f1", minval=5, tooltip="Shorter (e.g., 5-8) for scalping. Longer (e.g., 10-15) for swing trading.")
+poleMinPercent = input.float(1.5, "Pole: Min % Move", group=flagGroup, inline="f1", minval=0.5, step=0.1, tooltip="Lower (e.g., 1-2%) for scalping. Higher (e.g., 5%+) for swing trading.")
+flagMaxBars = input.int(40, "Flag: Max Bars", group=flagGroup, inline="f2", minval=5, tooltip="Max length of the flag/pennant. Shorter for scalping (e.g., 30-40).")
+flagChannelTolerance = input.float(0.30, "Flag: Channel Parallel Tol. (%)", group=flagGroup, inline="f2", minval=0.01, maxval=1.0)
+maxPoleLookback = input.int(200, "Max Pole Lookback (Bars)", minval=50, maxval=1000, group=flagGroup, inline="f3")
+
+// ========== MULTI-LEVEL ZIGZAG ==========
+zigzagGroup = "Multi-Level Zigzag"
+useZigzag1 = input.bool(true, "Primary Zigzag", group=zigzagGroup, inline="z1")
+zigzagLength1 = input.int(5, "Length", minval=2, maxval=20, group=zigzagGroup, inline="z1")
+depth1 = input.int(5, "Depth", minval=2, maxval=20, group=zigzagGroup, inline="z1")
+
+useZigzag2 = input.bool(false, "Secondary Zigzag", group=zigzagGroup, inline="z2")
+zigzagLength2 = input.int(8, "Length", minval=2, maxval=30, group=zigzagGroup, inline="z2")
+depth2 = input.int(8, "Depth", minval=2, maxval=30, group=zigzagGroup, inline="z2")
+
+useZigzag3 = input.bool(false, "Tertiary Zigzag", group=zigzagGroup, inline="z3")
+zigzagLength3 = input.int(13, "Length", minval=2, maxval=40, group=zigzagGroup, inline="z3")
+depth3 = input.int(13, "Depth", minval=2, maxval=40, group=zigzagGroup, inline="z3")
+
+// ========== VALIDATION SETTINGS ==========
+validationGroup = "Validation"
+patternTolerance = input.float(0.02, "Pattern Tolerance (%)", minval=0.01, maxval=0.99, step=0.01, group=validationGroup)
+allowSlopedNecklines = input.bool(true, "Allow Sloped Necklines", group=validationGroup, 
+                                  tooltip="Enable to detect patterns with angled necklines. Disable for horizontal-only necklines.")
+maxNecklineSlopePercent = input.float(15.0, "Max Neckline Slope (%)", minval=5.0, maxval=50.0, step=5.0, group=validationGroup,
+                                      tooltip="Maximum % deviation for sloped necklines.")
+maxFlatLineSlope = input.float(4.0, "Max Flat Line Slope (%)", minval=1.0, maxval=10.0, step=0.5, group=validationGroup,
+                                   tooltip="Maximum slope for 'flat' lines in triangles (replaces magic number).")
+checkBarRatio = input.bool(true, "Verify Bar Ratio", group=validationGroup, inline="br")
+barRatioLimit = input.float(0.382, "", minval=0.1, maxval=0.9, step=0.05, group=validationGroup, inline="br")
+minPatternBars = input.int(20, "Min Bars for Pattern", minval=10, maxval=100, group=validationGroup)
+maxPatternBars = input.int(100, "Max Bars for Pattern", minval=20, maxval=300, group=validationGroup)
+
+// ========== NEW: FILTERS & CONFIRMATION ==========
+filterGroup = "Pattern Filters & Confirmation"
+useVolConfirmation = input.bool(true, "Volume Breakout Confirmation", group=filterGroup, inline="v1")
+volMultiplier = input.float(1.5, "Min. Vol Multiplier", group=filterGroup, inline="v1", minval=0.5, step=0.1)
+
+useDivergenceCheck = input.bool(true, "RSI Divergence Confirmation", group=filterGroup, inline="d1")
+filterDivergenceOnly = input.bool(false, "Filter for Divergence Patterns Only", group=filterGroup, inline="d1", tooltip="If checked, only DT/DB patterns with RSI divergence will be shown at all.")
+rsiLength = input.int(14, "RSI Length", group=filterGroup, inline="d1", minval=2)
+// NEW: Divergence "Magic Number" Fixes
+divPriceTol = input.float(1.0, "Divergence Price Tolerance (%)", group=filterGroup, inline="d2", minval=0.0, maxval=10.0, step=0.5, tooltip="How close (in %) prices must be to be considered 'equal'.")
+divRsiTol = input.float(1.0, "Divergence RSI Tolerance (%)", group=filterGroup, inline="d2", minval=0.0, maxval=10.0, step=0.5, tooltip="How much (in %) RSI must differ to confirm divergence.")
+
+
+useApexExpiry = input.bool(false, "Triangle Apex Expiry", group=filterGroup, tooltip="Invalidates triangles if price moves past the apex without breaking out.")
+
+// ========== SCANNING SETTINGS ==========
+scanGroup = "Scanning"
+overlapMode = input.string("Full Range", "Overlap Prevention", ["Disabled", "End Bar Only", "Full Range"], group=scanGroup, tooltip="Full Range: Most accurate. End Bar Only: Legacy mode. Disabled: Allow overlaps.")
+                 
+repaint = input.bool(false, "Allow Repaint", group=scanGroup, tooltip="⚠️ WARNING: Enable for real-time alerts (repaints). Disable for confirmed signals only (backtesting).")
+showFormingPatterns = input.bool(false, "Show Forming Patterns", group=scanGroup)
+allowWhipsaw = input.bool(false, "Allow Whipsaw Recovery", group=scanGroup, 
+                          tooltip="If enabled, invalidated patterns can become valid again if price returns to valid range.")
+
+// ========== ALERTS ==========
+alertGroup = "Alert Selection"
+alertHS = input.bool(true, "Head & Shoulders", group=alertGroup, inline="a1")
+alertIHS = input.bool(true, "Inverse H&S", group=alertGroup, inline="a1")
+alertDT = input.bool(true, "Double Top", group=alertGroup, inline="a2")
+alertDB = input.bool(true, "Double Bottom", group=alertGroup, inline="a2")
+alertTRI = input.bool(true, "Triangles", group=alertGroup, inline="a3")
+alertFLAG = input.bool(true, "Flags & Pennants", group=alertGroup, inline="a3")
+alertBreaks = input.bool(true, "Neckline Breaks", group=alertGroup, inline="a4")
+
+// ========== DISPLAY SETTINGS ==========
+displayGroup = "Display"
+theme = input.string("Dark", "Chart Theme", ["Dark", "Light"], group=displayGroup)
+showLabels = input.bool(true, "Pattern Labels", group=displayGroup, inline="d1")
+labelSize = input.string(size.normal, "", [size.tiny, size.small, size.normal, size.large, size.huge], group=displayGroup, inline="d1")
+
+showLines = input.bool(true, "Pattern Lines", group=displayGroup, inline="d2")
+lineWidth = input.int(2, "Width", minval=1, maxval=4, group=displayGroup, inline="d2")
+
+extendLines = input.bool(false, "Extend Lines Infinitely", group=displayGroup, tooltip="When enabled, necklines and support/resistance lines extend to the right edge of chart")
+
+showPivotLabels = input.bool(false, "Pivot Labels", group=displayGroup, inline="d3")
+pivotLabelSize = input.string(size.tiny, "", [size.tiny, size.small, size.normal], group=displayGroup, inline="d3")
+
+showProjections = input.bool(true, "Price Targets", group=displayGroup, inline="d4")
+extensionBars = input.int(20, "Extension Bars", minval=5, maxval=100, group=displayGroup, inline="d5")
+
+deleteOldPatterns = input.bool(true, "Auto-Delete Old", group=displayGroup, inline="d6")
+maxPatterns = input.int(15, "Max Patterns", minval=1, maxval=50, group=displayGroup, inline="d6")
+
+showStats = input.bool(true, "Show Statistics", group=displayGroup)
+showConfidence = input.bool(true, "Show Confidence Score", group=displayGroup)
+showPatternMetrics = input.bool(true, "Show Pattern Metrics", group=displayGroup, tooltip="Display height, duration, and volume info in tooltips")
+showFailedLabels = input.bool(true, "Show Failed/Expired Labels", group=displayGroup, inline="d7")
+
+
+// ========== COLORS ==========
+colorGroup = "Colors"
+useCustomColors = input.bool(false, "Use Custom Colors", group=colorGroup)
+colorHS = input.color(color.new(color.red, 0), "Head & Shoulders", group=colorGroup)
+colorIHS = input.color(color.new(color.green, 0), "Inverse H&S", group=colorGroup)
+colorDT = input.color(color.new(color.orange, 0), "Double Top", group=colorGroup)
+colorDB = input.color(color.new(color.blue, 0), "Double Bottom", group=colorGroup)
+colorTriangle = input.color(color.new(color.purple, 0), "Triangles", group=colorGroup)
+colorFlag = input.color(color.new(color.yellow, 0), "Flags & Pennants", group=colorGroup)
+
+// ========== PATTERN STORAGE TYPE ==========
+type PatternData // 51 Fields Total
+    // Drawing Objects
+    array<line> lines
+    label patternLabel
+    box highlightBox
+    array<label> pivotLabels // NEW: Array to store pivot labels
+    
+    // NEW: Multi-level TP/SL Drawings
+    line tp1Line
+    line tp2Line
+    line tp3Line
+    line slLine
+    label entryLabel
+    label tp1Label
+    label tp2Label
+    label tp3Label
+    label slLabel
+    label failedLabel // NEW: Store failed label
+    
+    // Pattern Info
+    int startBar
+    int endBar
+    string patternType
+    string triangleSubType
+    float confidence
+    float strength
+    
+    // Pivot Points (Prices)
+    float h1
+    float h2 
+    float h3
+    float l1 
+    float l2
+    float l3
+    
+    // Pivot Points (Bars)
+    int h1_bar
+    int h2_bar
+    int h3_bar
+    int l1_bar
+    int l2_bar
+    int l3_bar
+    
+    // Neckline & Targets
+    float necklinePrice1
+    float necklinePrice2
+    int necklineBar1
+    int necklineBar2
+    float priceTarget       // 1.0 (TP2) Target
+    float stopLossPrice     // SL
+    
+    // Pattern Metrics
+    float patternHeight
+    int patternDuration
+    float avgVolume
+    
+    // Status
+    bool necklineBroken
+    bool invalidated
+    int invalidationBar
+    
+    // NEW: Filter Fields
+    bool divergence
+    int apexBar
+
+    // NEW: Flag Fields (Added pole prices for drawing)
+    float poleHeight
+    int poleStartBar
+    int poleEndBar
+    float poleStartPrice // NEW
+    float poleEndPrice   // NEW
+
+var array<PatternData> storedPatterns = array.new<PatternData>()
+
+// NEW: Enhanced overlap tracking with full range
+type PatternRange
+    int startBar
+    int endBar
+
+var array<PatternRange> activePatternRanges = array.new<PatternRange>()
+
+// NEW: Pivot cache to avoid recalculation
+type PivotCache
+    array<float> highPrices
+    array<int> highBars
+    array<float> lowPrices
+    array<int> lowBars
+    int lastBarCalculated
+
+var PivotCache cache1 = PivotCache.new(array.new<float>(), array.new<int>(), array.new<float>(), array.new<int>(), -1)
+var PivotCache cache2 = PivotCache.new(array.new<float>(), array.new<int>(), array.new<float>(), array.new<int>(), -1)
+var PivotCache cache3 = PivotCache.new(array.new<float>(), array.new<int>(), array.new<float>(), array.new<int>(), -1)
+
+// ========== OSCILLATOR & GLOBAL PRICE SOURCES ==========
+float rsi = ta.rsi(close, rsiLength)
+
+// NEW: Global Renko-style high/low logic
+float high_ = uRenko ? math.max(close, open) : high
+float low_ = uRenko ? math.min(close, open) : low
+
+// ========== HELPER FUNCTIONS ==========
+isWithinTolerance(float price1, float price2, float tolerance) =>
+    math.abs(price1 - price2) / math.max(price1, 0.00001) <= tolerance
+
+// Safe division helper
+safeDivide(float numerator, float denominator, float defaultValue = 0.0) =>
+    denominator != 0 ? numerator / denominator : defaultValue
+
+// Calculate trendline error with safety checks
+getTrendlineError(float price1, int bar1, float price2, int bar2, float actualPrice, int actualBar) =>
+    if bar2 == bar1 or actualBar == bar1
+        0.0
+    else
+        float slope = safeDivide(price2 - price1, bar2 - bar1)
+        float expectedPrice = price1 + slope * (actualBar - bar1)
+        safeDivide(math.abs(actualPrice - expectedPrice), math.abs(expectedPrice), 0.0) * 100
+
+getThemeColor(string patternType, string theme, bool useCustom) =>
+    if useCustom
+        switch patternType
+            "HS" => colorHS
+            "IHS" => colorIHS
+            "DT" => colorDT
+            "DB" => colorDB
+            "TRI" => colorTriangle
+            "BULL FLAG" => colorFlag
+            "BEAR FLAG" => colorFlag
+            "BULL PENNANT" => colorFlag
+            "BEAR PENNANT" => colorFlag
+            => color.gray
+    else
+        isDark = theme == "Dark"
+        switch patternType
+            "HS" => isDark ? color.rgb(255, 100, 100) : color.rgb(180, 0, 0)
+            "IHS" => isDark ? color.rgb(100, 255, 100) : color.rgb(0, 150, 0)
+            "DT" => isDark ? color.rgb(255, 180, 100) : color.rgb(200, 100, 0)
+            "DB" => isDark ? color.rgb(100, 180, 255) : color.rgb(0, 100, 200)
+            "TRI" => isDark ? color.rgb(200, 150, 255) : color.rgb(120, 50, 180)
+            "BULL FLAG" => isDark ? color.rgb(255, 255, 100) : color.rgb(204, 204, 0)
+            "BEAR FLAG" => isDark ? color.rgb(255, 255, 100) : color.rgb(204, 204, 0)
+            "BULL PENNANT" => isDark ? color.rgb(255, 255, 100) : color.rgb(204, 204, 0)
+            "BEAR PENNANT" => isDark ? color.rgb(255, 255, 100) : color.rgb(204, 204, 0)
+            => color.gray
+
+checkLastPivotDirection(string requiredDir, bool isUpPivot) =>
+    if requiredDir == "both"
+        true
+    else if requiredDir == "up"
+        isUpPivot
+    else
+        not isUpPivot
+
+// ========== PATCHED OVERLAP LOGIC (v5.24.2) ==========
+// 1. Helper – does two intervals overlap?
+intervalsOverlap(int a1, int a2, int b1, int b2) => 
+    a1 <= b2 and a2 >= b1
+
+// 2. Core overlap tester (mode-aware)
+patternWouldOverlap(int s, int e) =>
+    var bool result = false
+    int arrSize = array.size(activePatternRanges)
+    
+    if overlapMode == "Disabled"
+        result := false
+    else if overlapMode == "End Bar Only"
+        result := false
+        if arrSize > 0 // <-- YOUR CORRECT FIX
+            for i = 0 to arrSize - 1
+                PatternRange r = array.get(activePatternRanges, i)
+                if e == r.endBar
+                    result := true
+                    break
+    else  // "Full Range"
+        result := false
+        if arrSize > 0 // <-- YOUR CORRECT FIX
+            for i = 0 to arrSize - 1
+                PatternRange r = array.get(activePatternRanges, i)
+                if intervalsOverlap(s, e, r.startBar, r.endBar)
+                    result := true
+                    break
+    result
+
+// 3. Add a pattern range to the tracker
+addPatternRange(int s, int e) =>
+    array.push(activePatternRanges, PatternRange.new(s, e))
+
+// 4. Remove a pattern range from the tracker
+removePatternRange(int s, int e) =>
+    int arrSize = array.size(activePatternRanges) // <-- NEW GUARD
+    if arrSize > 0
+        for i = arrSize - 1 to 0 // <-- FIX: Removed 'by -1'
+            PatternRange r = array.get(activePatternRanges, i)
+            if r.startBar == s and r.endBar == e
+                array.remove(activePatternRanges, i)
+                break
+// ========== END PATCH ==========
+
+// FIXED: Added null checks for all drawing objects
+deletePatternDrawings(PatternData p) =>
+    if not na(p.lines)
+        for l in p.lines
+            line.delete(l)
+    if not na(p.patternLabel)
+        label.delete(p.patternLabel)
+    if not na(p.highlightBox)
+        box.delete(p.highlightBox)
+    if not na(p.pivotLabels)
+        for l in p.pivotLabels
+            label.delete(l)
+    
+    // TP/SL Lines
+    if not na(p.tp1Line) 
+        line.delete(p.tp1Line)
+    if not na(p.tp2Line) 
+        line.delete(p.tp2Line)
+    if not na(p.tp3Line) 
+        line.delete(p.tp3Line)
+    if not na(p.slLine) 
+        line.delete(p.slLine)
+        
+    // TP/SL Labels
+    if not na(p.entryLabel) 
+        label.delete(p.entryLabel)
+    if not na(p.tp1Label) 
+        label.delete(p.tp1Label)
+    if not na(p.tp2Label) 
+        label.delete(p.tp2Label)
+    if not na(p.tp3Label) 
+        label.delete(p.tp3Label)
+    if not na(p.slLabel) 
+        label.delete(p.slLabel)
+    
+    // NEW: Delete failed label
+    if not na(p.failedLabel)
+        label.delete(p.failedLabel)
+
+// PATCHED (v5.24): Now handles old-pattern deletion correctly
+addPatternToStorage(PatternData pattern) =>
+    array.push(storedPatterns, pattern)
+    // REMOVED: array.push(activePatternRanges, ...) - This is now handled by addPatternRange()
+    
+    if deleteOldPatterns and array.size(storedPatterns) > maxPatterns
+        oldPattern = array.shift(storedPatterns)
+        removePatternRange(oldPattern.startBar, oldPattern.endBar) // <-- NEW (v524)
+        deletePatternDrawings(oldPattern)
+
+// NEW: Calculate average volume during pattern formation
+getPatternVolume(int startBar, int endBar) =>
+    float totalVol = 0.0
+    int count = 0
+    int barsBack = bar_index - startBar
+    int barsToCheck = endBar - startBar
+    
+    if barsBack >= 0 and barsToCheck > 0
+        // Limit loop to available history and a reasonable max (500 bars) to prevent timeouts
+        for i = 0 to math.min(barsToCheck, math.min(barsBack, 500)) 
+            totalVol += volume[barsBack - i] // Iterate backwards from startBar
+            count += 1
+    
+    count > 0 ? totalVol / count : 0.0
+
+// ENHANCED: Pattern strength calculation (combines multiple factors)
+calculateStrength(float confidence, float height, float avgVolume) =>
+    float strength = confidence * 0.6  // Base: 60% from confidence
+    
+    // Height contribution (20%) - larger patterns score higher
+    float avgPrice = (high + low) / 2
+    float heightPercent = safeDivide(height, avgPrice, 0.0) * 100
+    float heightScore = math.min(heightPercent * 4, 20.0)  // Cap at 20
+    strength += heightScore
+    
+    // Volume contribution (20%) - above-average volume scores higher
+    float volSMA = ta.sma(volume, 50)
+    float volRatio = safeDivide(avgVolume, volSMA, 1.0)
+    float volScore = volRatio > 1.0 ? math.min((volRatio - 1.0) * 20, 20.0) : 0.0
+    strength += volScore
+    
+    math.max(0.0, math.min(100.0, strength))
+
+// Calculate pattern confidence score (0-100%)
+calculateConfidence(float shoulderError, float necklineError, float barRatio, bool validSequence) =>
+    float confidence = 100.0
+    
+    // Penalty for shoulder/top/bottom mismatch
+    if shoulderError > patternTolerance * 50
+        confidence -= 25.0
+    else if shoulderError > patternTolerance * 25
+        confidence -= 10.0
+    
+    // Penalty for neckline slope
+    if necklineError > maxNecklineSlopePercent * 0.75
+        confidence -= 20.0
+    else if necklineError > maxNecklineSlopePercent * 0.5
+        confidence -= 10.0
+    
+    // Penalty for poor bar spacing
+    if barRatio < 0.5
+        confidence -= 15.0
+    else if barRatio < barRatioLimit
+        confidence -= 5.0
+    
+    // Penalty for invalid sequence
+    if not validSequence
+        confidence -= 30.0
+    
+    math.max(0.0, math.min(100.0, confidence))
+
+// ========== IMPROVED ZIGZAG WITH CACHING ==========
+getPivotsWithCache(int leftLen, int rightLen, PivotCache cache) =>
+    // Only recalculate if we're on a new bar
+    if cache.lastBarCalculated != bar_index
+        
+        // Use global high_ and low_ (which are Renko-aware)
+        float highPivot = ta.pivothigh(high_, leftLen, rightLen)
+        float lowPivot = ta.pivotlow(low_, leftLen, rightLen)
+        
+        if not na(highPivot)
+            array.push(cache.highPrices, highPivot)
+            array.push(cache.highBars, bar_index - rightLen)
+            if array.size(cache.highPrices) > 15
+                array.shift(cache.highPrices)
+                array.shift(cache.highBars)
+        
+        if not na(lowPivot)
+            array.push(cache.lowPrices, lowPivot)
+            array.push(cache.lowBars, bar_index - rightLen)
+            if array.size(cache.lowPrices) > 15
+                array.shift(cache.lowPrices)
+                array.shift(cache.lowBars)
+        
+        cache.lastBarCalculated := bar_index
+    
+    [cache.highPrices, cache.highBars, cache.lowPrices, cache.lowBars]
+
+// ========== SAFE POLE CHECKER (FIXED) ==========
+// FIXED: Now uses global high_ and low_ to respect uRenko toggle
+checkPole(int flagStartBar, int poleLookbackBars, float polePercent) =>
+    int offset = bar_index - flagStartBar
+
+    // SAFETY: Ensure we don't look back beyond available history
+    if offset < 0 or offset >= bar_index
+        [false, false, na, na, na, na, na]
+    
+    // Also limit poleBars to available history and specified lookback
+    int safePoleBars = math.min(poleLookbackBars, offset)
+
+    if safePoleBars < poleMinBars
+        [false, false, na, na, na, na, na]
+
+    // Bull Pole: low → high move ending at flag start
+    // USE low_ and high_
+    float poleStartPrice_Bull = ta.lowest(low_, safePoleBars)[offset] 
+    int poleStartBar_Bull = na(poleStartPrice_Bull) ? na : flagStartBar - safePoleBars + ta.lowestbars(low_, safePoleBars)[offset]
+    float poleEndPrice_Bull = high_[offset]
+    float poleHeight_Bull = na(poleStartPrice_Bull) ? 0 : poleEndPrice_Bull - poleStartPrice_Bull
+    // FIX: Add na() check
+    float poleMove_Bull = na(poleStartPrice_Bull) or poleStartPrice_Bull == 0 ? 0 : poleHeight_Bull / poleStartPrice_Bull
+    bool isBullPole = poleMove_Bull > (polePercent / 100) and poleHeight_Bull > 0
+
+    // Bear Pole: high → low move ending at flag start
+    // USE low_ and high_
+    float poleStartPrice_Bear = ta.highest(high_, safePoleBars)[offset]
+    int poleStartBar_Bear = na(poleStartPrice_Bear) ? na : flagStartBar - safePoleBars + ta.highestbars(high_, safePoleBars)[offset]
+    float poleEndPrice_Bear = low_[offset]
+    float poleHeight_Bear = na(poleStartPrice_Bear) ? 0 : poleStartPrice_Bear - poleEndPrice_Bear
+    // FIX: Add na() check
+    float poleMove_Bear = na(poleStartPrice_Bear) or poleStartPrice_Bear == 0 ? 0 : poleHeight_Bear / poleStartPrice_Bear
+    bool isBearPole = poleMove_Bear > (polePercent / 100) and poleHeight_Bear > 0
+
+    // Return dominant pole
+    if isBullPole and isBearPole
+        if poleMove_Bull > poleMove_Bear
+            [true, false, poleHeight_Bull, poleStartBar_Bull, flagStartBar, poleStartPrice_Bull, poleEndPrice_Bull]
+        else
+            [false, true, poleHeight_Bear, poleStartBar_Bear, flagStartBar, poleStartPrice_Bear, poleEndPrice_Bear]
+    else if isBullPole
+        [true, false, poleHeight_Bull, poleStartBar_Bull, flagStartBar, poleStartPrice_Bull, poleEndPrice_Bull]
+    else if isBearPole
+        [false, true, poleHeight_Bear, poleStartBar_Bear, flagStartBar, poleStartPrice_Bear, poleEndPrice_Bear]
+    else
+        [false, false, na, na, na, na, na]
+
+
+// ========== ENHANCED PATTERN DRAWING ==========
+drawAndStorePattern(PatternData p) =>
+    color patternColor = getThemeColor(p.patternType, theme, useCustomColors)
+    // array<line> patternLines = array.new<line>() // Moved to p.lines
+    label patternLabel = na
+    array<label> pivotLabels = array.new<label>() // NEW: Create array
+    
+    // Calculate neckline slope with safety
+    float necklineSlope = safeDivide(p.necklinePrice2 - p.necklinePrice1, p.necklineBar2 - p.necklineBar1)
+    
+    if showLines
+        float extBar = extendLines ? bar_index + 1000 : bar_index + extensionBars
+        string extRight = extendLines ? extend.right : extend.none
+
+        // Draw Pattern-Specific Lines
+        switch p.patternType
+            "HS" =>
+                array.push(p.lines, line.new(p.h1_bar, p.h1, p.h2_bar, p.h2, color=patternColor, width=lineWidth))
+                array.push(p.lines, line.new(p.h2_bar, p.h2, p.h3_bar, p.h3, color=patternColor, width=lineWidth))
+            "IHS" =>
+                array.push(p.lines, line.new(p.l1_bar, p.l1, p.l2_bar, p.l2, color=patternColor, width=lineWidth))
+                array.push(p.lines, line.new(p.l2_bar, p.l2, p.l3_bar, p.l3, color=patternColor, width=lineWidth))
+            "DT" =>
+                array.push(p.lines, line.new(p.h1_bar, p.h1, p.h2_bar, p.h2, color=patternColor, width=lineWidth))
+                array.push(p.lines, line.new(p.h1_bar, p.h1, p.l1_bar, p.l1, color=patternColor, width=lineWidth, style=line.style_dashed))
+                array.push(p.lines, line.new(p.l1_bar, p.l1, p.h2_bar, p.h2, color=patternColor, width=lineWidth, style=line.style_dashed))
+            "DB" =>
+                array.push(p.lines, line.new(p.l1_bar, p.l1, p.l2_bar, p.l2, color=patternColor, width=lineWidth))
+                array.push(p.lines, line.new(p.l1_bar, p.l1, p.h1_bar, p.h1, color=patternColor, width=lineWidth, style=line.style_dashed))
+                array.push(p.lines, line.new(p.h1_bar, p.h1, p.l2_bar, p.l2, color=patternColor, width=lineWidth, style=line.style_dashed))
+            "TRI" =>
+                array.push(p.lines, line.new(p.h1_bar, p.h1, p.h2_bar, p.h2, color=patternColor, width=lineWidth, extend=extRight))
+                array.push(p.lines, line.new(p.l1_bar, p.l1, p.l2_bar, p.l2, color=patternColor, width=lineWidth, extend=extRight))
+            
+            "BULL FLAG" =>
+                // Draw Pole
+                if not na(p.poleStartBar) and not na(p.poleStartPrice) and not na(p.poleEndBar) and not na(p.poleEndPrice)
+                    array.push(p.lines, line.new(p.poleStartBar, p.poleStartPrice, p.poleEndBar, p.poleEndPrice, color=patternColor, width=lineWidth + 1, style=line.style_solid))
+                // Draw Channel
+                array.push(p.lines, line.new(p.h1_bar, p.h1, p.h2_bar, p.h2, color=patternColor, width=lineWidth, extend=extRight))
+                array.push(p.lines, line.new(p.l1_bar, p.l1, p.l2_bar, p.l2, color=patternColor, width=lineWidth, extend=extRight))
+            
+            "BEAR FLAG" =>
+                // Draw Pole
+                if not na(p.poleStartBar) and not na(p.poleStartPrice) and not na(p.poleEndBar) and not na(p.poleEndPrice)
+                    array.push(p.lines, line.new(p.poleStartBar, p.poleStartPrice, p.poleEndBar, p.poleEndPrice, color=patternColor, width=lineWidth + 1, style=line.style_solid))
+                // Draw Channel
+                array.push(p.lines, line.new(p.h1_bar, p.h1, p.h2_bar, p.h2, color=patternColor, width=lineWidth, extend=extRight))
+                array.push(p.lines, line.new(p.l1_bar, p.l1, p.l2_bar, p.l2, color=patternColor, width=lineWidth, extend=extRight))
+            
+            "BULL PENNANT" =>
+                // Draw Pole
+                if not na(p.poleStartBar) and not na(p.poleStartPrice) and not na(p.poleEndBar) and not na(p.poleEndPrice)
+                    array.push(p.lines, line.new(p.poleStartBar, p.poleStartPrice, p.poleEndBar, p.poleEndPrice, color=patternColor, width=lineWidth + 1, style=line.style_solid))
+                // Draw Pennant
+                array.push(p.lines, line.new(p.h1_bar, p.h1, p.h2_bar, p.h2, color=patternColor, width=lineWidth, extend=extRight))
+                array.push(p.lines, line.new(p.l1_bar, p.l1, p.l2_bar, p.l2, color=patternColor, width=lineWidth, extend=extRight))
+            
+            "BEAR PENNANT" =>
+                // Draw Pole
+                if not na(p.poleStartBar) and not na(p.poleStartPrice) and not na(p.poleEndBar) and not na(p.poleEndPrice)
+                    array.push(p.lines, line.new(p.poleStartBar, p.poleStartPrice, p.poleEndBar, p.poleEndPrice, color=patternColor, width=lineWidth + 1, style=line.style_solid))
+                // Draw Pennant
+                array.push(p.lines, line.new(p.h1_bar, p.h1, p.h2_bar, p.h2, color=patternColor, width=lineWidth, extend=extRight))
+                array.push(p.lines, line.new(p.l1_bar, p.l1, p.l2_bar, p.l2, color=patternColor, width=lineWidth, extend=extRight))
+        
+        // Draw Neckline (now excludes Flags)
+        if p.patternType != "TRI" and p.patternType != "BULL FLAG" and p.patternType != "BEAR FLAG" and p.patternType != "BULL PENNANT" and p.patternType != "BEAR PENNANT" and not na(p.necklineBar1)
+            float projectedNeckline = p.necklinePrice2 + necklineSlope * (extBar - p.necklineBar2)
+            array.push(p.lines, line.new(p.necklineBar1, p.necklinePrice1, p.necklineBar2, p.necklinePrice2, color=patternColor, width=lineWidth, style=line.style_dashed))
+            array.push(p.lines, line.new(p.necklineBar2, p.necklinePrice2, int(extBar), projectedNeckline, color=patternColor, width=1, style=line.style_dotted, extend=extRight))
+
+    // Create Enhanced Labels
+    if showLabels
+        string confidenceStr = showConfidence ? "\n📊 Confidence: " + str.tostring(p.confidence, "#.0") + "%" : ""
+        string strengthStr = showConfidence ? "\n💪 Strength: " + str.tostring(p.strength, "#.0") + "%" : ""
+        
+        // NEW: Pattern metrics
+        string metricsStr = ""
+        if showPatternMetrics
+            string heightStr = str.tostring(p.patternHeight, format.mintick)
+            string durationStr = str.tostring(p.patternDuration)
+            string volStr = str.tostring(p.avgVolume, "#.##")
+            metricsStr := "\n📏 Height: " + heightStr + " (" + str.tostring(safeDivide(p.patternHeight, (high + low) / 2, 0.0) * 100, "#.#") + "%)" +
+                          "\n⏱ Duration: " + durationStr + " bars" +
+                          "\n📈 Avg Vol: " + volStr
+
+        // NEW: Add multi-level TP/SL to tooltip
+        string tpslStr = ""
+        if not na(p.priceTarget) and not na(p.stopLossPrice) and p.patternType != "TRI"
+            bool isBullish = p.patternType == "IHS" or p.patternType == "DB" or p.patternType == "BULL FLAG" or p.patternType == "BULL PENNANT"
+        
+            // For flags, height is poleHeight. For H&S etc, it's patternHeight.
+            float heightForTP = p.patternType == "BULL FLAG" or p.patternType == "BEAR FLAG" or p.patternType == "BULL PENNANT" or p.patternType == "BEAR PENNANT" ? p.poleHeight : p.patternHeight
+        
+            // Calculate all TPs based on the *average* neckline (for tooltip only)
+            float avgEntry = p.necklinePrice1 // Good approximation
+            if p.patternType == "HS" or p.patternType == "IHS"
+                avgEntry := math.avg(p.necklinePrice1, p.necklinePrice2)
+            else if p.patternType == "BULL FLAG" or p.patternType == "BEAR FLAG" or p.patternType == "BULL PENNANT" or p.patternType == "BEAR PENNANT"
+                avgEntry := p.necklinePrice1 // This is h2 for bull, l2 for bear
+
+            float t1 = isBullish ? avgEntry + (heightForTP * 0.618) : avgEntry - (heightForTP * 0.618)
+            float t2 = isBullish ? avgEntry + (heightForTP * 1.0)   : avgEntry - (heightForTP * 1.0)
+            float t3 = isBullish ? avgEntry + (heightForTP * 1.618) : avgEntry - (heightForTP * 1.618)
+
+            tpslStr := "\n\n🎯 TP1 (0.618): " + str.tostring(t1, format.mintick) +
+                               "\n🎯 TP2 (1.000): " + str.tostring(t2, format.mintick) +
+                               "\n🎯 TP3 (1.618): " + str.tostring(t3, format.mintick) +
+                               "\n🚫 Stop Loss (SL): " + str.tostring(p.stopLossPrice, format.mintick)
+        
+        string tooltipText = ""
+        string labelText = ""
+        labelStyle = label.style_label_down
+        
+        switch p.patternType
+            "HS" =>
+                tooltipText := "🔴 Head & Shoulders (Bearish)" +
+                               "\n\nLeft Shoulder: " + str.tostring(p.h1, format.mintick) +
+                               "\nHead: " + str.tostring(p.h2, format.mintick) +
+                               "\nRight Shoulder: " + str.tostring(p.h3, format.mintick) +
+                               "\nNeckline: " + str.tostring(p.necklinePrice2, format.mintick) +
+                               tpslStr + confidenceStr + strengthStr + metricsStr
+                labelText := "H&S ⬇"
+                labelStyle := label.style_label_down
+            "IHS" =>
+                tooltipText := "🟢 Inverse Head & Shoulders (Bullish)" +
+                               "\n\nLeft Shoulder: " + str.tostring(p.l1, format.mintick) +
+                               "\nHead: " + str.tostring(p.l2, format.mintick) +
+                               "\nRight Shoulder: " + str.tostring(p.l3, format.mintick) +
+                               "\nNeckline: " + str.tostring(p.necklinePrice2, format.mintick) +
+                               tpslStr + confidenceStr + strengthStr + metricsStr
+                labelText := "IH&S ⬆"
+                labelStyle := label.style_label_up
+            "DT" =>
+                tooltipText := "🟠 Double Top (Bearish)" + (p.divergence ? "\n🔥 BEARISH DIVERGENCE" : "") +
+                               "\n\nFirst Top: " + str.tostring(p.h1, format.mintick) +
+                               "\nSecond Top: " + str.tostring(p.h2, format.mintick) +
+                               "\nSupport: " + str.tostring(p.necklinePrice1, format.mintick) +
+                               tpslStr + confidenceStr + strengthStr + metricsStr
+                labelText := "DT ⬇" + (p.divergence ? " (DIV 🔥)" : "")
+                labelStyle := label.style_label_down
+            "DB" =>
+                tooltipText := "🔵 Double Bottom (Bullish)" + (p.divergence ? "\n✅ BULLISH DIVERGENCE" : "") +
+                               "\n\nFirst Bottom: " + str.tostring(p.l1, format.mintick) +
+                               "\nSecond Bottom: " + str.tostring(p.l2, format.mintick) +
+                               "\nResistance: " + str.tostring(p.necklinePrice1, format.mintick) +
+                               tpslStr + confidenceStr + strengthStr + metricsStr
+                labelText := "DB ⬆" + (p.divergence ? " (DIV ✅)" : "")
+                labelStyle := label.style_label_up
+            "TRI" =>
+                // ✅ FIX: Expanded emoji and direction logic for Wedges
+                string emoji = p.triangleSubType == "Ascending" ? "🟢" : 
+                               p.triangleSubType == "Descending" ? "🔴" : 
+                               p.triangleSubType == "Rising Wedge" ? "🔻" :
+                               p.triangleSubType == "Falling Wedge" ? "🔺" : "🟣"
+                string direction = p.triangleSubType == "Ascending" ? "⬆" : 
+                                   p.triangleSubType == "Descending" ? "⬇" :
+                                   p.triangleSubType == "Rising Wedge" ? "⬇ (Bearish)" :
+                                   p.triangleSubType == "Falling Wedge" ? "⬆ (Bullish)" : "⬌"
+                
+                tooltipText := emoji + " " + p.triangleSubType + (p.triangleSubType == "Symmetrical" ? " Triangle" : "") +
+                               "\n\nTop Line: " + str.tostring(p.h1, format.mintick) + " → " + str.tostring(p.h2, format.mintick) +
+                               "\nBottom Line: " + str.tostring(p.l1, format.mintick) + " → " + str.tostring(p.l2, format.mintick) +
+                               confidenceStr + strengthStr + metricsStr
+                labelText := p.triangleSubType + " △\n" + direction
+                labelStyle := label.style_label_left
+            
+            "BULL FLAG" =>
+                tooltipText := "🟡 Bull Flag 🚩 (Bullish)" +
+                               "\n\nPole Height: " + str.tostring(p.poleHeight, format.mintick) +
+                               "\nFlag Top: " + str.tostring(p.h1, format.mintick) + " → " + str.tostring(p.h2, format.mintick) +
+                               "\nFlag Bottom: " + str.tostring(p.l1, format.mintick) + " → " + str.tostring(p.l2, format.mintick) +
+                               tpslStr + confidenceStr + strengthStr + metricsStr
+                labelText    := "Bull Flag ⬆ 🚩"
+                labelStyle  := label.style_label_up
+
+            "BULL PENNANT" =>
+                tooltipText := "🟡 Bull Pennant 🚩 (Bullish)" +
+                               "\n\nPole Height: " + str.tostring(p.poleHeight, format.mintick) +
+                               "\nPennant Top: " + str.tostring(p.h1, format.mintick) + " → " + str.tostring(p.h2, format.mintick) +
+                               "\nPennant Bottom: " + str.tostring(p.l1, format.mintick) + " → " + str.tostring(p.l2, format.mintick) +
+                               tpslStr + confidenceStr + strengthStr + metricsStr
+                labelText    := "Bull Pennant ⬆ 🚩"
+                labelStyle  := label.style_label_up
+
+            "BEAR FLAG" =>
+                tooltipText := "🟡 Bear Flag 🚩 (Bearish)" +
+                               "\n\nPole Height: " + str.tostring(p.poleHeight, format.mintick) +
+                               "\nFlag Top: " + str.tostring(p.h1, format.mintick) + " → " + str.tostring(p.h2, format.mintick) +
+                               "\nFlag Bottom: " + str.tostring(p.l1, format.mintick) + " → " + str.tostring(p.l2, format.mintick) +
+                               tpslStr + confidenceStr + strengthStr + metricsStr
+                labelText    := "Bear Flag ⬇ 🚩"
+                labelStyle  := label.style_label_down
+
+            "BEAR PENNANT" =>
+                tooltipText := "🟡 Bear Pennant 🚩 (Bearish)" +
+                               "\n\nPole Height: " + str.tostring(p.poleHeight, format.mintick) +
+                               "\nPennant Top: " + str.tostring(p.h1, format.mintick) + " → " + str.tostring(p.h2, format.mintick) +
+                               "\nPennant Bottom: " + str.tostring(p.l1, format.mintick) + " → " + str.tostring(p.l2, format.mintick) +
+                               tpslStr + confidenceStr + strengthStr + metricsStr
+                labelText    := "BearP_T ⬇ 🚩"
+                labelStyle  := label.style_label_down
+
+        float labelPrice = p.patternType == "IHS" or p.patternType == "DB" ? p.l2 : p.h2
+        if p.patternType == "TRI" or p.patternType == "BULL FLAG" or p.patternType == "BEAR FLAG" or p.patternType == "BULL PENNANT" or p.patternType == "BEAR PENNANT"
+            labelPrice := math.avg(p.h1, p.l1)
+            
+        patternLabel := label.new(p.endBar, labelPrice, 
+                                  labelText, style=labelStyle, 
+                                  color=patternColor, textcolor=color.white, size=labelSize, tooltip=tooltipText)
+
+    // Add Pivot Labels
+    if showPivotLabels
+        switch p.patternType
+            "HS" =>
+                array.push(pivotLabels, label.new(p.h1_bar, p.h1, "LS", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.h2_bar, p.h2, "H", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.h3_bar, p.h3, "RS", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+            "IHS" =>
+                array.push(pivotLabels, label.new(p.l1_bar, p.l1, "LS", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l2_bar, p.l2, "H", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l3_bar, p.l3, "RS", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+            "DT" =>
+                array.push(pivotLabels, label.new(p.h1_bar, p.h1, "T1", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.h2_bar, p.h2, "T2", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+            "DB" =>
+                array.push(pivotLabels, label.new(p.l1_bar, p.l1, "B1", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l2_bar, p.l2, "B2", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+            "TRI" =>
+                array.push(pivotLabels, label.new(p.h1_bar, p.h1, "H1", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.h2_bar, p.h2, "H2", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l1_bar, p.l1, "L1", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l2_bar, p.l2, "L2", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+            "BULL FLAG" =>
+                array.push(pivotLabels, label.new(p.h1_bar, p.h1, "H1", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.h2_bar, p.h2, "H2", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l1_bar, p.l1, "L1", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l2_bar, p.l2, "L2", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+            "BEAR FLAG" =>
+                array.push(pivotLabels, label.new(p.h1_bar, p.h1, "H1", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.h2_bar, p.h2, "H2", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l1_bar, p.l1, "L1", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l2_bar, p.l2, "L2", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+            "BULL PENNANT" =>
+                array.push(pivotLabels, label.new(p.h1_bar, p.h1, "H1", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.h2_bar, p.h2, "H2", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l1_bar, p.l1, "L1", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l2_bar, p.l2, "L2", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+            "BEAR PENNANT" =>
+                array.push(pivotLabels, label.new(p.h1_bar, p.h1, "H1", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.h2_bar, p.h2, "H2", style=label.style_label_down, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l1_bar, p.l1, "L1", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                array.push(pivotLabels, label.new(p.l2_bar, p.l2, "L2", style=label.style_label_up, color=color.new(patternColor, 60), textcolor=color.white, size=pivotLabelSize))
+                
+    // Update PatternData object with drawing references
+    // p.lines := patternLines // No longer needed, pushed directly
+    p.patternLabel := patternLabel
+    p.pivotLabels := pivotLabels // NEW: Store pivot labels
+    
+    // Add to storage
+    addPatternToStorage(p)
+    addPatternRange(p.startBar, p.endBar) // <-- NEW (v5.24) Add to overlap tracker
+
+    // Send Alert
+    string alertMsg = syminfo.ticker + " (" + timeframe.period + "): " + p.patternType + " pattern detected! Strength: " + str.tostring(p.strength, "#.0") + "%"
+    if p.patternType == "HS" and alertHS
+        alert(alertMsg, alert.freq_once_per_bar)
+    else if p.patternType == "IHS" and alertIHS
+        alert(alertMsg, alert.freq_once_per_bar)
+    else if p.patternType == "DT" and alertDT
+        alert(alertMsg + (p.divergence ? " (RSI DIV)" : ""), alert.freq_once_per_bar)
+    else if p.patternType == "DB" and alertDB
+        alert(alertMsg + (p.divergence ? " (RSI DIV)" : ""), alert.freq_once_per_bar)
+    else if p.patternType == "TRI" and alertTRI
+        alert(syminfo.ticker + " (" + timeframe.period + "): " + p.triangleSubType + " " + p.patternType + " detected!", alert.freq_once_per_bar)
+    else if (p.patternType == "BULL FLAG" or p.patternType == "BEAR FLAG" or p.patternType == "BULL PENNANT" or p.patternType == "BEAR PENNANT") and alertFLAG
+        alert(alertMsg, alert.freq_once_per_bar)
+
+// ========== PATTERN DETECTION FUNCTIONS ==========
+detectHeadAndShoulders(array<float> pivotHighPrices, array<int> pivotHighBars, array<float> pivotLowPrices, array<int> pivotLowBars) =>
+    PatternData pattern = na
+    bool detected = false
+    
+    if detectHS and array.size(pivotHighPrices) >= 3 and array.size(pivotLowPrices) >= 2
+        float h3 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 1)
+        float h2 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 2)
+        float h1 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 3)
+        int h3_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 1)
+        int h2_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 2)
+        int h1_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 3)
+        
+        float l2 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 1)
+        float l1 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 2)
+        int l2_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 1)
+        int l1_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 2)
+        
+        int barsInPattern = h3_bar - h1_bar
+        bool headHigher = h2 > h1 and h2 > h3
+        float necklineSlopePercent = safeDivide(math.abs(l1 - l2), math.avg(l1, l2), 0.0) * 100
+        bool validNeckline = necklineSlopePercent <= maxNecklineSlopePercent
+        bool validBars = barsInPattern >= minPatternBars and barsInPattern <= maxPatternBars
+        bool validSequence = h1_bar < l1_bar and l1_bar < h2_bar and h2_bar < l2_bar and l2_bar < h3_bar
+        
+        bool shouldersValid = false
+        float shoulderError = 0.0
+        
+        bool isNecklineFlat = isWithinTolerance(l1, l2, patternTolerance) 
+
+        if isNecklineFlat
+            shouldersValid := isWithinTolerance(h1, h3, patternTolerance)
+            shoulderError := safeDivide(math.abs(h1 - h3), h1)
+        else if allowSlopedNecklines and l2_bar != l1_bar
+            float necklineSlope = safeDivide(l2 - l1, l2_bar - l1_bar)
+            float expectedNeck_h1 = l1 + necklineSlope * (h1_bar - l1_bar)
+            float expectedNeck_h3 = l1 + necklineSlope * (h3_bar - l1_bar)
+            float dist_h1 = h1 - expectedNeck_h1
+            float dist_h3 = h3 - expectedNeck_h3
+            shouldersValid := dist_h1 > 0 and dist_h3 > 0 and isWithinTolerance(dist_h1, dist_h3, patternTolerance)
+            shoulderError := safeDivide(math.abs(dist_h1 - dist_h3), dist_h1)
+        else
+            shouldersValid := false
+
+        bool barRatioValid = true
+        float barRatio = 1.0
+        if checkBarRatio
+            int bars1 = l1_bar - h1_bar
+            int bars2 = h2_bar - l1_bar
+            int bars3 = l2_bar - h2_bar
+            int bars4 = h3_bar - l2_bar
+            int minBars = math.min(bars1, math.min(bars2, math.min(bars3, bars4)))
+            int maxBars = math.max(bars1, math.max(bars2, math.max(bars3, bars4)))
+            barRatio := safeDivide(minBars, maxBars, 0.0) // FIX: Use safeDivide
+            barRatioValid := barRatio >= barRatioLimit
+        
+        bool lastPivotUp = h3 > l2
+        bool lastPivotValid = checkLastPivotDirection(hsLastPivot, lastPivotUp)
+        
+        if shouldersValid and headHigher and validNeckline and validBars and validSequence and barRatioValid and lastPivotValid
+            detected := true
+            float confidence = calculateConfidence(shoulderError, necklineSlopePercent, barRatio, validSequence)
+            float height = h2 - math.avg(l1, l2)
+            float avgVol = getPatternVolume(h1_bar, h3_bar)
+            float strength = calculateStrength(confidence, height, avgVol)
+            float priceTarget = math.avg(l1, l2) - height
+            float stopLossPrice = h2
+            
+            // CRITICAL FIX: Initialize lines and pivotLabels with an empty array. 51 args total.
+            pattern := PatternData.new(array.new<line>(), na, na, array.new<label>(), 
+                                     na, na, na, na, na, na, na, na, na, na,
+                                     h1_bar, h3_bar, "HS", na, confidence, strength,
+                                     h1, h2, h3, l1, l2, na,
+                                     h1_bar, h2_bar, h3_bar, l1_bar, l2_bar, na,
+                                     l1, l2, l1_bar, l2_bar, priceTarget, stopLossPrice,
+                                     height, barsInPattern, avgVol,
+                                     false, false, na, 
+                                     false, na, 
+                                     na, na, na, na, na)
+                                    
+        
+    [detected, pattern]
+
+detectInverseHS(array<float> pivotHighPrices, array<int> pivotHighBars, array<float> pivotLowPrices, array<int> pivotLowBars) =>
+    PatternData pattern = na
+    bool detected = false
+    
+    if detectIHS and array.size(pivotLowPrices) >= 3 and array.size(pivotHighPrices) >= 2
+        float l3 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 1)
+        float l2 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 2)
+        float l1 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 3)
+        int l3_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 1)
+        int l2_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 2)
+        int l1_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 3)
+        
+        float h2 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 1)
+        float h1 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 2)
+        int h2_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 1)
+        int h1_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 2)
+        
+        int barsInPattern = l3_bar - l1_bar
+        bool headLower = l2 < l1 and l2 < l3
+        float necklineSlopePercent = safeDivide(math.abs(h1 - h2), math.avg(h1, h2), 0.0) * 100
+        bool validNeckline = necklineSlopePercent <= maxNecklineSlopePercent
+        bool validBars = barsInPattern >= minPatternBars and barsInPattern <= maxPatternBars
+        bool validSequence = l1_bar < h1_bar and h1_bar < l2_bar and l2_bar < h2_bar and h2_bar < l3_bar
+        
+        bool shouldersValid = false
+        float shoulderError = 0.0
+        
+        bool isNecklineFlat = isWithinTolerance(h1, h2, patternTolerance)
+
+        if isNecklineFlat
+            shouldersValid := isWithinTolerance(l1, l3, patternTolerance)
+            shoulderError := safeDivide(math.abs(l1 - l3), l1)
+        else if allowSlopedNecklines and h2_bar != h1_bar
+            float necklineSlope = safeDivide(h2 - h1, h2_bar - h1_bar)
+            float expectedNeck_l1 = h1 + necklineSlope * (l1_bar - h1_bar)
+            float expectedNeck_l3 = h1 + necklineSlope * (l3_bar - h1_bar)
+            float dist_l1 = expectedNeck_l1 - l1
+            float dist_l3 = expectedNeck_l3 - l3
+            shouldersValid := dist_l1 > 0 and dist_l3 > 0 and isWithinTolerance(dist_l1, dist_l3, patternTolerance)
+            shoulderError := safeDivide(math.abs(dist_l1 - dist_l3), dist_l1)
+        else
+            shouldersValid := false
+
+        bool barRatioValid = true
+        float barRatio = 1.0
+        if checkBarRatio
+            int bars1 = h1_bar - l1_bar
+            int bars2 = l2_bar - h1_bar
+            int bars3 = h2_bar - l2_bar
+            int bars4 = l3_bar - h2_bar
+            int minBars = math.min(bars1, math.min(bars2, math.min(bars3, bars4)))
+            int maxBars = math.max(bars1, math.max(bars2, math.max(bars3, bars4)))
+            barRatio := safeDivide(minBars, maxBars, 0.0) // FIX: Use safeDivide
+            barRatioValid := barRatio >= barRatioLimit
+        
+        bool lastPivotUp = l3 < h2
+        bool lastPivotValid = checkLastPivotDirection(ihsLastPivot, lastPivotUp)
+        
+        if shouldersValid and headLower and validNeckline and validBars and validSequence and barRatioValid and lastPivotValid
+            detected := true
+            float confidence = calculateConfidence(shoulderError, necklineSlopePercent, barRatio, validSequence)
+            float height = math.avg(h1, h2) - l2
+            float avgVol = getPatternVolume(l1_bar, l3_bar)
+            float strength = calculateStrength(confidence, height, avgVol)
+            float priceTarget = math.avg(h1, h2) + height
+            float stopLossPrice = l2
+            
+            // CRITICAL FIX: Initialize lines and pivotLabels with an empty array. 51 args total.
+            pattern := PatternData.new(array.new<line>(), na, na, array.new<label>(), 
+                                     na, na, na, na, na, na, na, na, na, na,
+                                     l1_bar, l3_bar, "IHS", na, confidence, strength,
+                                     h1, h2, na, l1, l2, l3,
+                                     h1_bar, h2_bar, na, l1_bar, l2_bar, l3_bar,
+                                     h1, h2, h1_bar, h2_bar, priceTarget, stopLossPrice,
+                                     height, barsInPattern, avgVol,
+                                     false, false, na, 
+                                     false, na, 
+                                     na, na, na, na, na)
+                                    
+        
+    [detected, pattern]
+
+detectDoubleTop(array<float> pivotHighPrices, array<int> pivotHighBars, array<float> pivotLowPrices, array<int> pivotLowBars) =>
+    PatternData pattern = na
+    bool detected = false
+    
+    if detectDT and array.size(pivotHighPrices) >= 2 and array.size(pivotLowPrices) >= 1
+        float h2 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 1)
+        float h1 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 2)
+        int h2_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 1)
+        int h1_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 2)
+        
+        float l1 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 1)
+        int l1_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 1)
+        
+        int barsInPattern = h2_bar - h1_bar
+        bool topsLevel = isWithinTolerance(h1, h2, patternTolerance)
+        float topsError = safeDivide(math.abs(h1 - h2), h1)
+        bool validBars = barsInPattern >= minPatternBars and barsInPattern <= maxPatternBars
+        bool validSequence = h1_bar < l1_bar and l1_bar < h2_bar
+        
+        bool barRatioValid = true
+        float barRatio = 1.0
+        if checkBarRatio
+            int bars1 = l1_bar - h1_bar
+            int bars2 = h2_bar - l1_bar
+            int minBars = math.min(bars1, bars2)
+            int maxBars = math.max(bars1, bars2) 
+            barRatio := safeDivide(minBars, maxBars, 0.0) // FIX: Use safeDivide
+            barRatioValid := barRatio >= barRatioLimit
+        
+        bool lastPivotUp = h2 > l1
+        bool lastPivotValid = checkLastPivotDirection(dtLastPivot, lastPivotUp)
+        
+        // CRITICAL FIX: Correct RSI Divergence Logic
+        bool hasDivergence = false
+        if useDivergenceCheck and validSequence
+            int h1_offset = bar_index - h1_bar
+            int h2_offset = bar_index - h2_bar
+            // Check if offsets are valid (within historical buffer)
+            if h1_offset >= 0 and h2_offset >= 0 and h1_offset < bar_index and h2_offset < bar_index
+                float rsiAtTop1 = rsi[h1_offset]
+                float rsiAtTop2 = rsi[h2_offset]
+                // FIX: Use user-defined tolerances
+                hasDivergence := (h2 >= h1 * (1.0 - divPriceTol / 100)) and (rsiAtTop2 < rsiAtTop1 * (1.0 - divRsiTol / 100))
+        
+        bool filterPassed = not filterDivergenceOnly or (filterDivergenceOnly and hasDivergence)
+        
+        if topsLevel and validBars and validSequence and barRatioValid and lastPivotValid and filterPassed
+            detected := true
+            float confidence = calculateConfidence(topsError, 0.0, barRatio, validSequence)
+            float height = math.avg(h1, h2) - l1
+            float avgVol = getPatternVolume(h1_bar, h2_bar)
+            float strength = calculateStrength(confidence, height, avgVol)
+            float priceTarget = l1 - height
+            float stopLossPrice = math.max(h1, h2)
+            
+            // CRITICAL FIX: Initialize lines and pivotLabels with an empty array. 51 args total.
+            pattern := PatternData.new(array.new<line>(), na, na, array.new<label>(), 
+                                     na, na, na, na, na, na, na, na, na, na,
+                                     h1_bar, h2_bar, "DT", na, confidence, strength,
+                                     h1, h2, na, l1, na, na,
+                                     h1_bar, h2_bar, na, l1_bar, na, na,
+                                     l1, l1, l1_bar, l1_bar, priceTarget, stopLossPrice,
+                                     height, barsInPattern, avgVol,
+                                     false, false, na, 
+                                     hasDivergence, na, 
+                                     na, na, na, na, na)
+                                    
+        
+    [detected, pattern]
+
+detectDoubleBottom(array<float> pivotHighPrices, array<int> pivotHighBars, array<float> pivotLowPrices, array<int> pivotLowBars) =>
+    PatternData pattern = na
+    bool detected = false
+    
+    if detectDB and array.size(pivotLowPrices) >= 2 and array.size(pivotHighPrices) >= 1
+        float l2 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 1)
+        float l1 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 2)
+        int l2_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 1)
+        int l1_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 2)
+        
+        float h1 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 1)
+        // CRITICAL BUG FIX: Use pivotHighBars array size
+        int h1_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 1)
+        
+        int barsInPattern = l2_bar - l1_bar
+        bool bottomsLevel = isWithinTolerance(l1, l2, patternTolerance)
+        float bottomsError = safeDivide(math.abs(l1 - l2), l1)
+        bool validBars = barsInPattern >= minPatternBars and barsInPattern <= maxPatternBars
+        bool validSequence = l1_bar < h1_bar and h1_bar < l2_bar
+        
+        bool barRatioValid = true
+        float barRatio = 1.0
+        if checkBarRatio
+            int bars1 = h1_bar - l1_bar
+            int bars2 = l2_bar - h1_bar
+            int minBars = math.min(bars1, bars2)
+            int maxBars = math.max(bars1, bars2)
+            barRatio := safeDivide(minBars, maxBars, 0.0) // FIX: Use safeDivide
+            barRatioValid := barRatio >= barRatioLimit
+        
+        bool lastPivotUp = l2 < h1
+        bool lastPivotValid = checkLastPivotDirection(dbLastPivot, lastPivotUp)
+
+        // CRITICAL FIX: Correct RSI Divergence Logic
+        bool hasDivergence = false
+        if useDivergenceCheck and validSequence
+            int l1_offset = bar_index - l1_bar
+            int l2_offset = bar_index - l2_bar
+            if l1_offset >= 0 and l2_offset >= 0 and l1_offset < bar_index and l2_offset < bar_index
+                float rsiAtBottom1 = rsi[l1_offset]
+                float rsiAtBottom2 = rsi[l2_offset]
+                // FIX: Use user-defined tolerances
+                hasDivergence := (l2 <= l1 * (1.0 + divPriceTol / 100)) and (rsiAtBottom2 > rsiAtBottom1 * (1.0 + divRsiTol / 100))
+        
+        bool filterPassed = not filterDivergenceOnly or (filterDivergenceOnly and hasDivergence)
+
+        if bottomsLevel and validBars and validSequence and barRatioValid and lastPivotValid and filterPassed
+            detected := true
+            float confidence = calculateConfidence(bottomsError, 0.0, barRatio, validSequence)
+            float height = h1 - math.avg(l1, l2)
+            float avgVol = getPatternVolume(l1_bar, l2_bar)
+            float strength = calculateStrength(confidence, height, avgVol)
+            float priceTarget = h1 + height
+            float stopLossPrice = math.min(l1, l2)
+            
+            // CRITICAL FIX: Initialize lines and pivotLabels with an empty array. 51 args total.
+            pattern := PatternData.new(array.new<line>(), na, na, array.new<label>(), 
+                                     na, na, na, na, na, na, na, na, na, na,
+                                     l1_bar, l2_bar, "DB", na, confidence, strength,
+                                     h1, na, na, l1, l2, na,
+                                     h1_bar, na, na, l1_bar, l2_bar, na,
+                                     h1, h1, h1_bar, h1_bar, priceTarget, stopLossPrice,
+                                     height, barsInPattern, avgVol,
+                                     false, false, na, 
+                                     hasDivergence, na, 
+                                     na, na, na, na, na)
+                                    
+        
+    [detected, pattern]
+
+// ENHANCED: Triangle detection (now also detects Pennants AND WEDGES)
+detectTriangles(array<float> pivotHighPrices, array<int> pivotHighBars, array<float> pivotLowPrices, array<int> pivotLowBars) =>
+    PatternData pattern = na
+    bool detected = false
+    string subType = na
+    
+    // Try to find 5-point patterns (2 highs, 3 lows or 3 highs, 2 lows)
+    if (detectTriangle or detectFlag) and array.size(pivotHighPrices) >= 2 and array.size(pivotLowPrices) >= 2
+        
+        float h2 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 1)
+        float h1 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 2)
+        int h2_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 1)
+        int h1_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 2)
+        
+        float l2 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 1)
+        float l1 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 2)
+        int l2_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 1)
+        int l1_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 2)
+        
+        bool validSequence = l1_bar < h1_bar and h1_bar < l2_bar and l2_bar < h2_bar
+        int barsInPattern = h2_bar - l1_bar
+        bool validBars = barsInPattern >= minPatternBars and barsInPattern <= maxPatternBars
+
+        if validSequence and validBars
+            float topSlope = safeDivide(h2 - h1, h2_bar - h1_bar)
+            float bottomSlope = safeDivide(l2 - l1, l2_bar - l1_bar)
+
+            float avgPrice = math.avg(h1, h2, l1, l2)
+            float topSlopeAmount = math.abs(topSlope * barsInPattern)
+            float bottomSlopeAmount = math.abs(bottomSlope * barsInPattern)
+            
+            bool topIsFlat = safeDivide(topSlopeAmount, avgPrice, 0.0) * 100 <= maxFlatLineSlope
+            bool bottomIsFlat = safeDivide(bottomSlopeAmount, avgPrice, 0.0) * 100 <= maxFlatLineSlope
+            
+            if topSlope < 0 and bottomSlope > 0
+                subType := "Symmetrical"
+            else if topIsFlat and bottomSlope > 0
+                subType := "Ascending"
+            else if topSlope < 0 and bottomIsFlat
+                subType := "Descending"
+            
+            // ✅ FIX: Added new Wedge logic (with 10% tolerance)
+            else if topSlope > 0 and bottomSlope > 0 and bottomSlope > topSlope * 1.1
+                subType := "Rising Wedge" // Bearish
+            else if topSlope < 0 and bottomSlope < 0 and math.abs(topSlope) > math.abs(bottomSlope) * 1.1
+                subType := "Falling Wedge" // Bullish
+
+            bool lastPivotUp = h2 > l2
+            bool lastPivotValid = checkLastPivotDirection(triLastPivot, lastPivotUp)
+
+            if not na(subType) and lastPivotValid
+                float confidence = 0.0
+                float height = h1 - l1 // Initial height
+                float avgVol = getPatternVolume(l1_bar, h2_bar)
+                float strength = 0.0
+                
+                int apexBarIndex = na
+                if topSlope != bottomSlope
+                    float numerator = (topSlope * h1_bar) - (bottomSlope * l1_bar) + l1 - h1
+                    float denominator = topSlope - bottomSlope
+                    apexBarIndex := int(safeDivide(numerator, denominator, na))
+                
+                // --- NEW: PENNANT CHECK ---
+                // FIXED: Use the EARLIEST bar of the pennant as the start
+                int pennantStartBar = math.min(l1_bar, h1_bar)
+                [isBullPole, isBearPole, poleHeight, pStartBar, pEndBar, pStartPrice, pEndPrice] = checkPole(pennantStartBar, maxPoleLookback, poleMinPercent)
+                
+                bool isBullPennant = detectFlag and isBullPole and (subType == "Symmetrical" or subType == "Descending")
+                bool isBearPennant = detectFlag and isBearPole and (subType == "Symmetrical" or subType == "Ascending")
+                
+                if isBullPennant or isBearPennant
+                    detected := true
+                    string patternType = isBullPennant ? "BULL PENNANT" : "BEAR PENNANT"
+                    confidence := calculateConfidence(0.0, 0.0, 1.0, true)
+                    strength := calculateStrength(confidence, poleHeight, avgVol)
+                    
+                    float breakPrice = isBullPennant ? h2 : l2 // Estimated break
+                    float priceTarget = isBullPennant ? breakPrice + poleHeight : breakPrice - poleHeight
+                    float stopLossPrice = isBullPennant ? l2 : h2 // SL is other side of pennant
+
+                    // CRITICAL FIX: Constructor call matches type definition. 51 args total.
+                    pattern := PatternData.new(
+                                 array.new<line>(), na, na, array.new<label>(), 
+                                 na, na, na, na, na, na, na, na, na, na,
+                                 l1_bar, h2_bar, patternType, subType, confidence, strength,
+                                 h1, h2, na, l1, l2, na,
+                                 h1_bar, h2_bar, na, l1_bar, l2_bar, na,
+                                 h2, l2, h2_bar, l2_bar, priceTarget, stopLossPrice, // Neckline for flags is the channel itself
+                                 height, barsInPattern, avgVol,
+                                 false, false, na,
+                                 false, apexBarIndex,
+                                 poleHeight, pStartBar, pEndBar, pStartPrice, pEndPrice)
+                                
+                
+                // --- ELSE, IT'S A NORMAL TRIANGLE/WEDGE ---
+                // ✅ FIX: Now includes Wedges
+                else if detectTriangle
+                    detected := true
+                    float topError = topIsFlat ? safeDivide(topSlopeAmount, avgPrice) * 100 : 0.0
+                    float bottomError = bottomIsFlat ? safeDivide(bottomSlopeAmount, avgPrice) * 100 : 0.0
+                    confidence := calculateConfidence(math.max(topError, bottomError), 0.0, 1.0, true)
+                    strength := calculateStrength(confidence, height, avgVol)
+                    
+                    // CRITICAL FIX: Initialize lines and pivotLabels with an empty array. 51 args total.
+                    pattern := PatternData.new(array.new<line>(), na, na, array.new<label>(), 
+                                                                 na, na, na, na, na, na, na, na, na, na,
+                                                                 l1_bar, h2_bar, "TRI", subType, confidence, strength,
+                                                                 h1, h2, na, l1, l2, na,
+                                                                 h1_bar, h2_bar, na, l1_bar, l2_bar, na,
+                                                                 na, na, na, na, na, na,
+                                                                 height, barsInPattern, avgVol,
+                                                                 false, false, na, 
+                                                                 false, apexBarIndex, 
+                                                                 na, na, na, na, na)
+                                                                
+    
+    // CRITICAL FIX: Always return the tuple
+    [detected, pattern]
+
+// ========== NEW: CHANNEL FLAG DETECTION ==========
+// ✅ CRITICAL FIX: Moved final return statement outside 'if detectFlag'
+detectChannelFlag(array<float> pivotHighPrices, array<int> pivotHighBars, array<float> pivotLowPrices, array<int> pivotLowBars) =>
+    PatternData pattern = na
+    bool detected = false
+
+    if detectFlag and array.size(pivotHighPrices) >= 2 and array.size(pivotLowPrices) >= 2
+        float h2 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 1)
+        float h1 = array.get(pivotHighPrices, array.size(pivotHighPrices) - 2)
+        int h2_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 1)
+        int h1_bar = array.get(pivotHighBars, array.size(pivotHighBars) - 2)
+        
+        float l2 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 1)
+        float l1 = array.get(pivotLowPrices, array.size(pivotLowPrices) - 2)
+        int l2_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 1)
+        int l1_bar = array.get(pivotLowBars, array.size(pivotLowBars) - 2)
+
+        // Check for valid 4-point sequences
+        bool validSeq1 = l1_bar < h1_bar and h1_bar < l2_bar and l2_bar < h2_bar
+        bool validSeq2 = h1_bar < l1_bar and l1_bar < h2_bar and h2_bar < l2_bar
+        
+        if not (validSeq1 or validSeq2)
+            [false, na]
+        else
+            int channelStartBar = math.min(l1_bar, h1_bar)
+            int channelEndBar = math.max(l2_bar, h2_bar)
+            int channelBars = channelEndBar - channelStartBar
+
+            if channelBars > flagMaxBars or channelBars < 4
+                [false, na]
+            else
+                // Check for parallel channel
+                float topSlope = safeDivide(h2 - h1, h2_bar - h1_bar)
+                float bottomSlope = safeDivide(l2 - l1, l2_bar - l1_bar)
+                
+                bool isParallel = isWithinTolerance(topSlope, bottomSlope, flagChannelTolerance)
+                bool isDescendingChannel = isParallel and topSlope < 0 and bottomSlope < 0
+                bool isAscendingChannel = isParallel and topSlope > 0 and bottomSlope > 0
+
+                if not (isDescendingChannel or isAscendingChannel)
+                    [false, na]
+                else
+                    // Check for pole
+                    [isBullPole, isBearPole, poleHeight, pStartBar, pEndBar, pStartPrice, pEndPrice] = checkPole(channelStartBar, maxPoleLookback, poleMinPercent)
+                    
+                    bool isBullFlag = isBullPole and isDescendingChannel
+                    bool isBearFlag = isBearPole and isAscendingChannel
+
+                    if isBullFlag or isBearFlag
+                        detected := true
+                        string patternType = isBullFlag ? "BULL FLAG" : "BEAR FLAG"
+                        float confidence = calculateConfidence(0.0, 0.0, 1.0, true)
+                        float avgVol = getPatternVolume(channelStartBar, channelEndBar)
+                        float strength = calculateStrength(confidence, poleHeight, avgVol)
+                        float height = math.abs(h1 - l1) // Flag channel height
+
+                        float breakPrice = isBullFlag ? h2 : l2 // Estimated break
+                        float priceTarget = isBullFlag ? breakPrice + poleHeight : breakPrice - poleHeight
+                        float stopLossPrice = isBullFlag ? l2 : h2 // SL is other side of channel
+
+                        // CRITICAL FIX: Constructor call matches type definition. 51 args total.
+                        pattern := PatternData.new(
+                                     array.new<line>(), na, na, array.new<label>(), 
+                                     na, na, na, na, na, na, na, na, na, na,
+                                     channelStartBar, channelEndBar, patternType, na, confidence, strength,
+                                     h1, h2, na, l1, l2, na,
+                                     h1_bar, h2_bar, na, l1_bar, l2_bar, na,
+                                     h2, l2, h2_bar, l2_bar, priceTarget, stopLossPrice,
+                                     height, channelBars, avgVol,
+                                     false, false, na,
+                                     false, na,
+                                     poleHeight, pStartBar, pEndBar, pStartPrice, pEndPrice)
+                        
+                    // [detected, pattern] // <-- 🛑 BUG WAS HERE
+        
+    // ✅ CRITICAL FIX: Moved return statement here to ensure function always returns
+    [detected, pattern]
+
+// ========== MAIN SCANNING LOGIC ==========
+scanForPatterns(int leftLen, int rightLen, PivotCache cache) =>
+    [pivotHighPrices, pivotHighBars, pivotLowPrices, pivotLowBars] = getPivotsWithCache(leftLen, rightLen, cache)
+    
+    [hsFound, hsPattern] = detectHeadAndShoulders(pivotHighPrices, pivotHighBars, pivotLowPrices, pivotLowBars)
+    if hsFound
+        if not patternWouldOverlap(hsPattern.startBar, hsPattern.endBar) // <-- PATCHED (v5.24)
+            drawAndStorePattern(hsPattern)
+        
+    [ihsFound, ihsPattern] = detectInverseHS(pivotHighPrices, pivotHighBars, pivotLowPrices, pivotLowBars)
+    if ihsFound
+        if not patternWouldOverlap(ihsPattern.startBar, ihsPattern.endBar) // <-- PATCHED (v5.24)
+            drawAndStorePattern(ihsPattern)
+
+    [dtFound, dtPattern] = detectDoubleTop(pivotHighPrices, pivotHighBars, pivotLowPrices, pivotLowBars)
+    if dtFound
+        if not patternWouldOverlap(dtPattern.startBar, dtPattern.endBar) // <-- PATCHED (v5.24)
+            drawAndStorePattern(dtPattern)
+        
+    [dbFound, dbPattern] = detectDoubleBottom(pivotHighPrices, pivotHighBars, pivotLowPrices, pivotLowBars)
+    if dbFound
+        if not patternWouldOverlap(dbPattern.startBar, dbPattern.endBar) // <-- PATCHED (v5.24)
+            drawAndStorePattern(dbPattern)
+        
+    [triFound, triPattern] = detectTriangles(pivotHighPrices, pivotHighBars, pivotLowPrices, pivotLowBars)
+    if triFound
+        if not patternWouldOverlap(triPattern.startBar, triPattern.endBar) // <-- PATCHED (v5.24)
+            drawAndStorePattern(triPattern)
+    
+    [flagFound, flagPattern] = detectChannelFlag(pivotHighPrices, pivotHighBars, pivotLowPrices, pivotLowBars)
+    if flagFound
+        if not patternWouldOverlap(flagPattern.startBar, flagPattern.endBar) // <-- PATCHED (v5.24)
+            drawAndStorePattern(flagPattern)
+
+// ========== FORMING PATTERNS VARIABLES ==========
+var int formHighBar = na
+var int formLowBar = na
+
+// ========== EXECUTION ==========
+// Reset forming pattern markers each bar
+formHighBar := na
+formLowBar := na
+
+if (barstate.isconfirmed or repaint)
+    if useZigzag1
+        scanForPatterns(zigzagLength1, depth1, cache1)
+        
+        // Track forming patterns (using getPivots again, lightweight)
+        if showFormingPatterns
+            [ph1, phb1, pl1, plb1] = getPivotsWithCache(zigzagLength1, depth1, cache1)
+            if array.size(ph1) > 0
+                int lastHighBar = array.get(phb1, array.size(ph1) - 1)
+                if lastHighBar >= bar_index - (zigzagLength1 + depth1) * 2
+                    formHighBar := lastHighBar
+            if array.size(pl1) > 0
+                int lastLowBar = array.get(plb1, array.size(pl1) - 1)
+                if lastLowBar >= bar_index - (zigzagLength1 + depth1) * 2
+                    formLowBar := lastLowBar
+    
+    if useZigzag2
+        scanForPatterns(zigzagLength2, depth2, cache2)
+    
+    if useZigzag3
+        scanForPatterns(zigzagLength3, depth3, cache3)
+
+// Plot forming patterns
+plotshape(showFormingPatterns and not na(formHighBar) and bar_index == formHighBar, 
+          "Forming High", shape.triangledown, location.abovebar, 
+          color.new(color.red, 70), size=size.tiny)
+
+plotshape(showFormingPatterns and not na(formLowBar) and bar_index == formLowBar, 
+          "Forming Low", shape.triangleup, location.belowbar, 
+          color.new(color.green, 70), size=size.tiny)
+
+// ========== NECKLINE BREAK & INVALIDATION CHECK (v5.24.3 FIX) ==========
+if array.size(storedPatterns) > 0
+    for i = array.size(storedPatterns) - 1 to 0 // Iterate backwards for safe removal
+        PatternData p = array.get(storedPatterns, i)
+        
+        // Skip patterns that are already finished
+        if p.necklineBroken and not (repaint and barstate.isrealtime)
+            continue
+            
+        // 0. NEW: Check for Triangle Apex Expiry
+        if useApexExpiry and p.patternType == "TRI" and not p.necklineBroken and not p.invalidated and not na(p.apexBar) and bar_index > p.apexBar
+            p.invalidated := true
+            p.invalidationBar := bar_index
+            // CRITICAL FIX: Only draw label once and store it
+            if showFailedLabels and na(p.failedLabel) 
+                p.failedLabel := label.new(p.apexBar, math.avg(p.h2, p.l2), "EXPIRED", style=label.style_label_left, color=color.new(color.gray, 70), textcolor=color.white)
+            
+            removePatternRange(p.startBar, p.endBar) // <-- NEW (v5.24)
+            deletePatternDrawings(p) // Clean up expired triangle lines
+            
+            // REMOVED (v5.24): Old inline removal logic
+            
+            array.remove(storedPatterns, i)     // CRITICAL FIX: Remove from patterns array
+            continue // Move to next pattern
+        
+        // 1. Check for Whipsaw Recovery
+        if p.invalidated
+            if allowWhipsaw
+                bool recovered = false
+                if p.patternType == "HS" or p.patternType == "DT" or p.patternType == "BEAR FLAG" or p.patternType == "BEAR PENNANT"
+                    if close < p.stopLossPrice // Use SL price for invalidation
+                        recovered := true
+                else if p.patternType == "IHS" or p.patternType == "DB" or p.patternType == "BULL FLAG" or p.patternType == "BULL PENNANT"
+                    if close > p.stopLossPrice // Use SL price for invalidation
+                        recovered := true
+                
+                if recovered
+                    p.invalidated := false
+                    p.invalidationBar := na
+                    // NEW: Delete the failed label upon recovery
+                    if not na(p.failedLabel)
+                        label.delete(p.failedLabel)
+                        p.failedLabel := na
+            
+            if p.invalidated // Still invalidated (or whipsaw disabled)
+                continue
+
+        // 2. Check for Invalidation (if not already invalidated)
+        bool isInvalid = false
+        bool isBullish = p.patternType == "IHS" or p.patternType == "DB" or p.patternType == "BULL FLAG" or p.patternType == "BULL PENNANT"
+        bool isBearish = p.patternType == "HS" or p.patternType == "DT" or p.patternType == "BEAR FLAG" or p.patternType == "BEAR PENNANT"
+
+        // Use StopLossPrice for invalidation check
+        if isBearish and not na(p.stopLossPrice)
+            if close > p.stopLossPrice
+                isInvalid := true
+        else if isBullish and not na(p.stopLossPrice)
+            if close < p.stopLossPrice
+                isInvalid := true
+        else if p.patternType == "TRI"
+            // Triangles invalidate if price breaks out the "wrong" way
+            if p.triangleSubType == "Ascending" and close < p.l2
+                isInvalid := true
+            else if p.triangleSubType == "Descending" and close > p.h2
+                isInvalid := true
+            // ✅ FIX: Added invalidation logic for Wedges
+            else if p.triangleSubType == "Rising Wedge" and close > p.h2 // Bearish pattern fails on upward break
+                isInvalid := true
+            else if p.triangleSubType == "Falling Wedge" and close < p.l2 // Bullish pattern fails on downward break
+                isInvalid := true
+        
+        if isInvalid
+            p.invalidated := true
+            p.invalidationBar := bar_index
+            // CRITICAL FIX: Only draw label once and store it
+            if showFailedLabels and na(p.failedLabel)
+                p.failedLabel := label.new(bar_index, isBearish ? high : low, 
+                                     p.patternType + " FAILED", 
+                                     style=isBearish ? label.style_label_up : label.style_label_down,
+                                     color=isBearish ? color.green : color.red,
+                                     textcolor=color.white, size=size.small)
+            
+            removePatternRange(p.startBar, p.endBar) // <-- NEW (v5.24)
+            
+            // Delete old drawings to clean up chart
+            deletePatternDrawings(p)
+
+            // REMOVED (v5.24): Old inline removal logic
+
+            array.remove(storedPatterns, i)     // CRITICAL FIX: Remove from patterns array
+            continue // Move to next pattern
+
+        // 3. Check for Neckline Break (only after pattern end)
+        // CRITICAL FIX: Exclude flags/pennants from this logic
+        if bar_index > p.endBar and p.patternType != "TRI" and not str.contains(p.patternType, "FLAG") and not str.contains(p.patternType, "PENNANT")
+            bool broken = false
+            float necklinePriceAtCurrentBar = p.necklinePrice1
+            
+            // Get slope for breakout line (neckline or channel line)
+            if p.necklineBar2 != p.necklineBar1
+                float necklineSlope = safeDivide(p.necklinePrice2 - p.necklinePrice1, p.necklineBar2 - p.necklineBar1)
+                necklinePriceAtCurrentBar := p.necklinePrice1 + necklineSlope * (bar_index - p.necklineBar1)
+
+            if isBearish
+                if close < necklinePriceAtCurrentBar
+                    broken := true
+            else if isBullish
+                if close > necklinePriceAtCurrentBar
+                    broken := true
+            
+            // === NEW FIBONACCI TP/SL DRAWING LOGIC ===
+            // CRITICAL FIX: Add na(p.entryLabel) to prevent repaint leak
+            if broken and not p.necklineBroken and na(p.entryLabel)
+                // This is the first break, draw everything
+                p.necklineBroken := true // Set status
+                
+                string alertMsg = syminfo.ticker + " (" + timeframe.period + "): " + p.patternType + " neckline broken! Price: " + str.tostring(close, format.mintick)
+                if barstate.isconfirmed and alertBreaks
+                    alert(alertMsg, alert.freq_once_per_bar)
+                
+                // CRITICAL FIX: Volume Confirmation Check
+                bool highVolume = p.avgVolume > 0 and volume > p.avgVolume * volMultiplier
+                
+                // If vol confirmation is on AND volume is low, we stop here.
+                if useVolConfirmation and not highVolume
+                    // Mark as broken, but don't draw TP/SL. Just show a low-vol label.
+                    // v5.24.3 FIX: Check showProjections before drawing ANY label
+                    if showProjections
+                        p.entryLabel := label.new(bar_index, necklinePriceAtCurrentBar, "BREAK (Low Vol)",
+                                      style=isBullish ? label.style_label_up : label.style_label_down,
+                                      color=color.new(color.gray, 40), textcolor=color.new(color.white, 50), size=size.small)
+                    continue // Skip drawing TP/SL
+                
+                // --- If we are here, it's either high volume, or we don't care about volume ---
+
+                // ========== CLEAN TP/SL DRAWING (USER'S NEW CODE) ==========
+                // v5.24.3 FIX: Check showProjections before drawing ALL TP/SL/Entry lines/labels
+                if showProjections
+                    color tpColor = color.new(color.green, 70)
+                    color slColor = color.new(color.red, 70)
+                    
+                    int extBar = bar_index + (extendLines ? 1000 : extensionBars * 3)
+                    string extStyle = extendLines ? extend.right : extend.none
+
+                    // Entry Label
+                    float entryPrice = necklinePriceAtCurrentBar
+                    p.entryLabel := label.new(bar_index, entryPrice, "ENTRY",style=isBullish ? label.style_label_up : label.style_label_down,color=color.orange, textcolor=color.white, size=size.small)
+                                            
+                                            
+
+                    // Fib Levels (use poleHeight for flags, patternHeight for others)
+                    float height = (isBullish or isBearish) and not na(p.poleHeight) ? p.poleHeight : p.patternHeight
+                    
+                    float tp1 = isBullish ? entryPrice + height * 0.618 : entryPrice - height * 0.618
+                    float tp2 = isBullish ? entryPrice + height * 1.0   : entryPrice - height * 1.0
+                    float tp3 = isBullish ? entryPrice + height * 1.618 : entryPrice - height * 1.618
+
+                    // TP Lines + Labels
+                    p.tp1Line := line.new(bar_index, tp1, extBar, tp1, color=tpColor, width=1, style=line.style_dashed, extend=extStyle)
+                    p.tp1Label := label.new(extBar, tp1, " TP1 0.618", color=color.new(color.green, 90), textcolor=color.green, style=label.style_label_left, size=size.tiny)
+
+                    p.tp2Line := line.new(bar_index, tp2, extBar, tp2, color=tpColor, width=2, style=line.style_dashed, extend=extStyle)
+                    p.tp2Label := label.new(extBar, tp2, " TP2 1.0", color=color.new(color.green, 90), textcolor=color.green, style=label.style_label_left, size=size.small)
+
+                    p.tp3Line := line.new(bar_index, tp3, extBar, tp3, color=tpColor, width=1, style=line.style_dashed, extend=extStyle)
+                    p.tp3Label := label.new(extBar, tp3, " TP3 1.618", color=color.new(color.green, 90), textcolor=color.green, style=label.style_label_left, size=size.tiny)
+
+                    // SL Line + Label
+                    if not na(p.stopLossPrice)
+                        p.slLine := line.new(bar_index, p.stopLossPrice, extBar, p.stopLossPrice,
+                                      color=slColor, width=2, style=line.style_dashed, extend=extStyle)
+                        p.slLabel := label.new(extBar, p.stopLossPrice, " SL", color=color.new(color.red, 90), textcolor=color.red, style=label.style_label_left, size=size.small)
+                                            
+                
+            else if broken
+                // Pattern was already broken, just update status (in case of repainting)
+                p.necklineBroken := true
+        // --- End H&S/DT/DB Break Logic ---
+        
+        // --- NEW: Flag/Pennant Break Logic ---
+        else if bar_index > p.endBar and (str.contains(p.patternType, "FLAG") or str.contains(p.patternType, "PENNANT"))
+            bool broken = false
+            float breakPrice = na
+            
+            // Bull Flag/Pennant breaks above top line (h2)
+            if isBullish
+                float topLinePrice = p.necklinePrice1 // h2
+                if p.necklineBar2 != p.necklineBar1
+                    float topSlope = safeDivide(p.necklinePrice1 - p.h1, p.necklineBar1 - p.h1_bar) // h2-h1 / h2_bar-h1_bar
+                    topLinePrice := p.h1 + topSlope * (bar_index - p.h1_bar)
+                if close > topLinePrice
+                    broken := true
+                    breakPrice := topLinePrice
+            
+            // Bear Flag/Pennant breaks below bottom line (l2)
+            else if isBearish
+                float bottomLinePrice = p.necklinePrice2 // l2
+                if p.necklineBar2 != p.necklineBar1
+                    float bottomSlope = safeDivide(p.necklinePrice2 - p.l1, p.necklineBar2 - p.l1_bar) // l2-l1 / l2_bar-l1_bar
+                    bottomLinePrice := p.l1 + bottomSlope * (bar_index - p.l1_bar)
+                if close < bottomLinePrice
+                    broken := true
+                    breakPrice := bottomLinePrice
+
+            // CRITICAL FIX: Add na(p.entryLabel) to prevent repaint leak
+            if broken and not p.necklineBroken and na(p.entryLabel)
+                p.necklineBroken := true // Set status
+                
+                string alertMsg = syminfo.ticker + " (" + timeframe.period + "): " + p.patternType + " broken! Price: " + str.tostring(close, format.mintick)
+                if barstate.isconfirmed and alertBreaks
+                    alert(alertMsg, alert.freq_once_per_bar)
+                    
+                // CRITICAL FIX: Volume Confirmation Check
+                bool highVolume = p.avgVolume > 0 and volume > p.avgVolume * volMultiplier
+                
+                if useVolConfirmation and not highVolume
+                    // v5.24.3 FIX: Check showProjections before drawing ANY label
+                    if showProjections
+                        p.entryLabel := label.new(bar_index, breakPrice, "BREAK (Low Vol)",
+                                      style=isBullish ? label.style_label_up : label.style_label_down,
+                                      color=color.new(color.gray, 40), textcolor=color.new(color.white, 50), size=size.small)
+                    continue // Skip drawing TP/SL
+
+                // --- Passed all checks, draw TP/SL ---
+                // v5.24.3 FIX: Check showProjections before drawing ALL TP/SL/Entry lines/labels
+                if showProjections
+                    color tpColor = color.new(color.green, 70)
+                    color slColor = color.new(color.red, 70)
+                    int extBar = bar_index + (extendLines ? 1000 : extensionBars * 3)
+                    string extStyle = extendLines ? extend.right : extend.none
+                    float entryPrice = breakPrice
+
+                    p.entryLabel := label.new(bar_index, entryPrice, "ENTRY",style=isBullish ? label.style_label_up : label.style_label_down,color=color.orange, textcolor=color.white, size=size.small)
+                                            
+                                            
+
+                    // Fib Levels (use poleHeight)
+                    float height = p.poleHeight
+                    
+                    float tp1 = isBullish ? entryPrice + height * 0.618 : entryPrice - height * 0.618
+                    float tp2 = isBullish ? entryPrice + height * 1.0   : entryPrice - height * 1.0
+                    float tp3 = isBullish ? entryPrice + height * 1.618 : entryPrice - height * 1.618
+
+                    // TP Lines + Labels
+                    p.tp1Line := line.new(bar_index, tp1, extBar, tp1, color=tpColor, width=1, style=line.style_dashed, extend=extStyle)
+                    p.tp1Label := label.new(extBar, tp1, " TP1 0.618", color=color.new(color.green, 90), textcolor=color.green, style=label.style_label_left, size=size.tiny)
+
+                    p.tp2Line := line.new(bar_index, tp2, extBar, tp2, color=tpColor, width=2, style=line.style_dashed, extend=extStyle)
+                    p.tp2Label := label.new(extBar, tp2, " TP2 1.0", color=color.new(color.green, 90), textcolor=color.green, style=label.style_label_left, size=size.small)
+
+                    p.tp3Line := line.new(bar_index, tp3, extBar, tp3, color=tpColor, width=1, style=line.style_dashed, extend=extStyle)
+                    p.tp3Label := label.new(extBar, tp3, " TP3 1.618", color=color.new(color.green, 90), textcolor=color.green, style=label.style_label_left, size=size.tiny)
+
+                    // SL Line + Label (other side of the flag)
+                    if not na(p.stopLossPrice)
+                        p.slLine := line.new(bar_index, p.stopLossPrice, extBar, p.stopLossPrice,
+                                      color=slColor, width=2, style=line.style_dashed, extend=extStyle)
+                        p.slLabel := label.new(extBar, p.stopLossPrice, " SL", color=color.new(color.red, 90), textcolor=color.red, style=label.style_label_left, size=size.small)
+                                            
+                
+            else if broken
+                p.necklineBroken := true
+        // --- End Flag/Pennant Break Logic ---
+            
+// ========== STATISTICS TABLE ==========
+// ✅ FIX: Increased table rows from 10 to 11
+var table statsTable = table.new(position.top_right, 2, 11, bgcolor=color.new(color.black, 85), border_width=1)
+
+if barstate.islast and showStats
+    // ✅ FIX: Increased clear range from 9 to 10
+    table.clear(statsTable, 0, 0, 1, 10) // Clear table on each update
+    table.cell(statsTable, 0, 0, "Pattern Stats", text_color=color.white, text_size=size.normal, bgcolor=color.new(color.gray, 70))
+    table.merge_cells(statsTable, 0, 0, 1, 0)
+    
+    int hsCount = 0
+    int ihsCount = 0
+    int dtCount = 0
+    int dbCount = 0
+    int triCount = 0
+    int wedgeCount = 0 // ✅ FIX: Added wedge counter
+    int flagCount = 0 
+    int brokenCount = 0
+    int failedCount = 0
+    
+    if array.size(storedPatterns) > 0
+        for i = 0 to array.size(storedPatterns) - 1
+            PatternData p = array.get(storedPatterns, i)
+            if p.patternType == "HS"
+                hsCount += 1
+            else if p.patternType == "IHS"
+                ihsCount += 1
+            else if p.patternType == "DT"
+                dtCount += 1
+            else if p.patternType == "DB"
+                dbCount += 1
+            else if p.patternType == "TRI"
+                // ✅ FIX: Split triangle/wedge counts
+                if p.triangleSubType == "Rising Wedge" or p.triangleSubType == "Falling Wedge"
+                    wedgeCount += 1
+                else
+                    triCount += 1 // Asc, Desc, Symmetrical
+            else if p.patternType == "BULL FLAG" or p.patternType == "BEAR FLAG" or p.patternType == "BULL PENNANT" or p.patternType == "BEAR PENNANT"
+                flagCount += 1
+            
+            if p.necklineBroken
+                brokenCount += 1
+            if p.invalidated
+                failedCount += 1
+    
+    table.cell(statsTable, 0, 1, "H&S:", text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 1, 1, str.tostring(hsCount), text_color=getThemeColor("HS", theme, useCustomColors), text_size=size.small)
+    
+    table.cell(statsTable, 0, 2, "IH&S:", text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 1, 2, str.tostring(ihsCount), text_color=getThemeColor("IHS", theme, useCustomColors), text_size=size.small)
+    
+    table.cell(statsTable, 0, 3, "Double Top:", text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 1, 3, str.tostring(dtCount), text_color=getThemeColor("DT", theme, useCustomColors), text_size=size.small)
+    
+    table.cell(statsTable, 0, 4, "Double Bottom:", text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 1, 4, str.tostring(dbCount), text_color=getThemeColor("DB", theme, useCustomColors), text_size=size.small)
+    
+    table.cell(statsTable, 0, 5, "Triangles:", text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 1, 5, str.tostring(triCount), text_color=getThemeColor("TRI", theme, useCustomColors), text_size=size.small)
+
+    // ✅ FIX: Added new row for Wedges
+    table.cell(statsTable, 0, 6, "Wedges:", text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 1, 6, str.tostring(wedgeCount), text_color=getThemeColor("TRI", theme, useCustomColors), text_size=size.small)
+
+    // ✅ FIX: Renumbered subsequent rows
+    table.cell(statsTable, 0, 7, "Flags/Pennants:", text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 1, 7, str.tostring(flagCount), text_color=getThemeColor("BULL FLAG", theme, useCustomColors), text_size=size.small)
+    
+    table.cell(statsTable, 0, 8, "Broken:", text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 1, 8, str.tostring(brokenCount), text_color=color.orange, text_size=size.small)
+    
+    table.cell(statsTable, 0, 9, "Failed:", text_color=color.white, text_size=size.small)
+    table.cell(statsTable, 1, 9, str.tostring(failedCount), text_color=color.red, text_size=size.small)
+
+    table.cell(statsTable, 0, 10, "Total:", text_color=color.white, text_size=size.small, bgcolor=color.new(color.gray, 70))
+    table.cell(statsTable, 1, 10, str.tostring(array.size(storedPatterns)), text_color=color.yellow, text_size=size.small, bgcolor=color.new(color.gray, 70))

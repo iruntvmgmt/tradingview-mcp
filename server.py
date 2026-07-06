@@ -36,6 +36,7 @@ from core.services.experiment_controller import (
     load_experiment_config,
 )
 from core.services.experiment_log import ExperimentLog
+from core.services.pine_family_planner import PineFamilyPlanner
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -306,6 +307,18 @@ _register("tv_experiment_sensitivity", "Run sensitivity check (noise-fit probe f
 _register("tv_experiment_report", "Generate experiment Markdown report",
           {"type": "object", "properties": {"generation_id": {"type": "string"}}},
           lambda generation_id=None: _ctrl_experiment.report(generation_id) if _ctrl_experiment else (_ for _ in ()).throw(RuntimeError("Experiment controller unavailable")))
+# ── Generation Planning ──
+_planner = PineFamilyPlanner()
+_register("tv_plan_generation_families", "Parse Pine source into a generation plan draft (family clustering, tier ordering, cosmetic exclusion, coupling candidates)",
+          {"type": "object", "properties": {
+              "pine_source": {"type": "string",
+                  "description": "Raw Pine Script source text (e.g. from tv_pine_read output)"},
+              "strategy_name": {"type": "string",
+                  "description": "Name for the output files (e.g. 'GT_VP_v9.9.6_STRAT')"},
+          }, "required": ["pine_source", "strategy_name"]},
+          lambda pine_source, strategy_name: _planner.write_plan(
+              _planner.parse(pine_source, strategy_name))[0].read_text())
+
 
 
 # ═══════════════════════════════════════════════════════════════

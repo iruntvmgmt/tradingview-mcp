@@ -1,0 +1,897 @@
+//@version=6
+// ─────────────────────────────────────────────────────────────────────────────
+// HCC_Channel.pine — Hurst Cycle Channel Overlay [RunsTV]
+// ─────────────────────────────────────────────────────────────────────────────
+// On-chart overlay indicator. Draws nested short and medium cycle channels
+// derived from J.M. Hurst's Half-Span Rule and FLD methodology.
+//
+// Add BOTH this script and HCC_Oscillator.pine to your chart for the full
+// Hurst Cycle Suite experience. Both scripts share HurstCycleLib for
+// mathematical consistency — set identical Cycle Settings in both panels.
+//
+// Theory: J.M. Hurst — "The Profit Magic of Stock Transaction Timing" (1970)
+//
+// Signal engine: FLD (Future Line of Demarcation) crossovers, with optional
+// confirmation filters for context and participation.
+//   FLD_λ(t) = src[λ/2] — non-repainting, geometrically precise.
+//   The FLD crossover remains the theoretical trigger; filters only qualify it.
+//
+// ⚠ SETUP: HurstCycleLib v2 is published under TradingView username: iruntvmgmt
+// ─────────────────────────────────────────────────────────────────────────────
+indicator("Hurst Cycle Channel [RunsTV]", shorttitle="HCC·CH", overlay=true, max_labels_count=500, max_lines_count=100)
+import iruntvmgmt/HurstCycleLib/2 as hurst
+
+
+// ─────────────────────────────────────────────
+// GROUPS
+// ─────────────────────────────────────────────
+grp_cycle   = "Cycle Settings — Nominal Model"
+grp_ma      = "Moving Average Engine"
+grp_fld     = "FLD — Future Line of Demarcation"
+grp_signals = "Signals"
+grp_bq      = "Breakout Quality Filter"
+grp_wpr     = "Williams %R Filter"
+grp_sqz     = "SQZ Momentum Filter"
+grp_sr      = "Legacy S/R Lines"
+grp_display = "Display"
+grp_osc     = "Oscillator"
+
+
+// ─────────────────────────────────────────────
+// INPUTS
+// ─────────────────────────────────────────────
+
+// ── Cycle Settings ────────────────────────────
+scl_bars = input.int  (10,    "Short Cycle Length (λ, bars)",  group=grp_cycle, minval=6,  maxval=200,
+             tooltip="Classic HCC default is 10.\nHalf-span MA length = λ/2. FLD displacement = λ/2 bars.")
+mcl_bars = input.int  (30,    "Medium Cycle Length (λ, bars)", group=grp_cycle, minval=12, maxval=500,
+             tooltip="Classic HCC default is 30.\nShort channel should oscillate inside the medium channel (Proportionality).")
+scm      = input.float(1.0,   "Short Band ATR Multiplier",     group=grp_cycle, minval=0.1, step=0.1,
+             tooltip="Scales the ATR-based band width around the short cycle centerline.\nTarget: ~85–90% of short cycle price action contained within bands.\nATR period = λ/2 (Proportionality-compliant — longer cycles produce wider bands).")
+mcm      = input.float(3.0,   "Medium Band ATR Multiplier",    group=grp_cycle, minval=0.1, step=0.1,
+             tooltip="Scales the ATR-based band width around the medium cycle centerline.\nHigher value = wider containment for the larger cycle's amplitude.")
+src      = input.source(close, "Price Source",                 group=grp_cycle,
+             tooltip="Classic HCC uses close. hlc3 is available if you prefer median-price smoothing.")
+
+// ── Moving Average Engine ─────────────────────
+ma_type  = input.string("RMA", "MA Type", options=["RMA", "SMA", "TMA", "EMA"], group=grp_ma,
+             tooltip="RMA reproduces the classic HCC visual. SMA/TMA are stricter Hurst-style linear-phase modes. EMA is included for compatibility testing.")
+
+// ── Oscillator ────────────────────────────────
+osc_mode  = input.string("Classic Price Position", "Oscillator Mode", group=grp_osc,
+             options=["Classic Price Position", "Next-Gen Cycle Midpoint"],
+             tooltip="Classic Price Position matches the traditional HCC oscillator: price normalized inside the medium channel. Next-Gen Cycle Midpoint uses the short-cycle median inside the medium channel.")
+clamp_osc = input.bool(false, "Clamp Output to 0–1", group=grp_osc,
+             tooltip="Off preserves traditional HCC excursions beyond 0 and 1. On pins extremes to the oscillator bounds.")
+
+// ── FLD ───────────────────────────────────────
+show_fld_sc     = input.bool(true,  "Show Short Cycle FLD",              group=grp_fld,
+                   tooltip="FLD(λ) = src[λ/2] — price from exactly half a cycle ago, plotted at current bar.\nFully resolved at bar close. Zero repainting by mathematical construction.\nPrimary signal trigger: bullish crossover = trough confirmed.")
+show_fld_mc     = input.bool(true,  "Show Medium Cycle FLD",             group=grp_fld,
+                   tooltip="Medium cycle FLD provides trend context. Price above MC FLD = medium cycle bullish phase. Used as optional signal confirmation filter.")
+require_mc_conf = input.bool(true,  "Require Medium FLD Confirmation",   group=grp_fld,
+                   tooltip="When enabled, buy signals require price > MC FLD and sell signals require price < MC FLD.\nFilters short-cycle FLD crossovers that are counter to the medium-cycle trend direction (Left Translation filter).")
+
+// ── Signals ───────────────────────────────────
+show_signals = input.bool(true,  "Show FLD Crossover Signals",       group=grp_signals,
+               tooltip="Buy triangle: short FLD bullish crossover — trough confirmed, upside phase begins.\nSell triangle: short FLD bearish crossover — peak confirmed, downside phase begins.\nNote: Buy signals (trough-anchored) are higher reliability than sell signals per Hurst's Synchronicity principle.")
+show_targets = input.bool(false, "Show Hurst Price Targets",          group=grp_signals,
+               tooltip="Projects cycle amplitude targets after FLD crossovers.\nFormula: Target = Crossover ± (Crossover ∓ Prior Pivot)\nBased on geometric symmetry of ideal Hurst sine waves. Enable on less busy charts.")
+
+// ── Breakout Quality Filter ──────────────────────────
+show_bq_signals  = input.bool (true,  "Show Breakout Quality Signals",   group=grp_bq,
+                   tooltip="Classifies SC upper/lower band touches as structural breakouts or exhaustion reversals.\nBased on oscillator position within the MC channel and MC FLD confirmation.\nDoes NOT replace FLD crossover signals — this is a separate signal layer for band-touch entries.")
+bq_osc_threshold = input.float(0.75,  "Reversal OSC Threshold",          group=grp_bq,
+                   minval=0.55, maxval=0.95, step=0.05,
+                   tooltip="Oscillator value above which an SC upper band touch is classified as an exhaustion reversal rather than a structural breakout.\nDefault 0.75 = measured oscillator source in upper 25% of MC range.\nLower = more conservative (fewer breakout signals). Higher = more permissive.")
+bq_osc_breakout  = input.float(0.65,  "Breakout Max OSC Level",           group=grp_bq,
+                   minval=0.30, maxval=0.75, step=0.05,
+                   tooltip="Oscillator must be BELOW this level for a confirmed structural breakout signal.\nDefault 0.65 = measured oscillator source still in lower 65% of MC range = macro cycle has meaningful room above.\nMust be less than Reversal OSC Threshold.")
+require_fld_conf = input.bool (true,  "Require MC FLD Confirmation",      group=grp_bq,
+                   tooltip="Breakout signal requires price to be above MC FLD (bullish medium cycle phase).\nReversal warning fires regardless of MC FLD — exhaustion is valid in any macro context.\nRecommended: keep enabled. Disabling allows counter-trend breakout signals.")
+use_regime_filter = input.bool (true, "Enable Regime-Aware BQ",           group=grp_bq,
+                   tooltip="Classifies BQ signals by market regime.\nTrending regimes convert trend-direction REV labels into extension warnings.\nRange regimes classify BRK labels as trap-risk signals instead of clean breakouts.")
+regime_slope_atr  = input.float(0.35, "Regime Trend Slope Threshold",     group=grp_bq,
+                   minval=0.05, maxval=2.0, step=0.05,
+                   tooltip="Minimum medium-cycle median slope, measured in ATR units, required to call the market trending.\nHigher = fewer trend regimes. Lower = more trend regimes.")
+regime_compression = input.float(0.90, "Range Compression Threshold",     group=grp_bq,
+                   minval=0.50, maxval=1.20, step=0.05,
+                   tooltip="When the medium channel width is below this fraction of its average width, the market is treated as range/compression.\nLower = fewer range regimes. Higher = more range regimes.")
+show_trap_signals  = input.bool (true, "Show Range Trap Signals",         group=grp_bq,
+                   tooltip="Shows BRK attempts inside range/compression as TRAP labels instead of clean breakout labels.")
+
+// ── Williams %R Filter ──────────────────────────
+use_wpr_filter  = input.bool (true,  "Enable Williams %R Filter",        group=grp_wpr,
+                  tooltip="Adds Williams %R as a secondary confirmation filter on BRK and REV signals.\nWhen enabled, BRK signals require %R to be non-overbought/oversold.\nREV signals are upgraded to 'confirmed' when %R agrees with the Hurst oscillator.\nLookback = Short Cycle length — synchronized to the same cycle as the channel.")
+wpr_length_mode = input.string("Auto", "WPR Length",
+                  options=["Auto", "Manual"],              group=grp_wpr,
+                  tooltip="Auto = uses Short Cycle length (scl_bars) — theoretically synchronized.\nManual = use the value below. Auto is recommended for Hurst cycle alignment.")
+wpr_length_man  = input.int  (20,   "WPR Manual Length",                 group=grp_wpr,
+                  minval=5, maxval=200,
+                  tooltip="Only used when WPR Length is set to Manual.")
+wpr_ob_level    = input.float(-20.0, "Overbought Level",                 group=grp_wpr,
+                  minval=-40.0, maxval=-5.0, step=5.0,
+                  tooltip="Williams %R above this level = overbought (price near top of recent range).\nDefault -20. BRK Long signals require %R to be BELOW this level.\nREV High warnings are confirmed when %R is ABOVE this level.")
+wpr_os_level    = input.float(-80.0, "Oversold Level",                   group=grp_wpr,
+                  minval=-95.0, maxval=-60.0, step=5.0,
+                  tooltip="Williams %R below this level = oversold (price near bottom of recent range).\nDefault -80. BRK Short signals require %R to be ABOVE this level.\nREV Low warnings are confirmed when %R is BELOW this level.")
+show_wpr_table  = input.bool (true,  "Show WPR in Summary Table",        group=grp_wpr,
+                  tooltip="Adds a Williams %R row to the oscillator summary table in the bottom-right corner.")
+
+// ── SQZ Momentum Filter ──────────────────────
+use_sqz_filter = input.bool(false, "Enable SQZ Filter", group=grp_sqz,
+                 tooltip="Adds a Squeeze Momentum confirmation gate to FLD and BQ entry signals. Disabled preserves the original HCC signal behavior.")
+sqz_gate_rev_ext = input.bool(false, "Gate REV/EXT Warnings", group=grp_sqz,
+                   tooltip="When enabled, SQZ also filters BQ reversal and extension warnings. High-side warnings require short SQZ confirmation; low-side warnings require long SQZ confirmation.")
+sqz_filter_mode = input.string("Momentum Direction", "Filter Mode",
+                  options=["Momentum Turn", "Momentum Direction", "Soft", "Strong", "Trend Continuation"],
+                  group=grp_sqz,
+                  tooltip="Momentum Turn is the lightest gate and accepts fresh momentum inflections. Momentum Direction accepts same-side momentum. Soft adds zero-side, ATR room, and optional recent squeeze release. Strong adds EMA trend and optional HTF alignment. Trend Continuation also requires price to be beyond the SQZ BB basis.")
+sqz_length = input.int(20, "SQZ Length", group=grp_sqz, minval=5, maxval=200,
+             tooltip="Lookback for Bollinger/Keltner squeeze, momentum, and ATR room calculations.")
+sqz_bb_mult = input.float(2.0, "BB Multiplier", group=grp_sqz, minval=0.5, maxval=5.0, step=0.1)
+sqz_kc_mult = input.float(1.5, "KC Multiplier", group=grp_sqz, minval=0.5, maxval=5.0, step=0.1)
+sqz_release_bars = input.int(6, "Recent Release Bars", group=grp_sqz, minval=1, maxval=50,
+                   tooltip="How many bars after a squeeze releases can still count as recent expansion.")
+sqz_require_release = input.bool(false, "Require Recent Release", group=grp_sqz,
+                      tooltip="When enabled, Soft/Strong/Trend Continuation modes require a squeeze release inside the recent-release window.")
+sqz_room_atr = input.float(0.50, "ATR Room Required", group=grp_sqz, minval=0.0, maxval=5.0, step=0.05,
+               tooltip="Minimum distance to the relevant SQZ Bollinger Band, measured in ATR. Longs need room to the upper band; shorts need room to the lower band.")
+sqz_late_long_zone = input.float(0.80, "Late Long Zone", group=grp_sqz, minval=0.50, maxval=1.50, step=0.05,
+                     tooltip="Long continuation signals are considered late when price is this far through the SQZ Bollinger range.")
+sqz_late_short_zone = input.float(0.20, "Late Short Zone", group=grp_sqz, minval=-0.50, maxval=0.50, step=0.05,
+                      tooltip="Short continuation signals are considered late when price is this far through the SQZ Bollinger range.")
+sqz_ema_len = input.int(34, "EMA Trend Length", group=grp_sqz, minval=2, maxval=300,
+              tooltip="Current-timeframe EMA used by Strong and Trend Continuation modes.")
+sqz_use_htf = input.bool(false, "Require HTF Alignment", group=grp_sqz,
+              tooltip="When enabled, Strong and Trend Continuation modes require the selected higher timeframe EMA trend to agree.")
+sqz_htf_tf = input.timeframe("60", "HTF Timeframe", group=grp_sqz)
+show_sqz_table = input.bool(true, "Show SQZ in Summary Table", group=grp_sqz,
+                 tooltip="Adds SQZ filter diagnostics to the oscillator summary table.")
+
+// ── Legacy S/R Lines ──────────────────────────
+show_sr_lines   = input.bool(false, "Show Legacy S/R Lines",          group=grp_sr,
+                  tooltip="Optional legacy layer. Draws horizontal lines from REV and BRK signal levels.\nDisabled by default because persistent overlay lines can distort TradingView chart scaling and these levels are only signal references.")
+show_choch      = input.bool(false, "Show Legacy Break Labels",        group=grp_sr,
+                  tooltip="Optional legacy labels for full-body breaks through active legacy S/R lines.\nDisabled by default because these are line-break references, not true swing-structure events.")
+sr_from_rev     = input.bool(true,  "Draw Lines from REV Signals",     group=grp_sr,
+                  tooltip="Draws dashed S/R reference lines from REV (reversal warning) signal levels when legacy S/R lines are enabled.")
+sr_from_brk     = input.bool(false, "Draw Lines from BRK Signals",     group=grp_sr,
+                  tooltip="Draws dotted S/R reference lines from BRK signal levels when legacy S/R lines are enabled.")
+sr_max_lines    = input.int (3,     "Max Active Lines Per Side",        group=grp_sr,
+                  minval=1, maxval=20,
+                  tooltip="Maximum number of active legacy S/R lines tracked per side.\nKeep this low to limit chart clutter and scaling distortion.")
+
+// ── Display ───────────────────────────────────
+show_median    = input.bool(true,  "Show Median Lines",       group=grp_display)
+show_osc_table = input.bool(true,  "Show Oscillator Summary", group=grp_display,
+                 tooltip="Displays a compact corner table showing the oscillator value, current phase label, and medium cycle bias. Useful when HCC_Oscillator.pine is not loaded.")
+transp_sc      = input.int (80,    "SC Fill Transparency",    group=grp_display, minval=50, maxval=99)
+transp_mc      = input.int (88,    "MC Fill Transparency",    group=grp_display, minval=50, maxval=99)
+
+
+// ─────────────────────────────────────────────
+// ── CHANNEL ──
+// ─────────────────────────────────────────────
+// hurst_channel implements:
+//   L = λ/2 (half-span MA), disp = L/2 = λ/4 (centering), base = MA[disp]
+//   top/bot = base ± atr_mult × ATR(L)
+// Returns [base, top, bot, mid]
+
+[sc_base, sc_top, sc_bot, sc_mid] = hurst.hurst_channel(src, scl_bars, scm, ma_type)
+[mc_base, mc_top, mc_bot, mc_mid] = hurst.hurst_channel(src, mcl_bars, mcm, ma_type)
+
+
+// ─────────────────────────────────────────────
+// ── FLD ──
+// ─────────────────────────────────────────────
+// FLD_λ(t) = src[λ/2] — the price from half a cycle ago.
+// When current price crosses the FLD, the cycle has passed its inflection point.
+
+fld_sc = hurst.hurst_fld(src, scl_bars)   // short cycle FLD
+fld_mc = hurst.hurst_fld(src, mcl_bars)   // medium cycle FLD
+
+
+// ─────────────────────────────────────────────
+// ── OSCILLATOR VALUE ──
+// ─────────────────────────────────────────────
+// Classic formula: where does price sit within the MC channel?
+// Next-gen formula: where does SC_mid sit within the MC channel?
+// 0.0 = MC bottom (trough), 0.5 = equilibrium, 1.0 = MC top (peak).
+// Unclamped output keeps traditional excursions beyond 0/1 visible and usable.
+
+osc_source = osc_mode == "Next-Gen Cycle Midpoint" ? sc_mid : src
+osc_raw    = hurst.hurst_osc(osc_source, mc_top, mc_bot)
+osc_val    = clamp_osc ? math.max(0.0, math.min(1.0, osc_raw)) : osc_raw
+osc_phase  = math.max(0.0, math.min(1.0, osc_val))
+
+
+// ─────────────────────────────────────────────
+// ── SQZ MOMENTUM FILTER ──
+// ─────────────────────────────────────────────
+// Squeeze state measures volatility compression/expansion. Momentum supplies
+// participation confirmation without replacing the Hurst FLD trigger.
+
+sqz_momentum(series float price, simple int len) =>
+    range_mid = math.avg(ta.highest(high, len), ta.lowest(low, len))
+    value_mid = math.avg(range_mid, ta.sma(price, len))
+    ta.linreg(price - value_mid, len, 0)
+
+sqz_bb_basis = ta.sma(src, sqz_length)
+sqz_bb_dev   = sqz_bb_mult * ta.stdev(src, sqz_length)
+sqz_bb_upper = sqz_bb_basis + sqz_bb_dev
+sqz_bb_lower = sqz_bb_basis - sqz_bb_dev
+sqz_kc_basis = ta.ema(src, sqz_length)
+sqz_kc_range = ta.atr(sqz_length) * sqz_kc_mult
+sqz_kc_upper = sqz_kc_basis + sqz_kc_range
+sqz_kc_lower = sqz_kc_basis - sqz_kc_range
+
+sqz_on              = sqz_bb_lower > sqz_kc_lower and sqz_bb_upper < sqz_kc_upper
+sqz_release         = sqz_on[1] and not sqz_on
+sqz_bars_since_rel  = ta.barssince(sqz_release)
+sqz_recent_release  = not na(sqz_bars_since_rel) and sqz_bars_since_rel <= sqz_release_bars
+sqz_mom           = sqz_momentum(src, sqz_length)
+sqz_mom_rising    = sqz_mom > sqz_mom[1]
+sqz_mom_falling   = sqz_mom < sqz_mom[1]
+sqz_mom_turn_up   = sqz_mom_rising and sqz_mom[1] <= sqz_mom[2]
+sqz_mom_turn_down = sqz_mom_falling and sqz_mom[1] >= sqz_mom[2]
+sqz_mom_long_side = sqz_mom > 0.0
+sqz_mom_short_side= sqz_mom < 0.0
+
+sqz_atr      = ta.atr(sqz_length)
+sqz_long_room= sqz_atr > 0.0 and (sqz_bb_upper - src) / sqz_atr >= sqz_room_atr
+sqz_short_room= sqz_atr > 0.0 and (src - sqz_bb_lower) / sqz_atr >= sqz_room_atr
+sqz_range    = sqz_bb_upper - sqz_bb_lower
+sqz_position = sqz_range > 0.0 ? (src - sqz_bb_lower) / sqz_range : 0.5
+sqz_not_late_long  = sqz_position < sqz_late_long_zone
+sqz_not_late_short = sqz_position > sqz_late_short_zone
+
+sqz_ema       = ta.ema(src, sqz_ema_len)
+sqz_trend_long= src > sqz_ema and sqz_ema > sqz_ema[1]
+sqz_trend_short= src < sqz_ema and sqz_ema < sqz_ema[1]
+sqz_htf_long  = request.security(syminfo.tickerid, sqz_htf_tf, src > ta.ema(src, sqz_ema_len) and ta.ema(src, sqz_ema_len) > ta.ema(src, sqz_ema_len)[1])
+sqz_htf_short = request.security(syminfo.tickerid, sqz_htf_tf, src < ta.ema(src, sqz_ema_len) and ta.ema(src, sqz_ema_len) < ta.ema(src, sqz_ema_len)[1])
+sqz_htf_long_ok  = not sqz_use_htf or sqz_htf_long
+sqz_htf_short_ok = not sqz_use_htf or sqz_htf_short
+sqz_release_ok   = not sqz_require_release or sqz_recent_release
+
+sqzLongFilterOk =
+     not use_sqz_filter ? true :
+     sqz_filter_mode == "Momentum Turn" ? sqz_mom_turn_up :
+     sqz_filter_mode == "Momentum Direction" ? sqz_mom_rising :
+     sqz_filter_mode == "Soft" ? sqz_mom_rising and sqz_mom_long_side and sqz_long_room and sqz_not_late_long and sqz_release_ok :
+     sqz_filter_mode == "Strong" ? sqz_mom_rising and sqz_mom_long_side and sqz_long_room and sqz_not_late_long and sqz_release_ok and sqz_trend_long and sqz_htf_long_ok :
+     sqz_mom_rising and sqz_mom_long_side and sqz_long_room and sqz_not_late_long and sqz_release_ok and sqz_trend_long and sqz_htf_long_ok and src > sqz_bb_basis
+
+sqzShortFilterOk =
+     not use_sqz_filter ? true :
+     sqz_filter_mode == "Momentum Turn" ? sqz_mom_turn_down :
+     sqz_filter_mode == "Momentum Direction" ? sqz_mom_falling :
+     sqz_filter_mode == "Soft" ? sqz_mom_falling and sqz_mom_short_side and sqz_short_room and sqz_not_late_short and sqz_release_ok :
+     sqz_filter_mode == "Strong" ? sqz_mom_falling and sqz_mom_short_side and sqz_short_room and sqz_not_late_short and sqz_release_ok and sqz_trend_short and sqz_htf_short_ok :
+     sqz_mom_falling and sqz_mom_short_side and sqz_short_room and sqz_not_late_short and sqz_release_ok and sqz_trend_short and sqz_htf_short_ok and src < sqz_bb_basis
+
+
+// ─────────────────────────────────────────────
+// ── SIGNALS ──
+// ─────────────────────────────────────────────
+// FLD crossover = only valid Hurst signal trigger (non-repainting).
+// Trough anchored per Principle of Synchronicity — buy signals are primary.
+// Sell signals carry lower confidence (peaks are Left/Right Translation dependent).
+
+raw_buy  = ta.crossover (src, fld_sc)   // price crosses above short FLD
+raw_sell = ta.crossunder(src, fld_sc)   // price crosses below short FLD
+
+mc_bull  = src > fld_mc   // medium cycle in bullish phase
+mc_bear  = src < fld_mc   // medium cycle in bearish phase
+
+// Optional medium cycle FLD confirmation (Left Translation filter)
+buy_signal  = raw_buy  and (not require_mc_conf or mc_bull) and sqzLongFilterOk
+sell_signal = raw_sell and (not require_mc_conf or mc_bear) and sqzShortFilterOk
+
+// Deduplicate: no simultaneous buy + sell on same bar
+if buy_signal and sell_signal
+    buy_signal  := false
+    sell_signal := false
+
+
+// ─────────────────────────────────────────────
+// ── WILLIAMS %R FILTER ──
+// ─────────────────────────────────────────────
+// ta.wpr(length) is a native Pine Script built-in. No library required.
+// Lookback is synchronized to the short cycle length when in Auto mode —
+// this aligns %R's measurement window to the same cycle as the Hurst channel.
+// Scale: -100 (oversold, price at range bottom) to 0 (overbought, price at range top).
+
+wpr_len = wpr_length_mode == "Auto" ? scl_bars : wpr_length_man
+wpr_val = ta.wpr(wpr_len)
+
+// State booleans — named for readability in downstream signal logic
+wpr_overbought  = wpr_val >= wpr_ob_level   // price near top of scl_bars range
+wpr_oversold    = wpr_val <= wpr_os_level   // price near bottom of scl_bars range
+wpr_neutral     = not wpr_overbought and not wpr_oversold
+
+// ── WPR-MODIFIED BREAKOUT CONDITIONS ──
+// When WPR filter is enabled:
+//   BRK Long  requires WPR NOT overbought — if %R is already at the top of
+//             its range when price breaks SC top, the move is exhausted, not launching.
+//   BRK Short requires WPR NOT oversold   — mirror logic.
+// When WPR filter is disabled: conditions pass through unchanged.
+
+wpr_allows_long  = not use_wpr_filter or not wpr_overbought
+wpr_allows_short = not use_wpr_filter or not wpr_oversold
+
+// ── WPR CONFIRMATION OF REVERSAL WARNINGS ──
+// When both the Hurst oscillator AND Williams %R agree on exhaustion,
+// the reversal warning is upgraded to "confirmed" status.
+// Confirmed = both independent cycle measures showing simultaneous exhaustion.
+
+wpr_confirms_rev_high = use_wpr_filter and wpr_overbought   // %R agrees: top of range
+wpr_confirms_rev_low  = use_wpr_filter and wpr_oversold     // %R agrees: bottom of range
+
+
+// ─────────────────────────────────────────────
+// ── BREAKOUT QUALITY ──
+// ─────────────────────────────────────────────
+// Classifies SC band touches into structural breakouts vs exhaustion reversals.
+// The oscillator value at the moment of a band touch determines whether the
+// SC cycle has MC runway above it (breakout) or is peaking simultaneously
+// with the MC (reversal). Hurst Principle of Synchronicity: when cycles peak
+// together, the reversal is sharp and the touch is not an entry — it is a warning.
+//
+// osc_val is already computed above from hurst.hurst_osc(osc_source, mc_top, mc_bot).
+// mc_bull / mc_bear already declared in ── SIGNALS ── section above.
+
+// SC band touch detection — price crosses the SC channel boundary
+sc_upper_touch = ta.crossover (src, sc_top)   // price breaks above SC top
+sc_lower_touch = ta.crossunder(src, sc_bot)   // price breaks below SC bottom
+
+// ── REGIME DETECTION ──
+// Medium-cycle slope identifies directional drive. Channel compression catches
+// the sideways conditions where band breaks tend to become failed breakouts.
+regime_lookback = math.max(2, int(math.round(mcl_bars / 2.0)))
+regime_atr      = ta.atr(regime_lookback)
+mc_slope_raw    = mc_mid - mc_mid[regime_lookback]
+mc_slope_norm   = regime_atr > 0.0 ? mc_slope_raw / regime_atr : 0.0
+mc_width        = mc_top - mc_bot
+mc_width_avg    = ta.sma(mc_width, mcl_bars)
+mc_compressed   = mc_width_avg > 0.0 and mc_width < mc_width_avg * regime_compression
+
+regime_uptrend   = not mc_compressed and mc_bull and mc_slope_norm >= regime_slope_atr
+regime_downtrend = not mc_compressed and mc_bear and mc_slope_norm <= -regime_slope_atr
+regime_range     = not regime_uptrend and not regime_downtrend
+
+// Alias MC bias for BQ block clarity (same values as mc_bull/mc_bear)
+mc_bull_bq = mc_bull   // true = MC in confirmed bullish phase
+mc_bear_bq = mc_bear   // true = MC in confirmed bearish phase
+sqz_warn_high_ok = not sqz_gate_rev_ext or sqzShortFilterOk
+sqz_warn_low_ok  = not sqz_gate_rev_ext or sqzLongFilterOk
+
+bq_breakout_long_base = show_bq_signals and sc_upper_touch and osc_val < bq_osc_breakout and (not require_fld_conf or mc_bull_bq) and wpr_allows_long and sqzLongFilterOk
+bq_breakout_short_base= show_bq_signals and sc_lower_touch and osc_val > (1.0 - bq_osc_breakout) and (not require_fld_conf or mc_bear_bq) and wpr_allows_short and sqzShortFilterOk
+bq_reversal_high_base = show_bq_signals and sc_upper_touch and osc_val >= bq_osc_threshold and sqz_warn_high_ok
+bq_reversal_low_base  = show_bq_signals and sc_lower_touch and osc_val <= (1.0 - bq_osc_threshold) and sqz_warn_low_ok
+
+bq_breakout_long      = bq_breakout_long_base and (not use_regime_filter or regime_uptrend)
+bq_breakout_short     = bq_breakout_short_base and (not use_regime_filter or regime_downtrend)
+bq_trap_long          = use_regime_filter and show_trap_signals and regime_range and bq_breakout_long_base
+bq_trap_short         = use_regime_filter and show_trap_signals and regime_range and bq_breakout_short_base
+bq_extension_high     = use_regime_filter and regime_uptrend and bq_reversal_high_base
+bq_extension_low      = use_regime_filter and regime_downtrend and bq_reversal_low_base
+bq_reversal_warn_high = bq_reversal_high_base and (not use_regime_filter or not regime_uptrend)
+bq_reversal_warn_low  = bq_reversal_low_base and (not use_regime_filter or not regime_downtrend)
+bq_ambiguous_high     = show_bq_signals and sc_upper_touch and osc_val >= bq_osc_breakout and osc_val < bq_osc_threshold
+bq_ambiguous_low      = show_bq_signals and sc_lower_touch and osc_val > (1.0 - bq_osc_threshold) and osc_val <= (1.0 - bq_osc_breakout)
+
+
+// ─────────────────────────────────────────────
+// ── LEGACY S/R LINES ──
+// ─────────────────────────────────────────────
+// Optional horizontal reference lines drawn at REV and BRK signal levels.
+// Each line extends rightward until a full candle body closes through it.
+// Full body above level: math.min(open, close) > level (both O and C above)
+// Full body below level: math.max(open, close) < level (both O and C below)
+// On violation: line is frozen and an optional break label is plotted.
+
+// ── LINE STORAGE — four arrays, one per signal type ──
+// Each array stores the line object. Parallel float arrays store the price level
+// so we can check violation without calling line.get_y1() on every bar
+// (more efficient and avoids potential na issues on newly created lines).
+
+var line[]  rev_high_lines  = array.new<line>()
+var float[] rev_high_levels = array.new<float>()
+var line[]  rev_low_lines   = array.new<line>()
+var float[] rev_low_levels  = array.new<float>()
+var line[]  brk_long_lines  = array.new<line>()
+var float[] brk_long_levels = array.new<float>()
+var line[]  brk_short_lines = array.new<line>()
+var float[] brk_short_levels= array.new<float>()
+
+// ── HELPER: enforce max active lines per array ──
+// When a new signal fires and would exceed sr_max_lines, delete the oldest
+// line object and remove it from both arrays before adding the new one.
+// "Oldest" = index 0 (lines are appended, so index 0 is always the oldest).
+
+purge_oldest(lines, levels) =>
+    if array.size(lines) >= sr_max_lines
+        old_ln = array.shift(lines)
+        array.shift(levels)
+        line.delete(old_ln)
+
+// ── ON SIGNAL: CREATE NEW LINE ──
+// Lines created with extend.right so they auto-extend without manual updates.
+// We will switch to extend.none on the bar they are violated.
+
+if show_sr_lines and sr_from_rev and bq_reversal_warn_high
+    purge_oldest(rev_high_lines, rev_high_levels)
+    new_line = line.new(bar_index, sc_top, bar_index + 1, sc_top,
+                        color    = color.new(color.red, 50),
+                        style    = line.style_dashed,
+                        width    = 1,
+                        extend   = extend.right)
+    array.push(rev_high_lines,  new_line)
+    array.push(rev_high_levels, sc_top)
+
+if show_sr_lines and sr_from_rev and bq_reversal_warn_low
+    purge_oldest(rev_low_lines, rev_low_levels)
+    new_line = line.new(bar_index, sc_bot, bar_index + 1, sc_bot,
+                        color    = color.new(color.lime, 50),
+                        style    = line.style_dashed,
+                        width    = 1,
+                        extend   = extend.right)
+    array.push(rev_low_lines,  new_line)
+    array.push(rev_low_levels, sc_bot)
+
+if show_sr_lines and sr_from_brk and bq_breakout_long
+    purge_oldest(brk_long_lines, brk_long_levels)
+    new_line = line.new(bar_index, sc_top, bar_index + 1, sc_top,
+                        color    = color.new(color.white, 40),
+                        style    = line.style_dotted,
+                        width    = 1,
+                        extend   = extend.right)
+    array.push(brk_long_lines,  new_line)
+    array.push(brk_long_levels, sc_top)
+
+if show_sr_lines and sr_from_brk and bq_breakout_short
+    purge_oldest(brk_short_lines, brk_short_levels)
+    new_line = line.new(bar_index, sc_bot, bar_index + 1, sc_bot,
+                        color    = color.new(color.white, 40),
+                        style    = line.style_dotted,
+                        width    = 1,
+                        extend   = extend.right)
+    array.push(brk_short_lines,  new_line)
+    array.push(brk_short_levels, sc_bot)
+
+// ── VIOLATION CHECK — scan active lines each bar ──
+// Iterate backward through arrays so index removal doesn't skip elements.
+// Full body close definition:
+//   Body fully above level: math.min(open, close) > level
+//   Body fully below level: math.max(open, close) < level
+
+// REV High lines — broken when full body closes ABOVE.
+if array.size(rev_high_lines) > 0
+    i = array.size(rev_high_lines) - 1
+    while i >= 0
+        lvl = array.get(rev_high_levels, i)
+        if math.min(open, close) > lvl
+            // Full body above — resistance broken
+            ln = array.get(rev_high_lines, i)
+            line.set_extend(ln, extend.none)
+            line.set_x2(ln, bar_index)
+            if show_choch
+                label.new(bar_index, high,
+                          "BREAK ▲",
+                          style     = label.style_label_down,
+                          color     = color.new(color.lime, 20),
+                          textcolor = color.white,
+                          size      = size.small)
+            array.remove(rev_high_lines,  i)
+            array.remove(rev_high_levels, i)
+        i -= 1
+
+// REV Low lines — broken when full body closes BELOW.
+if array.size(rev_low_lines) > 0
+    i = array.size(rev_low_lines) - 1
+    while i >= 0
+        lvl = array.get(rev_low_levels, i)
+        if math.max(open, close) < lvl
+            // Full body below — support broken
+            ln = array.get(rev_low_lines, i)
+            line.set_extend(ln, extend.none)
+            line.set_x2(ln, bar_index)
+            if show_choch
+                label.new(bar_index, low,
+                          "BREAK ▼",
+                          style     = label.style_label_up,
+                          color     = color.new(color.red, 20),
+                          textcolor = color.white,
+                          size      = size.small)
+            array.remove(rev_low_lines,  i)
+            array.remove(rev_low_levels, i)
+        i -= 1
+
+// BRK Long lines — broken when full body closes BACK BELOW.
+if array.size(brk_long_lines) > 0
+    i = array.size(brk_long_lines) - 1
+    while i >= 0
+        lvl = array.get(brk_long_levels, i)
+        if math.max(open, close) < lvl
+            // Full body below breakout level — failed long breakout
+            ln = array.get(brk_long_lines, i)
+            line.set_extend(ln, extend.none)
+            line.set_x2(ln, bar_index)
+            if show_choch
+                label.new(bar_index, low,
+                          "FAIL ▼",
+                          style     = label.style_label_up,
+                          color     = color.new(color.orange, 20),
+                          textcolor = color.white,
+                          size      = size.small)
+            array.remove(brk_long_lines,  i)
+            array.remove(brk_long_levels, i)
+        i -= 1
+
+// BRK Short lines — broken when full body closes BACK ABOVE.
+if array.size(brk_short_lines) > 0
+    i = array.size(brk_short_lines) - 1
+    while i >= 0
+        lvl = array.get(brk_short_levels, i)
+        if math.min(open, close) > lvl
+            // Full body above breakdown level — failed short breakout
+            ln = array.get(brk_short_lines, i)
+            line.set_extend(ln, extend.none)
+            line.set_x2(ln, bar_index)
+            if show_choch
+                label.new(bar_index, high,
+                          "FAIL ▲",
+                          style     = label.style_label_down,
+                          color     = color.new(color.orange, 20),
+                          textcolor = color.white,
+                          size      = size.small)
+            array.remove(brk_short_lines,  i)
+            array.remove(brk_short_levels, i)
+        i -= 1
+
+
+// ─────────────────────────────────────────────
+// ── PRICE TARGETS ──
+// ─────────────────────────────────────────────
+// After bullish crossover:  Target = P_cross + (P_cross − P_trough)
+// After bearish crossover:  Target = P_cross − (P_peak   − P_cross)
+
+[target_up, target_down] = hurst.hurst_targets(src, buy_signal, sell_signal, 3)
+
+
+// ─────────────────────────────────────────────
+// ── OSCILLATOR SUMMARY TABLE ──
+// ─────────────────────────────────────────────
+if show_osc_table and barstate.islast
+    var table t = table.new(position.bottom_right, 2, 8,
+                            bgcolor=color.new(color.black, 70),
+                            border_width=1,
+                            border_color=color.new(color.gray, 60))
+
+    // Row 0: HCC OSC value
+    osc_cell_col = osc_val >= 0.8 ? color.red :
+                   osc_val <= 0.2 ? color.lime : color.gray
+    table.cell(t, 0, 0, "HCC OSC",
+               text_color=color.silver, text_size=size.small,
+               bgcolor=color.new(color.black, 70))
+    table.cell(t, 1, 0, str.tostring(math.round(osc_val * 100) / 100),
+               text_color=osc_cell_col, text_size=size.small,
+               bgcolor=color.new(color.black, 70))
+
+    // Row 1: Phase label
+    phase_label = hurst.hurst_phase_label(osc_phase)
+    phase_col   = osc_val >= 0.85 ? color.red :
+                  osc_val <= 0.15 ? color.lime : color.silver
+    table.cell(t, 0, 1, "PHASE",
+               text_color=color.silver, text_size=size.small)
+    table.cell(t, 1, 1, phase_label,
+               text_color=phase_col, text_size=size.small)
+
+    // Row 2: Medium cycle bias
+    bias_str = mc_bull ? "BULL" : "BEAR"
+    bias_col  = mc_bull ? color.lime : color.red
+    table.cell(t, 0, 2, "MC BIAS",
+               text_color=color.silver, text_size=size.small)
+    table.cell(t, 1, 2, bias_str,
+               text_color=bias_col, text_size=size.small)
+
+    // Row 3: Williams %R value (only if WPR filter is enabled)
+    if show_wpr_table and use_wpr_filter
+        wpr_display_col = wpr_overbought ? color.red   :
+                          wpr_oversold   ? color.lime  : color.silver
+        wpr_display_str = str.tostring(math.round(wpr_val * 10) / 10)
+        table.cell(t, 0, 3, "WPR",
+                   text_color=color.silver, text_size=size.small,
+                   bgcolor=color.new(color.black, 70))
+        table.cell(t, 1, 3, wpr_display_str,
+                   text_color=wpr_display_col, text_size=size.small,
+                   bgcolor=color.new(color.black, 70))
+
+    // Row 4: Regime state used by the BQ signal classifier
+    regime_display = regime_uptrend ? "UPTREND" :
+                     regime_downtrend ? "DOWNTREND" : "RANGE"
+    regime_display_col = regime_uptrend ? color.lime :
+                         regime_downtrend ? color.red : color.orange
+    table.cell(t, 0, 4, "REGIME",
+               text_color=color.silver, text_size=size.small,
+               bgcolor=color.new(color.black, 70))
+    table.cell(t, 1, 4, regime_display,
+               text_color=regime_display_col, text_size=size.small,
+               bgcolor=color.new(color.black, 70))
+
+    // Rows 5-7: SQZ filter diagnostics
+    if show_sqz_table
+        sqz_mode_display = use_sqz_filter ? sqz_filter_mode : "OFF"
+        sqz_mode_col     = use_sqz_filter ? color.aqua : color.gray
+        table.cell(t, 0, 5, "SQZ MODE",
+                   text_color=color.silver, text_size=size.small,
+                   bgcolor=color.new(color.black, 70))
+        table.cell(t, 1, 5, sqz_mode_display,
+                   text_color=sqz_mode_col, text_size=size.small,
+                   bgcolor=color.new(color.black, 70))
+
+        sqz_mom_display = str.tostring(math.round(sqz_mom * 100) / 100) + (sqz_mom_rising ? " UP" : sqz_mom_falling ? " DN" : " FLAT")
+        sqz_mom_col     = sqz_mom > 0.0 and sqz_mom_rising ? color.lime :
+                          sqz_mom < 0.0 and sqz_mom_falling ? color.red : color.silver
+        table.cell(t, 0, 6, "SQZ MOM",
+                   text_color=color.silver, text_size=size.small,
+                   bgcolor=color.new(color.black, 70))
+        table.cell(t, 1, 6, sqz_mom_display,
+                   text_color=sqz_mom_col, text_size=size.small,
+                   bgcolor=color.new(color.black, 70))
+
+        sqz_room_display = (sqz_long_room ? "L" : "-") + "/" + (sqz_short_room ? "S" : "-")
+        sqz_rel_display  = sqz_recent_release ? "REL" : "NO REL"
+        sqz_htf_display  = sqz_use_htf ? (sqz_htf_long ? "HTF L" : sqz_htf_short ? "HTF S" : "HTF X") : "HTF OFF"
+        sqz_status_col   = not use_sqz_filter ? color.gray :
+                           sqzLongFilterOk and sqzShortFilterOk ? color.lime :
+                           sqzLongFilterOk ? color.lime :
+                           sqzShortFilterOk ? color.red : color.orange
+        table.cell(t, 0, 7, "SQZ STAT",
+                   text_color=color.silver, text_size=size.small,
+                   bgcolor=color.new(color.black, 70))
+        table.cell(t, 1, 7, sqz_room_display + " " + sqz_rel_display + " " + sqz_htf_display,
+                   text_color=sqz_status_col, text_size=size.small,
+                   bgcolor=color.new(color.black, 70))
+
+
+// ─────────────────────────────────────────────
+// ── PLOTS — CHANNEL ──
+// ─────────────────────────────────────────────
+// MC channel drawn first (behind SC) — wider, more transparent
+mc_top_p = plot(mc_top, "MC Top",    color=color.new(color.orange, 20), linewidth=1)
+mc_bot_p = plot(mc_bot, "MC Bottom", color=color.new(color.orange, 20), linewidth=1)
+plot(show_median ? mc_mid : na, "MC Median",
+     color=color.new(color.orange, 50), linewidth=1)
+fill(mc_top_p, mc_bot_p,
+     color=color.new(src > mc_mid ? color.orange : color.fuchsia, transp_mc),
+     title="MC Fill")
+
+// SC channel — tighter, brighter, oscillates inside MC per Proportionality
+sc_top_p = plot(sc_top, "SC Top",    color=color.new(color.aqua, 20), linewidth=1)
+sc_bot_p = plot(sc_bot, "SC Bottom", color=color.new(color.aqua, 20), linewidth=1)
+plot(show_median ? sc_mid : na, "SC Median",
+     color=color.new(color.aqua, 50), linewidth=1)
+fill(sc_top_p, sc_bot_p,
+     color=color.new(src > sc_mid ? color.aqua : color.red, transp_sc),
+     title="SC Fill")
+
+
+// ─────────────────────────────────────────────
+// ── PLOTS — FLD LINES ──
+// ─────────────────────────────────────────────
+// FLD lines are bright and distinct — they are the primary analytical tool.
+// They lead price action by λ/2, making crossovers visually intuitive.
+
+plot(show_fld_sc ? fld_sc : na, "FLD Short",
+     color=color.new(color.lime,   10), linewidth=1, style=plot.style_line)
+plot(show_fld_mc ? fld_mc : na, "FLD Medium",
+     color=color.new(color.yellow, 30), linewidth=1, style=plot.style_line)
+
+
+// ─────────────────────────────────────────────
+// ── PLOTS — SIGNALS ──
+// ─────────────────────────────────────────────
+plotshape(show_signals and buy_signal,  "Buy Signal",
+          shape.triangleup,   location.belowbar, color.lime, size=size.small)
+plotshape(show_signals and sell_signal, "Sell Signal",
+          shape.triangledown, location.abovebar, color.red,  size=size.small)
+
+// ── BREAKOUT QUALITY PLOTSHAPES ──
+// Visual hierarchy: FLD triangles = cycle inflection signals.
+// BQ diamonds/X/circles = band-boundary quality classification.
+// Shapes are distinct to avoid confusion when both fire on the same bar.
+
+// Structural breakout — white diamond, sized to stand out from FLD triangles
+plotshape(bq_breakout_long,
+          title    = "BQ: Structural Breakout Long",
+          style    = shape.diamond,
+          location = location.belowbar,
+          color    = color.new(color.white, 0),
+          size     = size.small,
+          text     = "BRK",
+          textcolor= color.white)
+
+plotshape(bq_breakout_short,
+          title    = "BQ: Structural Breakout Short",
+          style    = shape.diamond,
+          location = location.abovebar,
+          color    = color.new(color.white, 0),
+          size     = size.small,
+          text     = "BRK",
+          textcolor= color.white)
+
+// Range/compression breakout attempts — likely trap zones until confirmed
+plotshape(bq_trap_long,
+          title    = "BQ: Range Trap High",
+          style    = shape.diamond,
+          location = location.abovebar,
+          color    = color.new(color.orange, 0),
+          size     = size.small,
+          text     = "TRAP",
+          textcolor= color.orange)
+
+plotshape(bq_trap_short,
+          title    = "BQ: Range Trap Low",
+          style    = shape.diamond,
+          location = location.belowbar,
+          color    = color.new(color.orange, 0),
+          size     = size.small,
+          text     = "TRAP",
+          textcolor= color.orange)
+
+// Exhaustion reversal warning — X cross, color matches band direction
+// Positioned opposite to the touched band for visual clarity
+plotshape(bq_reversal_warn_high,
+          title    = "BQ: Reversal Warning High",
+          style    = shape.xcross,
+          location = location.abovebar,
+          color    = color.new(color.red, 0),
+          size     = size.small,
+          text     = "REV",
+          textcolor= color.red)
+
+plotshape(bq_reversal_warn_low,
+          title    = "BQ: Reversal Warning Low",
+          style    = shape.xcross,
+          location = location.belowbar,
+          color    = color.new(color.lime, 0),
+          size     = size.small,
+          text     = "REV",
+          textcolor= color.lime)
+
+// Trend-direction extension warnings — stretched, but not automatic reversals
+plotshape(bq_extension_high,
+          title    = "BQ: Uptrend Extension High",
+          style    = shape.xcross,
+          location = location.abovebar,
+          color    = color.new(color.orange, 0),
+          size     = size.small,
+          text     = "EXT",
+          textcolor= color.orange)
+
+plotshape(bq_extension_low,
+          title    = "BQ: Downtrend Extension Low",
+          style    = shape.xcross,
+          location = location.belowbar,
+          color    = color.new(color.orange, 0),
+          size     = size.small,
+          text     = "EXT",
+          textcolor= color.orange)
+
+// Ambiguous zone — small gray circle: "wait for FLD crossover before acting"
+plotshape(bq_ambiguous_high,
+          title    = "BQ: Ambiguous High",
+          style    = shape.circle,
+          location = location.abovebar,
+          color    = color.new(color.gray, 30),
+          size     = size.tiny)
+
+plotshape(bq_ambiguous_low,
+          title    = "BQ: Ambiguous Low",
+          style    = shape.circle,
+          location = location.belowbar,
+          color    = color.new(color.gray, 30),
+          size     = size.tiny)
+
+// WPR-CONFIRMED REVERSALS — highest confidence classification.
+// Both Hurst oscillator (osc_val threshold) AND Williams %R (range exhaustion)
+// are in agreement. Rendered as a larger, brighter shape to stand out from
+// the standard REV warning.
+
+plotshape(bq_reversal_warn_high and wpr_confirms_rev_high,
+          title    = "BQ: Confirmed Reversal High",
+          style    = shape.xcross,
+          location = location.abovebar,
+          color    = color.new(color.red, 0),
+          size     = size.normal,
+          text     = "REV✓",
+          textcolor= color.red)
+
+plotshape(bq_reversal_warn_low and wpr_confirms_rev_low,
+          title    = "BQ: Confirmed Reversal Low",
+          style    = shape.xcross,
+          location = location.belowbar,
+          color    = color.new(color.lime, 0),
+          size     = size.normal,
+          text     = "REV✓",
+          textcolor= color.lime)
+
+
+// ─────────────────────────────────────────────
+// ── LABELS — PRICE TARGETS ──
+// ─────────────────────────────────────────────
+if show_targets and not na(target_up)
+    label.new(bar_index, sc_bot,
+              "▲ " + str.tostring(math.round(target_up, 2)),
+              style=label.style_label_up,
+              color=color.new(color.lime, 60),
+              textcolor=color.white,
+              size=size.small)
+
+if show_targets and not na(target_down)
+    label.new(bar_index, sc_top,
+              "▼ " + str.tostring(math.round(target_down, 2)),
+              style=label.style_label_down,
+              color=color.new(color.red, 60),
+              textcolor=color.white,
+              size=size.small)
+
+
+// ─────────────────────────────────────────────
+// ── ALERTS ──
+// ─────────────────────────────────────────────
+// Confirmed variants require every enabled filter. Filtered variants catch raw
+// FLD crosses that were blocked by MC confirmation, SQZ, or other active gates.
+// Trough-anchored buys are primary; peak-anchored sells are advisory.
+
+alertcondition(buy_signal,
+               "HCC – FLD Buy",
+               "Hurst FLD Bullish Crossover — Short cycle trough confirmed and enabled filters passed. Upside phase begins.")
+alertcondition(sell_signal,
+               "HCC – FLD Sell",
+               "Hurst FLD Bearish Crossover — Short cycle peak confirmed and enabled filters passed. Downside phase begins.")
+alertcondition(raw_buy and not buy_signal,
+               "HCC – FLD Buy (Filtered)",
+               "Short FLD bullish crossover detected, but one or more enabled filters did not confirm. Lower confidence.")
+alertcondition(raw_sell and not sell_signal,
+               "HCC – FLD Sell (Filtered)",
+               "Short FLD bearish crossover detected, but one or more enabled filters did not confirm. Lower confidence.")
+
+// ── BREAKOUT QUALITY ALERTS ──
+alertcondition(bq_breakout_long,
+               "HCC·BQ – Structural Breakout Long",
+               "Regime-aligned SC upper band breakout with oscillator below threshold and MC FLD confirmed. Structural long — short cycle surging with macro tailwind.")
+alertcondition(bq_breakout_short,
+               "HCC·BQ – Structural Breakout Short",
+               "Regime-aligned SC lower band breakout with oscillator above inverse threshold and MC FLD confirmed. Structural short — short cycle dropping with macro headwind.")
+alertcondition(bq_trap_long,
+               "HCC·BQ – Range Trap High",
+               "SC upper band breakout attempt occurred during range/compression. Treat as trap risk until price confirms expansion.")
+alertcondition(bq_trap_short,
+               "HCC·BQ – Range Trap Low",
+               "SC lower band breakout attempt occurred during range/compression. Treat as trap risk until price confirms expansion.")
+alertcondition(bq_reversal_warn_high,
+               "HCC·BQ – Reversal Warning High",
+               "SC upper band touch with oscillator deeply extended. Exhaustion reversal risk — both cycles near simultaneous peak. Do not chase the breakout.")
+alertcondition(bq_reversal_warn_low,
+               "HCC·BQ – Reversal Warning Low",
+               "SC lower band touch with oscillator deeply oversold. Exhaustion reversal risk — both cycles near simultaneous trough. Potential sharp upward reversal.")
+alertcondition(bq_extension_high,
+               "HCC·BQ – Uptrend Extension High",
+               "SC upper band touch during an uptrend. Price is extended, but this is classified as trend extension rather than an automatic reversal.")
+alertcondition(bq_extension_low,
+               "HCC·BQ – Downtrend Extension Low",
+               "SC lower band touch during a downtrend. Price is extended, but this is classified as trend extension rather than an automatic reversal.")
+
+// ── WILLIAMS %R CONFIRMED REVERSAL ALERTS ──
+alertcondition(bq_reversal_warn_high and wpr_confirms_rev_high,
+               "HCC·WPR – Confirmed Reversal High",
+               "SC upper band exhaustion confirmed by Williams %R overbought. Hurst oscillator AND %R both agree — highest confidence reversal. Do not enter long.")
+
+alertcondition(bq_reversal_warn_low and wpr_confirms_rev_low,
+               "HCC·WPR – Confirmed Reversal Low",
+               "SC lower band exhaustion confirmed by Williams %R oversold. Hurst oscillator AND %R both agree — highest confidence reversal. Sharp upward reversion likely.")

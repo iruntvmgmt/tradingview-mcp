@@ -1,0 +1,584 @@
+//@version=5
+// =========================================================================================
+//                                     STRATEGY DEFINITION
+// =========================================================================================
+strategy("CRSI Prestige Strategy - Advanced Filters",
+     overlay=false, // CRSI oscillator and divergence lines plot in a separate pane.
+     max_lines_count=500,
+     max_labels_count=500,
+     initial_capital=100,
+     default_qty_type=strategy.fixed,
+     default_qty_value=1,
+     commission_type=strategy.commission.cash_per_contract,
+     commission_value=0.01)
+
+// =========================================================================================
+//                                     INPUTS
+// =========================================================================================
+
+// --- Strategy Group ---
+var g_strat = "Strategy Settings"
+useCrossoverTrades = input.bool(false, "Trade Crossovers?", group = g_strat, inline="trades1")
+useDivergenceTrades = input.bool(true, "Trade Divergences?", group = g_strat, inline="trades2")
+useConvergenceTrades = input.bool(false, "Trade Convergences?", group = g_strat, inline="trades3")
+allowReversals = input.bool(false, "Allow Opposite-Signal Reversals?", group = g_strat, tooltip="When disabled, an opposite signal cannot close and reverse an open trade. Positions exit only through the configured risk-management orders.")
+
+// --- Trend Filter Settings ---
+var g_trend = "Trend Filter Settings"
+usePriceTrendFilter = input.bool(false, "Normalized Price Trend", group = g_trend)
+useBBTrendFilter = input.bool(true, "BB Mid-line", group = g_trend)
+useStaticMidFilter = input.bool(false, "Static 50 Mid-line", group = g_trend)
+useDynamicMidFilter = input.bool(false, "Dynamic Fib 50 Mid-line", group = g_trend)
+
+// --- Squeeze Momentum Filter Settings ---
+var g_sqz = "Squeeze Momentum Filter"
+useSqzMomentumFilter = input.bool(false, "Use SQZ Momentum Filter", group = g_sqz)
+sqzMomentumMode = input.string("Momentum Turn", "Filter Mode", options=["Momentum Turn", "Momentum Direction", "Soft", "Strong", "Trend Continuation"], group = g_sqz, tooltip="Momentum Turn only allows the first bar where slope flips. Momentum Direction allows any bar where momentum keeps rising for longs or falling for shorts. Soft/Strong/Trend Continuation add WaveTrend-style squeeze context checks.")
+sqzRequireZeroSide = input.bool(false, "Require Momentum Above/Below Zero", group = g_sqz)
+sqzConfirmedOnly = input.bool(true, "Confirmed Bars Only", group = g_sqz)
+sqzSrc = input.source(close, "SQZ Source", group = g_sqz)
+sqzBBLen = input.int(20, "BB Length", minval=1, group = g_sqz, inline="sqz1")
+sqzBBMult = input.float(2.0, "BB Mult", minval=0.1, step=0.1, group = g_sqz, inline="sqz1")
+sqzKCLen = input.int(20, "KC Length", minval=1, group = g_sqz, inline="sqz2")
+sqzKCMult = input.float(1.5, "KC Mult", minval=0.1, step=0.1, group = g_sqz, inline="sqz2")
+sqzUseTrueRange = input.bool(true, "Use True Range for KC", group = g_sqz)
+sqzMomLen = input.int(20, "Momentum Length", minval=1, group = g_sqz, inline="sqz3")
+sqzSmoothLen = input.int(1, "Smoothing", minval=1, group = g_sqz, inline="sqz3")
+sqzZeroMode = input.string("Regression Mean", "Momentum Baseline", options=["Regression Mean", "Price MA"], group = g_sqz)
+sqzRequireRecentRelease = input.bool(false, "Require Recent Squeeze Release", group = g_sqz, inline="sqz4")
+sqzReleaseWindow = input.int(8, "Bars", minval=1, group = g_sqz, inline="sqz4")
+sqzTrendLen = input.int(50, "Trend EMA Length", minval=1, group = g_sqz, inline="sqz5")
+sqzRiskLookback = input.int(50, "Range Lookback", minval=10, group = g_sqz, inline="sqz5")
+sqzMinRoomAtr = input.float(1.2, "Min Room ATR", minval=0.1, step=0.1, group = g_sqz, inline="sqz6")
+sqzLateLongZone = input.float(0.82, "Late Long Zone", minval=0.5, maxval=1.0, step=0.01, group = g_sqz, inline="sqz6")
+sqzLateShortZone = input.float(0.18, "Late Short Zone", minval=0.0, maxval=0.5, step=0.01, group = g_sqz, inline="sqz7")
+sqzUseHtf = input.bool(true, "Use HTF Alignment", group = g_sqz, inline="sqz8")
+sqzHtfTf = input.timeframe("60", "", group = g_sqz, inline="sqz8")
+showSqzFilterMarkers = input.bool(false, "Show SQZ Filter Markers", group = g_sqz)
+
+// --- Alternate Entry Settings Group ---
+var g_alt_entries = "Alternate Entry Settings"
+useDynamicCross = input.bool(false, "Dynamic Band Cross", group = g_alt_entries, inline="alt1")
+useFibCross = input.bool(false, "Fib 50 Cross", group = g_alt_entries, inline="alt2")
+useBBCross = input.bool(false, "BB Basis Cross", group = g_alt_entries, inline="alt3")
+useDynamicBreakout = input.bool(false, "Dynamic Band Breakout", group = g_alt_entries, inline="alt4")
+useBBBreakout = input.bool(false, "BB Band Breakout", group = g_alt_entries, inline="alt5")
+useFiftyCross = input.bool(false, "MidLine Cross", group = g_alt_entries, inline = "alt6")
+useFib61Breakout = input.bool(false, "61Breakout", group = g_alt_entries, inline = "alt7")
+
+// --- Risk Management Group ---
+var g_risk = "Risk Management"
+riskPercent = input.float(10.0, "Account Risk %", minval=0.1, maxval=50.0, step=0.5, group=g_risk, tooltip="Maximum planned loss at the initial stop. Values near 50% carry extreme risk of ruin.")
+initialStopDollars = input.float(5.0, "Initial Gold Stop ($)", minval=0.1, step=0.1, group=g_risk, inline="EXIT1")
+targetR = input.float(5.0, "Target (R)", minval=0.1, step=0.1, group=g_risk, inline="EXIT1")
+useBreakEven = input.bool(true, "Move to Breakeven", group=g_risk, inline="EXIT2")
+breakEvenTriggerR = input.float(1.0, "At R", minval=0.1, step=0.1, group=g_risk, inline="EXIT2")
+breakEvenOffsetDollars = input.float(0.10, "BE Offset ($)", minval=0.0, step=0.01, group=g_risk, inline="EXIT3", tooltip="Small positive offset intended to help cover commission; spread and slippage can still create a net loss.")
+useStagedTrail = input.bool(true, "Use Delayed Trail", group=g_risk, inline="EXIT4")
+trailActivationR = input.float(2.0, "Start At R", minval=0.1, step=0.1, group=g_risk, inline="EXIT4")
+trailDistanceR = input.float(1.0, "Trail Distance R", minval=0.1, step=0.1, group=g_risk, inline="EXIT5")
+coinexxMinLots = input.float(0.01, "Minimum Lots", minval=0.01, step=0.01, group=g_risk, inline="SIZE")
+coinexxLotStep = input.float(0.01, "Lot Step", minval=0.01, step=0.01, group=g_risk, inline="SIZE")
+coinexxMaxLots = input.float(100.0, "Maximum Lots", minval=0.01, step=0.01, group=g_risk)
+skipBelowMinimum = input.bool(true, "Skip Trade When Risk Size Is Below Minimum", group=g_risk)
+useTradeCooldown = input.bool(true, title="Use Trade Cooldown", group=g_risk, inline="EXIT6")
+cooldownBars = input.int(5, title="Bars to Wait After Closing", group=g_risk, inline="EXIT6", minval=1)
+
+// --- CRSI Group ---
+var g_crsi = "CRSI Settings"
+showCRSI = input.bool(true, "Show CRSI Plot", group = g_crsi)
+domcycle = input.int(20, "Dominant Cycle Length", minval=10, group = g_crsi)
+leveling_crsi = input.int(10, "Leveling", minval=0, group = g_crsi)
+smoothLength = input.int(3, "Smoothing Length", minval=1, group = g_crsi)
+src = input.source(close, "Source", group = g_crsi)
+
+// --- Bollinger Bands Group ---
+var g_bb = "Bollinger Bands"
+showBB = input.bool(false, "Show Bollinger Bands", group = g_bb)
+bbLength = input.int(20, "Length", minval=1, group = g_bb)
+bbMult = input.float(2.0, "StdDev", minval=0.001, maxval=50, group = g_bb)
+
+// --- Level Plotting Group ---
+var g_levels = "Level Plotting"
+showBBFibs = input.bool(false, "Show BB Fibonacci Levels", group = g_levels)
+showCrsiFibs = input.bool(true, "Show cRSI Dynamic Fibs", group = g_levels)
+showCrsiLevels = input.bool(true, "Show cRSI Static Levels", group = g_levels)
+CRSI_HI = input.float(80, "Static High Level", group = g_levels)
+CRSI_MID = input.float(50, "Static Mid Level", group = g_levels)
+CRSI_LO = input.float(20, "Static Low Level", group = g_levels)
+
+// --- Static Levels Subset ---
+showCrsiSubLevels = input.bool(false, "Show cRSI Static Sub Levels", group = g_levels)
+CRSI_HI_sub = input.float(65, "Static High-Sub Level", group = g_levels)
+CRSI_LO_sub = input.float(35, "Static Low-Sub Level", group = g_levels)
+
+// --- Signal Plotting Group ---
+var g_signals = "Signal Plotting"
+showSignalMarkers = input.bool(false, "Show Buy/Sell Markers", group = g_signals, tooltip="Shows the final strategy entry signals on the oscillator. Default is false.")
+
+// --- V5.8 Divergence Engine Group ---
+var g_div = "V5.8 Divergence Engine Settings"
+divPivotLookbackLeft = input.int(5, "Pivot Lookback Left", minval=1, group = g_div)
+divPivotLookbackRight = input.int(3, "Pivot Lookback Right", minval=1, group = g_div)
+maxBarsBetweenPivots = input.int(100, "Max Bars Between Pivots", minval=10, group = g_div)
+show_RBD_plus = input.bool(true, "Regular Bullish Divergence", group = g_div, inline="div1")
+show_HBD_plus = input.bool(false, "Hidden Bullish Divergence", group = g_div, inline="div1")
+show_RBD_minus = input.bool(true, "Regular Bearish Divergence", group = g_div, inline="div2")
+show_HBD_minus = input.bool(false, "Hidden Bearish Divergence", group = g_div, inline="div2")
+showConvergence = input.bool(true, "Show Convergence Patterns", group = g_div, inline="conv")
+useVolumeFilter = input.bool(true, "Volume Filter", group = g_div, inline="filter1", tooltip="Only detect divergences when pivot-bar volume > SMA")
+volumeLookback = input.int(20, "Volume SMA Length", group = g_div, inline="filter1", minval=1)
+useAtrFilter = input.bool(false, "ATR Filter", group = g_div, inline="filter2", tooltip="Only detect divergences when pivot-bar ATR shows increased volatility")
+atrThreshold = input.float(1.2, "ATR Threshold", group = g_div, inline="filter2", minval=0.1, step=0.1)
+showDivergenceLines = input.bool(true, "Show Divergence Lines", group = g_div, inline="plot1")
+maxDivLines = input.int(15, "Max Lines to Show", minval=1, group=g_div, inline="plot1")
+
+// --- Alerts Group ---
+var g_alerts = "Alerts"
+enableAlerts = input.bool(true, "Enable All Alerts?", group = g_alerts)
+
+// =========================================================================================
+//                                     FUNCTIONS
+// =========================================================================================
+
+f_sqz_momentum() =>
+    _rangeMid = math.avg(ta.highest(high, sqzMomLen), ta.lowest(low, sqzMomLen))
+    _classicMean = math.avg(_rangeMid, ta.sma(sqzSrc, sqzMomLen))
+    _simpleMean = ta.sma(sqzSrc, sqzMomLen)
+    _base = sqzZeroMode == "Regression Mean" ? _classicMean : _simpleMean
+    _rawMomentum = ta.linreg(sqzSrc - _base, sqzMomLen, 0)
+    sqzSmoothLen > 1 ? ta.ema(_rawMomentum, sqzSmoothLen) : _rawMomentum
+
+f_sqz_trend_up() =>
+    _ema = ta.ema(close, sqzTrendLen)
+    close > _ema and _ema > _ema[1]
+
+f_sqz_trend_down() =>
+    _ema = ta.ema(close, sqzTrendLen)
+    close < _ema and _ema < _ema[1]
+
+// =========================================================================================
+//                                     CORE CALCULATIONS
+// =========================================================================================
+
+// **Cyclic Smoothed RSI (cRSI)**
+crsi_cyclelen = int(domcycle / 2)
+cyclicmemory_crsi = domcycle * 2
+torque = 2.0 / (10 + 1)
+phasingLag = int((10 - 1) / 2.0)
+up = ta.rma(math.max(ta.change(src), 0), crsi_cyclelen)
+down = ta.rma(-math.min(ta.change(src), 0), crsi_cyclelen)
+rsi = down == 0 ? 100 : up == 0 ? 0 : 100 - 100 / (1 + up / down)
+var float crsi = na
+crsi := torque * (2 * rsi - rsi[phasingLag]) + (1 - torque) * nz(crsi[1])
+smoothedCRSI = ta.sma(crsi, smoothLength)
+
+// ** Bollinger Bands & BB Fibonacci Levels **
+bbMiddle = ta.sma(crsi, bbLength)
+bbStdDev = ta.stdev(crsi, bbLength)
+bbUpper = bbMiddle + bbStdDev * bbMult
+bbLower = bbMiddle - bbStdDev * bbMult
+bbHalfRange = (bbUpper - bbLower) / 2.0
+bb_fib_23_6_up = bbMiddle + bbHalfRange * 0.236
+bb_fib_38_2_up = bbMiddle + bbHalfRange * 0.382
+bb_fib_61_8_up = bbMiddle + bbHalfRange * 0.618
+bb_fib_23_6_down = bbMiddle - bbHalfRange * 0.236
+bb_fib_38_2_down = bbMiddle - bbHalfRange * 0.382
+bb_fib_61_8_down = bbMiddle - bbHalfRange * 0.618
+
+// ** Dynamic cRSI Fibonacci Levels **
+db_crsi = ta.percentile_nearest_rank(crsi, cyclicmemory_crsi, leveling_crsi)
+ub_crsi = ta.percentile_nearest_rank(crsi, cyclicmemory_crsi, 100 - leveling_crsi)
+range_value_crsi = ub_crsi - db_crsi
+fib_50_crsi = (ub_crsi + db_crsi) / 2
+fib_61_8_up_crsi = fib_50_crsi + range_value_crsi * 0.618 / 2
+fib_61_8_down_crsi = fib_50_crsi - range_value_crsi * 0.618 / 2
+
+// ** Price Trend Normalization **
+priceTrendMA = ta.ema(src, 5)
+highestPriceTrendMA = ta.highest(priceTrendMA, 100)
+lowestPriceTrendMA = ta.lowest(priceTrendMA, 100)
+var float normalizedPriceTrendMA = 50.0
+if (highestPriceTrendMA - lowestPriceTrendMA) != 0
+    normalizedPriceTrendMA := ((priceTrendMA - lowestPriceTrendMA) / (highestPriceTrendMA - lowestPriceTrendMA)) * 100
+
+// ** Squeeze Momentum Filter **
+sqzBBBasis = ta.sma(sqzSrc, sqzBBLen)
+sqzBBDev = sqzBBMult * ta.stdev(sqzSrc, sqzBBLen)
+sqzUpperBB = sqzBBBasis + sqzBBDev
+sqzLowerBB = sqzBBBasis - sqzBBDev
+sqzKCBasis = ta.sma(sqzSrc, sqzKCLen)
+sqzRangeValue = sqzUseTrueRange ? ta.tr(true) : high - low
+sqzRangeMa = ta.sma(sqzRangeValue, sqzKCLen)
+sqzUpperKC = sqzKCBasis + sqzRangeMa * sqzKCMult
+sqzLowerKC = sqzKCBasis - sqzRangeMa * sqzKCMult
+sqzOn = sqzLowerBB > sqzLowerKC and sqzUpperBB < sqzUpperKC
+sqzRelease = sqzOn[1] and not sqzOn
+sqzBarsSinceRelease = ta.barssince(sqzRelease)
+sqzRecentRelease = not na(sqzBarsSinceRelease) and sqzBarsSinceRelease <= sqzReleaseWindow
+
+sqzMomentum = f_sqz_momentum()
+sqzMomentumUp = sqzMomentum > nz(sqzMomentum[1])
+sqzMomentumDown = sqzMomentum < nz(sqzMomentum[1])
+sqzMomentumTurnUp = sqzMomentumUp and sqzMomentum[1] <= nz(sqzMomentum[2])
+sqzMomentumTurnDown = sqzMomentumDown and sqzMomentum[1] >= nz(sqzMomentum[2])
+sqzMomentumBull = sqzMomentum >= 0
+sqzSignalAllowed = not sqzConfirmedOnly or barstate.isconfirmed
+sqzLongMomentumOk = sqzMomentumMode == "Momentum Turn" ? sqzMomentumTurnUp : sqzMomentumUp
+sqzShortMomentumOk = sqzMomentumMode == "Momentum Turn" ? sqzMomentumTurnDown : sqzMomentumDown
+sqzLongZeroOk = not sqzRequireZeroSide or sqzMomentum >= 0
+sqzShortZeroOk = not sqzRequireZeroSide or sqzMomentum <= 0
+
+sqzAtrVal = ta.atr(14)
+sqzRangeHigh = ta.highest(high, sqzRiskLookback)
+sqzRangeLow = ta.lowest(low, sqzRiskLookback)
+sqzRangeSpan = math.max(sqzRangeHigh - sqzRangeLow, syminfo.mintick)
+sqzRangePosition = math.max(0.0, math.min(1.0, (close - sqzRangeLow) / sqzRangeSpan))
+sqzRoomUpAtr = sqzAtrVal > 0 ? (sqzRangeHigh - close) / sqzAtrVal : 0.0
+sqzRoomDownAtr = sqzAtrVal > 0 ? (close - sqzRangeLow) / sqzAtrVal : 0.0
+sqzLongRoomOk = sqzRoomUpAtr >= sqzMinRoomAtr and sqzRangePosition < sqzLateLongZone
+sqzShortRoomOk = sqzRoomDownAtr >= sqzMinRoomAtr and sqzRangePosition > sqzLateShortZone
+
+sqzTrendUp = f_sqz_trend_up()
+sqzTrendDown = f_sqz_trend_down()
+sqzHtfMomentum = request.security(syminfo.tickerid, sqzHtfTf, f_sqz_momentum())
+sqzHtfTrendUp = request.security(syminfo.tickerid, sqzHtfTf, f_sqz_trend_up())
+sqzHtfTrendDown = request.security(syminfo.tickerid, sqzHtfTf, f_sqz_trend_down())
+sqzHtfLongAligned = not sqzUseHtf or (sqzHtfMomentum >= 0 and sqzHtfTrendUp)
+sqzHtfShortAligned = not sqzUseHtf or (sqzHtfMomentum <= 0 and sqzHtfTrendDown)
+
+sqzReleaseGate = not sqzRequireRecentRelease or sqzRecentRelease
+sqzLongBasic = sqzSignalAllowed and sqzLongMomentumOk and sqzLongZeroOk
+sqzShortBasic = sqzSignalAllowed and sqzShortMomentumOk and sqzShortZeroOk
+sqzLongSoft = sqzSignalAllowed and sqzMomentumBull and sqzMomentumUp and sqzLongRoomOk and sqzReleaseGate
+sqzShortSoft = sqzSignalAllowed and not sqzMomentumBull and sqzMomentumDown and sqzShortRoomOk and sqzReleaseGate
+sqzLongStrong = sqzLongSoft and sqzTrendUp and sqzHtfLongAligned
+sqzShortStrong = sqzShortSoft and sqzTrendDown and sqzHtfShortAligned
+sqzLongTrendContinuation = sqzLongStrong and close > sqzBBBasis
+sqzShortTrendContinuation = sqzShortStrong and close < sqzBBBasis
+sqzBasicMode = sqzMomentumMode == "Momentum Turn" or sqzMomentumMode == "Momentum Direction"
+sqzSelectedLongOk = sqzBasicMode ? sqzLongBasic : sqzMomentumMode == "Soft" ? sqzLongSoft : sqzMomentumMode == "Strong" ? sqzLongStrong : sqzLongTrendContinuation
+sqzSelectedShortOk = sqzBasicMode ? sqzShortBasic : sqzMomentumMode == "Soft" ? sqzShortSoft : sqzMomentumMode == "Strong" ? sqzShortStrong : sqzShortTrendContinuation
+sqzLongFilterOk = not useSqzMomentumFilter or sqzSelectedLongOk
+sqzShortFilterOk = not useSqzMomentumFilter or sqzSelectedShortOk
+
+// =========================================================================================
+//                               V5.8 NON-REPAINTING DIVERGENCE ENGINE
+// =========================================================================================
+
+// V5.8 Filters
+volSma = ta.sma(volume, volumeLookback)
+isVolOk = not useVolumeFilter or volume > volSma
+atrVal = ta.atr(14)
+isAtrOk = not useAtrFilter or atrVal > ta.sma(atrVal, 50) * atrThreshold
+isFilterOk = isVolOk and isAtrOk
+isFilterOkAtPivot = isFilterOk[divPivotLookbackRight] == true
+
+// State Management for Pivots
+var float lastPivotHighPrice = na
+var float lastPivotHighOsc = na
+var int lastPivotHighIndex = na
+var float lastPivotLowPrice = na
+var float lastPivotLowOsc = na
+var int lastPivotLowIndex = na
+
+// Pivot Detection (Non-Repainting)
+float pivotHighPrice = ta.pivothigh(high, divPivotLookbackLeft, divPivotLookbackRight)
+float pivotLowPrice = ta.pivotlow(low, divPivotLookbackLeft, divPivotLookbackRight)
+
+// Detection Logic
+bool regBullDetected = false
+bool regBearDetected = false
+bool hidBullDetected = false
+bool hidBearDetected = false
+bool bullConvDetected = false
+bool bearConvDetected = false
+var int p1_idx = na
+var int p2_idx = na
+var float p1_osc = na
+var float p2_osc = na
+
+// Check for newly confirmed LOW pivot
+if not na(pivotLowPrice) and isFilterOkAtPivot
+    float currentPivotLowOsc = crsi[divPivotLookbackRight]
+    int currentPivotLowIndex = bar_index - divPivotLookbackRight
+    if not na(lastPivotLowPrice) and (currentPivotLowIndex - lastPivotLowIndex < maxBarsBetweenPivots)
+        if show_RBD_plus and pivotLowPrice < lastPivotLowPrice and currentPivotLowOsc > lastPivotLowOsc
+            regBullDetected := true, p1_idx := lastPivotLowIndex, p2_idx := currentPivotLowIndex, p1_osc := lastPivotLowOsc, p2_osc := currentPivotLowOsc
+        if show_HBD_plus and pivotLowPrice > lastPivotLowPrice and currentPivotLowOsc < lastPivotLowOsc
+            hidBullDetected := true, p1_idx := lastPivotLowIndex, p2_idx := currentPivotLowIndex, p1_osc := lastPivotLowOsc, p2_osc := currentPivotLowOsc
+        if showConvergence and pivotLowPrice < lastPivotLowPrice and currentPivotLowOsc < lastPivotLowOsc
+            bearConvDetected := true, p1_idx := lastPivotLowIndex, p2_idx := currentPivotLowIndex, p1_osc := lastPivotLowOsc, p2_osc := currentPivotLowOsc
+    lastPivotLowPrice := pivotLowPrice, lastPivotLowOsc := currentPivotLowOsc, lastPivotLowIndex := currentPivotLowIndex
+
+// Check for newly confirmed HIGH pivot
+if not na(pivotHighPrice) and isFilterOkAtPivot
+    float currentPivotHighOsc = crsi[divPivotLookbackRight]
+    int currentPivotHighIndex = bar_index - divPivotLookbackRight
+    if not na(lastPivotHighPrice) and (currentPivotHighIndex - lastPivotHighIndex < maxBarsBetweenPivots)
+        if show_RBD_minus and pivotHighPrice > lastPivotHighPrice and currentPivotHighOsc < lastPivotHighOsc
+            regBearDetected := true, p1_idx := lastPivotHighIndex, p2_idx := currentPivotHighIndex, p1_osc := lastPivotHighOsc, p2_osc := currentPivotHighOsc
+        if show_HBD_minus and pivotHighPrice < lastPivotHighPrice and currentPivotHighOsc > lastPivotHighOsc
+            hidBearDetected := true, p1_idx := lastPivotHighIndex, p2_idx := currentPivotHighIndex, p1_osc := lastPivotHighOsc, p2_osc := currentPivotHighOsc
+        if showConvergence and pivotHighPrice > lastPivotHighPrice and currentPivotHighOsc > lastPivotHighOsc
+            bullConvDetected := true, p1_idx := lastPivotHighIndex, p2_idx := currentPivotHighIndex, p1_osc := lastPivotHighOsc, p2_osc := currentPivotHighOsc
+    lastPivotHighPrice := pivotHighPrice, lastPivotHighOsc := currentPivotHighOsc, lastPivotHighIndex := currentPivotHighIndex
+
+// =========================================================================================
+//                                  STRATEGY ENTRY CONDITIONS
+// =========================================================================================
+
+// --- Trade Cooldown State ---
+var int lastTradeCloseBar = na
+bool canTrade = not useTradeCooldown or (bar_index - lastTradeCloseBar) > cooldownBars or na(lastTradeCloseBar)
+if ta.change(strategy.closedtrades) > 0
+    lastTradeCloseBar := bar_index
+
+// --- Trend Filter Logic ---
+price_trend_ok_bull = not usePriceTrendFilter or (normalizedPriceTrendMA > 50)
+bb_trend_ok_bull = not useBBTrendFilter or (crsi > bbMiddle)
+static_mid_ok_bull = not useStaticMidFilter or (crsi > CRSI_MID)
+dynamic_mid_ok_bull = not useDynamicMidFilter or (crsi > fib_50_crsi)
+isBullishTrend = price_trend_ok_bull and bb_trend_ok_bull and static_mid_ok_bull and dynamic_mid_ok_bull
+
+price_trend_ok_bear = not usePriceTrendFilter or (normalizedPriceTrendMA < 50)
+bb_trend_ok_bear = not useBBTrendFilter or (crsi < bbMiddle)
+static_mid_ok_bear = not useStaticMidFilter or (crsi < CRSI_MID)
+dynamic_mid_ok_bear = not useDynamicMidFilter or (crsi < fib_50_crsi)
+isBearishTrend = price_trend_ok_bear and bb_trend_ok_bear and static_mid_ok_bear and dynamic_mid_ok_bear
+
+// --- Standard Signals ---
+crossover_long_signal = useCrossoverTrades and ta.crossover(crsi, smoothedCRSI)
+crossover_short_signal = useCrossoverTrades and ta.crossunder(crsi, smoothedCRSI)
+divergence_long_signal = useDivergenceTrades and (regBullDetected or hidBullDetected)
+divergence_short_signal = useDivergenceTrades and (regBearDetected or hidBearDetected)
+convergence_long_signal = useConvergenceTrades and bullConvDetected
+convergence_short_signal = useConvergenceTrades and bearConvDetected
+
+// --- Alternate Entry Signals ---
+alt_long_signal = (useDynamicCross and ta.crossover(crsi, db_crsi)) or 
+                  (useFibCross and ta.crossover(crsi, fib_50_crsi)) or 
+                  (useBBCross and ta.crossover(crsi, bbMiddle)) or
+                  (useDynamicBreakout and ta.crossover(crsi, ub_crsi)) or
+                  (useBBBreakout and ta.crossover(crsi, bbUpper)) or
+                  (useFiftyCross and ta.crossover(crsi, 50)) or
+                  (useFib61Breakout and ta.crossover(crsi, fib_61_8_up_crsi))
+
+alt_short_signal = (useDynamicCross and ta.crossunder(crsi, ub_crsi)) or 
+                   (useFibCross and ta.crossunder(crsi, fib_50_crsi)) or 
+                   (useBBCross and ta.crossunder(crsi, bbMiddle)) or
+                   (useDynamicBreakout and ta.crossunder(crsi, db_crsi)) or
+                   (useBBBreakout and ta.crossunder(crsi, bbLower)) or
+                   (useFiftyCross and ta.crossunder(crsi, 50)) or
+                   (useFib61Breakout and ta.crossunder(crsi, fib_61_8_down_crsi))
+
+// --- Final Entry Conditions ---
+longEntrySignals = crossover_long_signal or divergence_long_signal or convergence_long_signal or alt_long_signal
+shortEntrySignals = crossover_short_signal or divergence_short_signal or convergence_short_signal or alt_short_signal
+longPositionOk = allowReversals ? strategy.position_size <= 0 : strategy.position_size == 0
+shortPositionOk = allowReversals ? strategy.position_size >= 0 : strategy.position_size == 0
+goLong = longEntrySignals and isBullishTrend and sqzLongFilterOk and longPositionOk
+goShort = shortEntrySignals and isBearishTrend and sqzShortFilterOk and shortPositionOk
+
+// Coinexx XAUUSD: 1.00 lot = 100 oz; 0.01 lot = 1 oz.
+// On TradingView's OANDA XAUUSD feed, strategy quantity is treated as gold units/ounces.
+riskCapital = math.max(strategy.equity, 0.0) * riskPercent / 100.0
+rawLots = initialStopDollars > 0.0 ? riskCapital / (initialStopDollars * 100.0) : 0.0
+steppedLots = math.floor(rawLots / coinexxLotStep) * coinexxLotStep
+tradeLots = math.min(coinexxMaxLots, steppedLots)
+sizeIsTradable = tradeLots >= coinexxMinLots
+effectiveLots = sizeIsTradable ? tradeLots : skipBelowMinimum ? 0.0 : coinexxMinLots
+tradeQtyOunces = effectiveLots * 100.0
+
+// =========================================================================================
+//                                     STRATEGY EXECUTION
+// =========================================================================================
+
+// --- Entry Execution ---
+if goLong and canTrade and tradeQtyOunces > 0.0
+    strategy.entry("Long", strategy.long, qty=tradeQtyOunces)
+if goShort and canTrade and tradeQtyOunces > 0.0
+    strategy.entry("Short", strategy.short, qty=tradeQtyOunces)
+
+// --- Exit Execution ---
+var float favorableExtreme = na
+bool newPosition = strategy.position_size != 0 and strategy.position_size[1] == 0
+bool flatPosition = strategy.position_size == 0
+
+if newPosition
+    favorableExtreme := strategy.position_size > 0 ? high : low
+else if strategy.position_size > 0
+    favorableExtreme := math.max(nz(favorableExtreme, high), high)
+else if strategy.position_size < 0
+    favorableExtreme := math.min(nz(favorableExtreme, low), low)
+else if flatPosition
+    favorableExtreme := na
+
+if strategy.position_size != 0
+    tradeDirection = math.sign(strategy.position_size)
+    entryPrice = strategy.position_avg_price
+    initialStop = entryPrice - initialStopDollars * tradeDirection
+    targetPrice = entryPrice + initialStopDollars * targetR * tradeDirection
+    favorableMove = tradeDirection > 0 ? favorableExtreme - entryPrice : entryPrice - favorableExtreme
+    breakEvenActive = useBreakEven and favorableMove >= initialStopDollars * breakEvenTriggerR
+    trailActive = useStagedTrail and favorableMove >= initialStopDollars * trailActivationR
+    breakEvenStop = entryPrice + breakEvenOffsetDollars * tradeDirection
+    trailingStop = favorableExtreme - initialStopDollars * trailDistanceR * tradeDirection
+    activeStop = initialStop
+    if breakEvenActive
+        activeStop := tradeDirection > 0 ? math.max(activeStop, breakEvenStop) : math.min(activeStop, breakEvenStop)
+    if trailActive
+        activeStop := tradeDirection > 0 ? math.max(activeStop, trailingStop) : math.min(activeStop, trailingStop)
+    strategy.exit("Staged Exit", stop=activeStop, limit=targetPrice)
+
+// =========================================================================================
+//                                  PLOTTING & MARKERS
+// =========================================================================================
+
+// --- Plot Main CRSI & Bands ---
+plotCRSI = plot(showCRSI ? crsi : na, "CRSI", color=crsi > smoothedCRSI ? #26A69A : #EF5350, linewidth=2)
+plot(showCRSI ? smoothedCRSI : na, "Smoothed cRSI", color=color.new(color.yellow, 25), linewidth=2)
+bbUpperPlot = plot(showBB ? bbUpper : na, "Upper BB", color=color.new(color.gray, 50))
+bbLowerPlot = plot(showBB ? bbLower : na, "Lower BB", color=color.new(color.gray, 50))
+fill(bbUpperPlot, bbLowerPlot, color=showBB ? color.new(color.gray, 92) : na)
+plot(showBB ? bbMiddle : na, "BB Basis", color=color.new(color.yellow, 50), style=plot.style_cross)
+
+// --- Plot Static Levels ---
+plotUpper = plot(showCrsiLevels ? CRSI_HI : na, "CRSI HI", color=color.new(color.green, 0), linewidth=1)
+plotLower = plot(showCrsiLevels ? CRSI_LO : na, "CRSI LOW", color=color.new(color.red, 0), linewidth=1)
+plot(showCrsiLevels ? CRSI_MID : na, "CRSI MID", color=color.new(color.white, 0), linewidth=1)
+
+// --- Plot Static Sub Levels ---
+plot(showCrsiSubLevels ? CRSI_HI_sub : na, "CRSI HI Sub", color=color.new(color.green, 0), linewidth=1)
+plot(showCrsiSubLevels ? CRSI_LO_sub : na, "CRSI LOW_sub", color=color.new(color.red, 0), linewidth=1)
+
+// --- Fill for Overbought/Oversold Zones ---
+fill(plotUpper, plotCRSI, title="Overbought Zone Fill", color=crsi > CRSI_HI ? color.new(color.green, 50): na) 
+fill(plotLower, plotCRSI, title="Oversold Zone Fill", color=crsi < CRSI_LO ? color.new(color.red, 50) : na) 
+
+// --- Plot Added Levels ---
+plot(showBBFibs ? bb_fib_61_8_up : na, "BB Fib 61.8% UP", color=color.new(color.teal, 50))
+plot(showBBFibs ? bb_fib_38_2_up : na, "BB Fib 38.2% UP", color=color.new(color.teal, 50))
+plot(showBBFibs ? bb_fib_23_6_up : na, "BB Fib 23.6% UP", color=color.new(color.teal, 50))
+plot(showBBFibs ? bb_fib_61_8_down : na, "BB Fib 61.8% DN", color=color.new(color.teal, 50))
+plot(showBBFibs ? bb_fib_38_2_down : na, "BB Fib 38.2% DN", color=color.new(color.teal, 50))
+plot(showBBFibs ? bb_fib_23_6_down : na, "BB Fib 23.6% DN", color=color.new(color.teal, 50))
+plot(showCrsiFibs ? db_crsi : na, "LowBand", color=color.aqua)
+plot(showCrsiFibs ? ub_crsi : na, "HighBand", color=color.aqua)
+plot(showCrsiFibs ? fib_50_crsi : na, "cRSI Fib 50%", color=color.orange, linewidth=2)
+plot(showCrsiFibs ? fib_61_8_up_crsi : na, "CRSI Fib 61.8% UP", color=color.red, linewidth=1)
+plot(showCrsiFibs ? fib_61_8_down_crsi : na, "CRSI Fib 61.8% DN", color=color.red, linewidth=1)
+
+// --- Signal & Divergence Markers ---
+plotshape(series=showSignalMarkers and goLong and canTrade ? crsi : na, title="Buy Signal", location=location.absolute, style=shape.triangleup, color=color.green, size=size.small)
+plotshape(series=showSignalMarkers and goShort and canTrade ? crsi : na, title="Sell Signal", location=location.absolute, style=shape.triangledown, color=color.red, size=size.small)
+plotshape(series=showSqzFilterMarkers and useSqzMomentumFilter and sqzLongFilterOk ? CRSI_LO : na, title="SQZ Long Filter Open", location=location.absolute, style=shape.circle, color=color.new(color.aqua, 0), size=size.tiny)
+plotshape(series=showSqzFilterMarkers and useSqzMomentumFilter and sqzShortFilterOk ? CRSI_HI : na, title="SQZ Short Filter Open", location=location.absolute, style=shape.circle, color=color.new(color.fuchsia, 0), size=size.tiny)
+
+// V5.8 Enhanced Divergence Line & Label Management
+var line[] regBullLines = array.new_line(0)
+var label[] regBullLabels = array.new_label(0)
+var line[] regBearLines = array.new_line(0)
+var label[] regBearLabels = array.new_label(0)
+var line[] hidBullLines = array.new_line(0)
+var label[] hidBullLabels = array.new_label(0)
+var line[] hidBearLines = array.new_line(0)
+var label[] hidBearLabels = array.new_label(0)
+var line[] bullConvLines = array.new_line(0)
+var label[] bullConvLabels = array.new_label(0)
+var line[] bearConvLines = array.new_line(0)
+var label[] bearConvLabels = array.new_label(0)
+
+manage_line_array(array<line> line_array, line new_line) =>
+    if array.size(line_array) >= maxDivLines
+        line.delete(array.shift(line_array))
+    array.push(line_array, new_line)
+
+manage_label_array(array<label> label_array, label new_label) =>
+    if array.size(label_array) >= maxDivLines
+        label.delete(array.shift(label_array))
+    array.push(label_array, new_label)
+
+if regBullDetected
+    manage_label_array(regBullLabels, label.new(p2_idx, p2_osc, "RB", style=label.style_label_up, size=size.tiny, color=color.green, textcolor=color.white))
+    if showDivergenceLines
+        manage_line_array(regBullLines, line.new(p1_idx, p1_osc, p2_idx, p2_osc, color=color.green, width=2))
+if regBearDetected
+    manage_label_array(regBearLabels, label.new(p2_idx, p2_osc, "RB", style=label.style_label_down, size=size.tiny, color=color.red, textcolor=color.white))
+    if showDivergenceLines
+        manage_line_array(regBearLines, line.new(p1_idx, p1_osc, p2_idx, p2_osc, color=color.red, width=2))
+if hidBullDetected
+    manage_label_array(hidBullLabels, label.new(p2_idx, p2_osc, "HB", style=label.style_triangleup, size=size.tiny, color=color.new(color.lime, 25), textcolor=color.white))
+    if showDivergenceLines
+        manage_line_array(hidBullLines, line.new(p1_idx, p1_osc, p2_idx, p2_osc, color=color.new(color.lime, 25), width=2, style=line.style_dashed))
+if hidBearDetected
+    manage_label_array(hidBearLabels, label.new(p2_idx, p2_osc, "HB", style=label.style_triangledown, size=size.tiny, color=color.new(color.maroon, 25), textcolor=color.white))
+    if showDivergenceLines
+        manage_line_array(hidBearLines, line.new(p1_idx, p1_osc, p2_idx, p2_osc, color=color.new(color.maroon, 25), width=2, style=line.style_dashed))
+if bullConvDetected
+    manage_label_array(bullConvLabels, label.new(p2_idx, p2_osc, "BC", style=label.style_circle, size=size.tiny, color=color.new(color.blue, 25), textcolor=color.white))
+    if showDivergenceLines
+        manage_line_array(bullConvLines, line.new(p1_idx, p1_osc, p2_idx, p2_osc, color=color.new(color.blue, 25), width=1, style=line.style_dotted))
+if bearConvDetected
+    manage_label_array(bearConvLabels, label.new(p2_idx, p2_osc, "BC", style=label.style_circle, size=size.tiny, color=color.new(color.purple, 25), textcolor=color.white))
+    if showDivergenceLines
+        manage_line_array(bearConvLines, line.new(p1_idx, p1_osc, p2_idx, p2_osc, color=color.new(color.purple, 25), width=1, style=line.style_dotted))
+
+// =========================================================================================
+//                                     ALERTS & INFO TABLE
+// =========================================================================================
+
+// --- Alerts ---
+if goLong and canTrade and enableAlerts
+    alert("CRSI Strategy: Long Entry Signal", alert.freq_once_per_bar)
+if goShort and canTrade and enableAlerts
+    alert("CRSI Strategy: Short Entry Signal", alert.freq_once_per_bar)
+
+alertcondition(enableAlerts and regBullDetected, "Regular Bullish Divergence", "{{ticker}}: Regular Bullish Divergence detected")
+alertcondition(enableAlerts and regBearDetected, "Regular Bearish Divergence", "{{ticker}}: Regular Bearish Divergence detected")
+alertcondition(enableAlerts and hidBullDetected, "Hidden Bullish Divergence", "{{ticker}}: Hidden Bullish Divergence detected")
+alertcondition(enableAlerts and hidBearDetected, "Hidden Bearish Divergence", "{{ticker}}: Hidden Bearish Divergence detected")
+alertcondition(enableAlerts and bullConvDetected, "Bullish Convergence", "{{ticker}}: Bullish Convergence detected")
+alertcondition(enableAlerts and bearConvDetected, "Bearish Convergence", "{{ticker}}: Bearish Convergence detected")
+
+// --- Filter Status Table ---
+var table infoTable = table.new(position.top_right, 3, 8, bgcolor=color.new(color.white, 90), border_width=1)
+if barstate.islast
+    sqzStatus = not useSqzMomentumFilter ? "OFF" : sqzLongFilterOk ? "LONG" : sqzShortFilterOk ? "SHORT" : "WAIT"
+    sqzStatusColor = not useSqzMomentumFilter ? color.gray : sqzLongFilterOk ? color.green : sqzShortFilterOk ? color.red : color.orange
+    sqzMomentumStatus = sqzMomentumTurnUp ? "Turn Up" : sqzMomentumTurnDown ? "Turn Down" : sqzMomentumBull ? sqzMomentumUp ? "Bull +" : "Bull Fade" : sqzMomentumDown ? "Bear +" : "Bear Fade"
+    sqzRoomStatus = sqzLongRoomOk and sqzShortRoomOk ? "BOTH" : sqzLongRoomOk ? "LONG" : sqzShortRoomOk ? "SHORT" : "NO"
+    sqzHtfStatus = not sqzUseHtf ? "OFF" : sqzHtfLongAligned ? "LONG" : sqzHtfShortAligned ? "SHORT" : "CONFLICT"
+    sqzReleaseStatus = sqzOn ? "SQUEEZE" : sqzRecentRelease ? "RECENT" : "NO"
+
+    table.cell(infoTable, 0, 0, "Filters", text_color=color.black, bgcolor=color.new(color.gray, 80))
+    table.cell(infoTable, 1, 0, "Status", text_color=color.black, bgcolor=color.new(color.gray, 80))
+    table.cell(infoTable, 2, 0, "Value", text_color=color.black, bgcolor=color.new(color.gray, 80))
+    
+    table.cell(infoTable, 0, 1, "Volume", text_color=color.black)
+    table.cell(infoTable, 1, 1, isVolOk ? "OK" : "NO", text_color=isVolOk ? color.green : color.red)
+    table.cell(infoTable, 2, 1, str.tostring(math.round(volume / 1000)) + "K", text_color=color.black)
+    
+    table.cell(infoTable, 0, 2, "ATR", text_color=color.black)
+    table.cell(infoTable, 1, 2, isAtrOk ? "OK" : "NO", text_color=isAtrOk ? color.green : color.red)
+    table.cell(infoTable, 2, 2, str.tostring(math.round(atrVal * 10000) / 10000), text_color=color.black)
+    
+    table.cell(infoTable, 0, 3, "Combined", text_color=color.black)
+    table.cell(infoTable, 1, 3, isFilterOk ? "OK" : "NO", text_color=isFilterOk ? color.green : color.red)
+    table.cell(infoTable, 2, 3, isFilterOk ? "ACTIVE" : "INACTIVE", text_color=isFilterOk ? color.green : color.red)
+
+    table.cell(infoTable, 0, 4, "SQZ Mode", text_color=color.black)
+    table.cell(infoTable, 1, 4, sqzStatus, text_color=sqzStatusColor)
+    table.cell(infoTable, 2, 4, useSqzMomentumFilter ? sqzMomentumMode : "OFF", text_color=color.black)
+
+    table.cell(infoTable, 0, 5, "SQZ Mom", text_color=color.black)
+    table.cell(infoTable, 1, 5, sqzMomentumStatus, text_color=sqzMomentumBull ? color.green : color.red)
+    table.cell(infoTable, 2, 5, str.tostring(sqzMomentum, "#.0000"), text_color=color.black)
+
+    table.cell(infoTable, 0, 6, "SQZ Room", text_color=color.black)
+    table.cell(infoTable, 1, 6, sqzRoomStatus, text_color=sqzLongRoomOk ? color.green : sqzShortRoomOk ? color.red : color.orange)
+    table.cell(infoTable, 2, 6, "L " + str.tostring(sqzRoomUpAtr, "#.0") + " / S " + str.tostring(sqzRoomDownAtr, "#.0"), text_color=color.black)
+
+    table.cell(infoTable, 0, 7, "SQZ Rel/HTF", text_color=color.black)
+    table.cell(infoTable, 1, 7, sqzReleaseStatus, text_color=sqzOn ? color.orange : sqzRecentRelease ? color.blue : color.gray)
+    table.cell(infoTable, 2, 7, sqzHtfStatus, text_color=not sqzUseHtf ? color.gray : sqzHtfLongAligned ? color.green : sqzHtfShortAligned ? color.red : color.orange)

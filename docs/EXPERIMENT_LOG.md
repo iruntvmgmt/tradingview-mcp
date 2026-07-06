@@ -2,13 +2,13 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `logs/experiment_log.jsonl` by `ExperimentController.report()`.
 
-Last generated: 2026-07-06 01:01 UTC
+Last generated: 2026-07-06 01:39 UTC
 
-## Generation `ce28c372ee34`
+## Generation `c138bacfe530`
 
 | Metric | Value |
 |---|---|
-| Started | 2026-07-06T01:01:19.040940+00:00 |
+| Started | 2026-07-06T01:39:15.576948+00:00 |
 | Notes | two-rollback test |
 | Iterations | 5 total (5 accepted, 0 rejected) |
 | Validation checks | 4 |

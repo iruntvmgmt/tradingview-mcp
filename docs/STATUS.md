@@ -2,7 +2,7 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-06 01:01 UTC
+Last generated: 2026-07-06 01:43 UTC
 Source: `recon_findings.json` (schema v2)
 
 **19/34** capabilities recon-verified · **9** have open known issues that override that verification (see table).
