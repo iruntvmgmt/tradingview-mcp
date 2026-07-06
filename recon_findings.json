@@ -541,11 +541,14 @@
           "1M": "[data-name=\"date-range-tab-1M\"]",
           "3M": "[data-name=\"date-range-tab-3M\"]",
           "6M": "[data-name=\"date-range-tab-6M\"]",
+          "YTD": "[data-name=\"date-range-tab-YTD\"]",
           "1Y": "[data-name=\"date-range-tab-12M\"]",
           "5Y": "[data-name=\"date-range-tab-60M\"]",
           "ALL": "[data-name=\"date-range-tab-ALL\"]"
         },
-        "absolute_date_support": "NOT SUPPORTED for Strategy Tester backtest ranges \u2014 TV 3.2.0 has no JS setVisibleRange API, and Alt+G Custom range affects chart view only."
+        "absolute_date_support": "NOT SUPPORTED \u2014 Strategy Tester backtest period is preset-only on Free tier. Go to Date Custom range only controls chart canvas, not backtest period. See docs/adr/0010-experiment-window-discipline.md and docs/handoff/2026-07-07-strategy-tester-date-range-decision.md.",
+        "go_to_date_button": "[data-name=\"go-to-date\"]",
+        "_confirmed_live_2026_07_06": "Both [data-name=date-ranges-menu] and all 9 preset tabs verified live. YTD preset confirmed present. [data-qa=date-range-menu] does NOT match \u2014 that's a toolbar pill, not the menu opener."
       }
     }
   },

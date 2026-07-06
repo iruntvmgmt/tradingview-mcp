@@ -2,7 +2,7 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-06 22:13 UTC
+Last generated: 2026-07-06 22:40 UTC
 Source: `recon_findings.json` (schema v2)
 
 **19/35** capabilities recon-verified · **12** have open known issues that override that verification (see table).
@@ -19,7 +19,7 @@ Source: `recon_findings.json` (schema v2)
 | `backtest_run` | `dom` | verified | 🟢 Verified | — |
 | `backtest_summary` | `dom` | verified | 🟢 Verified | — |
 | `backtest_trade_list` | `dom` | verified | 🟢 Verified | 🟡 Standing risk: parser relies on innerText line-position order, not stable selectors. A TV wording/line-order change could silently corrupt field mapping. Manual spot-check required after each TradingView Desktop update (see ADR-0009). |
-| `chart_set_visible_range` | `dom` | unverified | ⚪ Unverified (untested against live app) | 🟡 Open: Strategy Tester backtest range remains preset-only (1D/5D/1M/3M/6M/1Y/5Y/All). Accessibility-enabled Alt+G opens a Go to Date Custom range dialog with exact start/end inputs, but that controls only the chart canvas visible range and does not change Strategy Tester backtest calculations. ExperimentController guards against unsafe preset-window execution and Free-tier bar-budget overrun. |
+| `chart_set_visible_range` | `dom` | unverified | ⚪ Unverified (untested against live app) | 🟡 Strategy Tester backtest period is preset-only on TradingView Free tier (1D/5D/1M/3M/6M/YTD/1Y/5Y/All via [data-name=date-ranges-menu]). No custom date range, no deep backtesting. Go to Date Custom range (Alt+G) only controls chart canvas, not backtest. ADR-0010 live experiments blocked. Two experiment modes formalized: disciplined_live_experiment (raises WindowGuardError) and preset_smoke_test (warns, for plumbing verification). |
 | `drawing_create` | `dom` | verified | 🟢 Verified | — |
 | `drawing_list` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `drawing_remove` | `dom` | verified | 🟢 Verified | — |
@@ -56,12 +56,12 @@ Source: `recon_findings.json` (schema v2)
 - **Opened:** 2026-07-05
 - **Detail:** docs/adr/0009-trade-list-text-position-parsing-fragility.md
 
-### 🟡 `chart_set_visible_range` — Open: Strategy Tester backtest range remains preset-only (1D/5D/1M/3M/6M/1Y/5Y/All). Accessibility-enabled Alt+G opens a Go to Date Custom range dialog with exact start/end inputs, but that controls only the chart canvas visible range and does not change Strategy Tester backtest calculations. ExperimentController guards against unsafe preset-window execution and Free-tier bar-budget overrun.
+### 🟡 `chart_set_visible_range` — Strategy Tester backtest period is preset-only on TradingView Free tier (1D/5D/1M/3M/6M/YTD/1Y/5Y/All via [data-name=date-ranges-menu]). No custom date range, no deep backtesting. Go to Date Custom range (Alt+G) only controls chart canvas, not backtest. ADR-0010 live experiments blocked. Two experiment modes formalized: disciplined_live_experiment (raises WindowGuardError) and preset_smoke_test (warns, for plumbing verification).
 
 - **Severity:** minor
 - **Blocks primary goal:** yes
 - **Opened:** 2026-07-05
-- **Detail:** docs/handoff/2026-07-07-accessibility-alt-g-date-dialog.md
+- **Detail:** docs/handoff/2026-07-07-strategy-tester-date-range-decision.md
 
 ### 🟠 `ohlcv_read` — Dead end on both implemented paths. DOM backend punts to network path with a CapabilityUnavailable; network backend's get_ohlcv also unconditionally raises CapabilityUnavailable despite its own docstring claiming OHLCV is the one thing the network path supports. No working OHLCV read exists.
 
