@@ -103,7 +103,7 @@
     {
       "capability": "experiment_report",
       "severity": "minor",
-      "summary": "Fixed: the 'best iteration' selection in report() previously ignored validation outcomes and rollback events — an iteration with high train-window PF that failed validation and was rolled back would still be surfaced as the headline number. Now restricts candidates to validation-confirmed, non-rolled-back iterations only.",
+      "summary": "Fixed (two bugs): (1) the 'best iteration' selection in report() originally ignored validation/rollback outcomes — an iteration with high train PF that failed validation and was rolled back could appear as the headline number. (2) Follow-up fix: the rollback disqualification was too aggressive — any iteration_num > rollback target was excluded, permanently blocking post-rollback improvements from ever being 'best'. Now only specific iterations undone by a given rollback (determined by log event order) are disqualified.",
       "detail_ref": "docs/handoff/2026-07-05-validation-check-double-append-fix.md",
       "blocks_goal": false,
       "opened": "2026-07-05",

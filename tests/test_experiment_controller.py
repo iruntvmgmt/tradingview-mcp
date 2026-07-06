@@ -683,9 +683,17 @@ class TestReport:
         report_text = ctrl.report(generation_id=gid)
 
         # The "best" section must NOT contain iteration 2's PF (2.90)
-        assert "2.90" not in report_text or "2.9" not in report_text, (
+        assert "2.90" not in report_text, (
             f"Report must not surface the overfit PF (2.90) in the 'best' "
             f"section. Report:\n{report_text}"
+        )
+
+        # Iteration 3 (PF 1.62) should be the best — it was created AFTER
+        # the rollback, was never undone, and its PF beats iter 1's (1.55).
+        assert "1.62" in report_text, (
+            f"Report should show iteration 3's PF (1.62) as best since "
+            f"it was created after the rollback and never undone. "
+            f"Report:\n{report_text}"
         )
 
         # The section header must use the new label
@@ -698,4 +706,126 @@ class TestReport:
         assert "failed validation or were rolled back" in report_text, (
             f"Report must explain that failed/rolled-back iterations are "
             f"excluded. Report:\n{report_text}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_two_sequential_rollbacks_dont_cross_contaminate(self, tmp_path: Path):
+        """Two sequential rollbacks should each only disqualify iterations
+        undone by that specific rollback — not everything after the first
+        target.
+
+        Scenario:
+          Iter 1: PF=1.2, pass, no rollback
+          Iter 2: PF=3.0, fail → rollback to 1 (undoes iter 2 only)
+          Iter 3: PF=1.5, pass, no rollback (post-rollback improvement)
+          Iter 4: PF=4.0, fail → rollback to 3 (undoes iter 4 only)
+          Iter 5: PF=1.8, pass, no rollback (post-second-rollback)
+
+        Expected best: iter 5 (PF 1.8) — highest validated PF among
+        {1, 3, 5} (iters 2 and 4 were rolled back individually).
+        """
+        settings = _make_mock_controller("settings", read={"length": 14}, write=None, list_fields=[])
+        ctrl = _make_controller(tmp_path, settings=settings)
+        gid = await ctrl.start_generation("two-rollback test")
+
+        # Iter 1
+        ctrl._log.append_event({
+            "event": "iteration", "generation_id": gid,
+            "iteration_num": 1, "change_type": "settings",
+            "change_description": "Iter 1", "window": "train",
+            "metrics": {"profit_factor": 1.2, "max_drawdown": 10.0},
+            "trade_count": 50, "accepted": True, "reject_reason": None,
+        })
+        # Iter 2 (will be rolled back)
+        ctrl._log.append_event({
+            "event": "iteration", "generation_id": gid,
+            "iteration_num": 2, "change_type": "settings",
+            "change_description": "Iter 2 (overfit)", "window": "train",
+            "metrics": {"profit_factor": 3.0, "max_drawdown": 5.0},
+            "trade_count": 50, "accepted": True, "reject_reason": None,
+        })
+        ctrl._log.append_event({
+            "event": "validation_check", "generation_id": gid,
+            "at_iteration_num": 2, "verdict": "fail",
+            "divergence_pct": 60.0, "consecutive_passes_after_this": 0,
+        })
+        # Rollback #1: undo iter 2
+        ctrl._log.append_event({
+            "event": "rollback", "generation_id": gid,
+            "rolled_back_to_iteration_num": 1,
+            "reason": "Iter 2 overfit",
+        })
+        # Iter 3 (post-rollback #1)
+        ctrl._log.append_event({
+            "event": "iteration", "generation_id": gid,
+            "iteration_num": 3, "change_type": "settings",
+            "change_description": "Iter 3", "window": "train",
+            "metrics": {"profit_factor": 1.5, "max_drawdown": 12.0},
+            "trade_count": 50, "accepted": True, "reject_reason": None,
+        })
+        ctrl._log.append_event({
+            "event": "validation_check", "generation_id": gid,
+            "at_iteration_num": 3, "verdict": "pass",
+            "divergence_pct": 5.0, "consecutive_passes_after_this": 1,
+        })
+        # Iter 4 (will be rolled back)
+        ctrl._log.append_event({
+            "event": "iteration", "generation_id": gid,
+            "iteration_num": 4, "change_type": "settings",
+            "change_description": "Iter 4 (overfit again)", "window": "train",
+            "metrics": {"profit_factor": 4.0, "max_drawdown": 3.0},
+            "trade_count": 50, "accepted": True, "reject_reason": None,
+        })
+        ctrl._log.append_event({
+            "event": "validation_check", "generation_id": gid,
+            "at_iteration_num": 4, "verdict": "fail",
+            "divergence_pct": 70.0, "consecutive_passes_after_this": 0,
+        })
+        # Rollback #2: undo iter 4 only
+        ctrl._log.append_event({
+            "event": "rollback", "generation_id": gid,
+            "rolled_back_to_iteration_num": 3,
+            "reason": "Iter 4 overfit",
+        })
+        # Iter 5 (post-rollback #2)
+        ctrl._log.append_event({
+            "event": "iteration", "generation_id": gid,
+            "iteration_num": 5, "change_type": "settings",
+            "change_description": "Iter 5", "window": "train",
+            "metrics": {"profit_factor": 1.8, "max_drawdown": 11.0},
+            "trade_count": 50, "accepted": True, "reject_reason": None,
+        })
+        ctrl._log.append_event({
+            "event": "validation_check", "generation_id": gid,
+            "at_iteration_num": 5, "verdict": "pass",
+            "divergence_pct": 3.0, "consecutive_passes_after_this": 1,
+        })
+
+        report_text = ctrl.report(generation_id=gid)
+
+        assert "Best validation-confirmed iteration" in report_text
+
+        # Extract just the "best" section (from its header through its
+        # table, stopping before the next "###" section header).
+        best_start = report_text.index("Best validation-confirmed iteration")
+        remainder = report_text[best_start:]
+        next_section = remainder.find("\n### ", 1)  # skip the header itself
+        if next_section != -1:
+            best_section = remainder[:next_section]
+        else:
+            best_section = remainder
+
+        # Iterations 2 and 4 have higher PFs but were rolled back —
+        # their PFs must NOT appear in the best section.
+        for bad_pf in ("3.0", "4.0"):
+            assert bad_pf not in best_section, (
+                f"Best section must not surface rolled-back PF {bad_pf}. "
+                f"Best section:\n{best_section[:500]}"
+            )
+
+        # Iter 5 (PF 1.8) should be the best — highest validated PF
+        # among non-rolled-back candidates {1, 3, 5}.
+        assert "1.8" in best_section, (
+            f"Best section should show iteration 5's PF (1.8). "
+            f"Best section:\n{best_section[:500]}"
         )

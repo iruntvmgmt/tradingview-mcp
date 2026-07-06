@@ -694,10 +694,46 @@ class ExperimentController:
             # Candidates must be (a) accepted, (b) not rolled back,
             # and (c) have at least one validation_check with
             # verdict == "pass" at or after that iteration_num.
-            rolled_back_targets = {
-                rb["rolled_back_to_iteration_num"]
-                for rb in rollbacks
-            }
+            #
+            # "Rolled back" means the iteration was the specific one
+            # undone by a rollback event — NOT every iteration with a
+            # higher number than the rollback target.  To determine
+            # which iterations a rollback actually undid, we walk the
+            # log in event order: for each rollback, the iterations
+            # that existed at that moment are those whose iteration_num
+            # is <= the highest iteration_num seen before the rollback.
+            # The disqualified range is (target, highest_at_rollback_time].
+
+            def _build_disqualified_set(
+                events: list[dict],
+            ) -> set[int]:
+                """Return the set of iteration_nums that were undone by
+                any rollback event in this generation.
+
+                Only iterations that existed at the time of a rollback
+                and whose num > the rollback target are disqualified.
+                Iterations created AFTER a rollback are not affected.
+                """
+                disqualified: set[int] = set()
+                highest_iter_seen = 0
+                for e in events:
+                    if e.get("event") == "iteration":
+                        num = e.get("iteration_num")
+                        if isinstance(num, int) and num > highest_iter_seen:
+                            highest_iter_seen = num
+                    elif e.get("event") == "rollback":
+                        target = e.get("rolled_back_to_iteration_num")
+                        if isinstance(target, int):
+                            # Disqualify every iteration_num strictly
+                            # greater than target and <= the highest
+                            # iteration_num that existed when this
+                            # rollback was recorded.
+                            for n in range(target + 1, highest_iter_seen + 1):
+                                disqualified.add(n)
+                return disqualified
+
+            disqualified_iter_nums = _build_disqualified_set(events)
+
             validation_passes_at = {
                 vc["at_iteration_num"]
                 for vc in val_checks
@@ -706,15 +742,10 @@ class ExperimentController:
 
             def _is_confirmed(it: dict) -> bool:
                 num = it["iteration_num"]
-                # Must have a validation pass at or after this iteration
                 return any(p >= num for p in validation_passes_at)
 
             def _is_rolled_back(it: dict) -> bool:
-                num = it["iteration_num"]
-                # Disqualified if any rollback targets an iteration
-                # earlier than this one (meaning this iteration's
-                # changes were undone).
-                return any(num > target for target in rolled_back_targets)
+                return it["iteration_num"] in disqualified_iter_nums
 
             candidates = [
                 it for it in accepted
