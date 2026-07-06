@@ -1,0 +1,1485 @@
+{
+  "schema_version": 1,
+  "source_file": "GT_VP_v9.9.6_STRAT",
+  "generated_at": "2026-07-06T02:14:01.273115+00:00",
+  "requires_strategy_harness": false,
+  "total_inputs_found": 209,
+  "families": {
+    "Strategy Harness": {
+      "tier": "entry_and_execution",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "enable_strategy",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": false,
+          "title": "Enable Strategy Orders",
+          "raw_group_identifier": "group_strategy"
+        },
+        {
+          "name": "strategy_mode",
+          "type": "string",
+          "classification": "structural_toggle",
+          "default": null,
+          "title": "Trade Signal Mode",
+          "raw_group_identifier": "group_strategy",
+          "default_unparsed": true
+        },
+        {
+          "name": "strategy_strictness",
+          "type": "string",
+          "classification": "structural_toggle",
+          "default": null,
+          "title": "Entry Strictness",
+          "raw_group_identifier": "group_strategy",
+          "default_unparsed": true
+        },
+        {
+          "name": "allow_strategy_longs",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Allow Longs",
+          "raw_group_identifier": "group_strategy"
+        },
+        {
+          "name": "allow_strategy_shorts",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Allow Shorts",
+          "raw_group_identifier": "group_strategy"
+        },
+        {
+          "name": "strategy_rr",
+          "type": "float",
+          "classification": "tunable",
+          "default": 1.5,
+          "title": "Fallback R:R Target",
+          "raw_group_identifier": "group_strategy"
+        },
+        {
+          "name": "strategy_atr_stop_mult",
+          "type": "float",
+          "classification": "tunable",
+          "default": 1.0,
+          "title": "ATR Stop Multiplier",
+          "raw_group_identifier": "group_strategy"
+        },
+        {
+          "name": "strategy_level_buffer_atr",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.1,
+          "title": "Level Buffer ATR",
+          "raw_group_identifier": "group_strategy"
+        },
+        {
+          "name": "strategy_timeout_bars",
+          "type": "int",
+          "classification": "tunable",
+          "default": 30,
+          "title": "Timeout Bars",
+          "raw_group_identifier": "group_strategy"
+        }
+      ]
+    },
+    "\ud83c\udfaf Triple MA Trend Filter": {
+      "tier": "signal_generation",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "ma_auto_lengths",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale MA Lengths (TF-Aware)",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "ma_adaptive_vol",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": false,
+          "title": "Volatility-Adaptive MA Lengths",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "ma_vol_sensitivity",
+          "type": "float",
+          "classification": "tunable",
+          "default": 25.0,
+          "title": "MA Volatility Sensitivity",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "ma_adaptive_type",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": false,
+          "title": "Regime-Adaptive MA Type",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "enable_ma_system",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Enable MA System",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "ma_filter_mode",
+          "type": "string",
+          "classification": "structural_toggle",
+          "default": null,
+          "title": "MA Filter Mode",
+          "raw_group_identifier": "group_ma",
+          "default_unparsed": true
+        },
+        {
+          "name": "ma_filter_strict",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": false,
+          "title": "Strict Mode (Price Position)",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "ma_fast_length",
+          "type": "int",
+          "classification": "tunable",
+          "default": 9,
+          "title": "Fast MA Length",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "ma_medium_length",
+          "type": "int",
+          "classification": "tunable",
+          "default": 21,
+          "title": "Medium MA Length",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "ma_slow_length",
+          "type": "int",
+          "classification": "tunable",
+          "default": 50,
+          "title": "Slow MA Length",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "ma_type",
+          "type": "string",
+          "classification": "structural_toggle",
+          "default": null,
+          "title": "MA Type",
+          "raw_group_identifier": "group_ma",
+          "default_unparsed": true
+        },
+        {
+          "name": "show_ma_visual",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Show MA Lines",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "show_ma_cloud",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Show MA Cloud",
+          "raw_group_identifier": "group_ma"
+        },
+        {
+          "name": "show_trend_bg",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": false,
+          "title": "Show Trend Background",
+          "raw_group_identifier": "group_ma"
+        }
+      ]
+    },
+    "Session Configuration": {
+      "tier": "session_and_timing",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "sessionType",
+          "type": "string",
+          "classification": "structural_toggle",
+          "default": null,
+          "title": "Session Type",
+          "raw_group_identifier": "group_session",
+          "default_unparsed": true
+        },
+        {
+          "name": "showCur",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Show Live Session",
+          "raw_group_identifier": "group_session"
+        }
+      ]
+    },
+    "Real-Time Execution": {
+      "tier": "entry_and_execution",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "realtime_execution",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Real-Time Execution (Live Ticks)",
+          "raw_group_identifier": "group_execution"
+        },
+        {
+          "name": "confirm_on_close",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": false,
+          "title": "Require Bar Close (Safety Mode)",
+          "raw_group_identifier": "group_execution"
+        },
+        {
+          "name": "min_tick_spacing",
+          "type": "int",
+          "classification": "tunable",
+          "default": 5,
+          "title": "Min Ticks Between Checks",
+          "raw_group_identifier": "group_execution"
+        }
+      ]
+    },
+    "Dynamic Binning System": {
+      "tier": "unordered",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "use_dynamic_bins",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "ATR-Based Dynamic Bins",
+          "raw_group_identifier": "group_bins"
+        },
+        {
+          "name": "granularity_factor",
+          "type": "int",
+          "classification": "tunable",
+          "default": 40,
+          "title": "Granularity Factor",
+          "raw_group_identifier": "group_bins"
+        },
+        {
+          "name": "granularity_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale Granularity (TF-Aware)",
+          "raw_group_identifier": "group_bins"
+        },
+        {
+          "name": "fixed_bins",
+          "type": "int",
+          "classification": "tunable",
+          "default": 50,
+          "title": "Fixed Bins (if dynamic off)",
+          "raw_group_identifier": "group_bins"
+        },
+        {
+          "name": "enable_adaptive_granularity",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Adaptive Granularity",
+          "raw_group_identifier": "group_bins"
+        },
+        {
+          "name": "compression_mode",
+          "type": "string",
+          "classification": "structural_toggle",
+          "default": null,
+          "title": "Compression Mode",
+          "raw_group_identifier": "group_bins",
+          "default_unparsed": true
+        },
+        {
+          "name": "compression_factor",
+          "type": "int",
+          "classification": "tunable",
+          "default": 2,
+          "title": "Compression Factor",
+          "raw_group_identifier": "group_bins"
+        },
+        {
+          "name": "compression_trigger_size",
+          "type": "int",
+          "classification": "tunable",
+          "default": 40000,
+          "title": "Primary Threshold",
+          "raw_group_identifier": "group_bins"
+        },
+        {
+          "name": "compression_trigger_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale Compression Trigger (TF-Aware)",
+          "raw_group_identifier": "group_bins"
+        },
+        {
+          "name": "enable_multi_stage",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Multi-Stage Compression",
+          "raw_group_identifier": "group_bins"
+        },
+        {
+          "name": "time_compression_bars",
+          "type": "int",
+          "classification": "tunable",
+          "default": 2000,
+          "title": "Time Trigger (bars)",
+          "raw_group_identifier": "group_bins"
+        }
+      ]
+    },
+    "Value Area Configuration": {
+      "tier": "unordered",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "va_percentage",
+          "type": "int",
+          "classification": "tunable",
+          "default": 70,
+          "title": "Value Area %",
+          "raw_group_identifier": "group_va"
+        },
+        {
+          "name": "showPoc",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Show POC",
+          "raw_group_identifier": "group_va"
+        },
+        {
+          "name": "showVA",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Show VAH/VAL Lines",
+          "raw_group_identifier": "group_va"
+        },
+        {
+          "name": "showVAb",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": false,
+          "title": "Show Value Area Box",
+          "raw_group_identifier": "group_va"
+        },
+        {
+          "name": "show_va_metrics",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "VA Breathing Metrics",
+          "raw_group_identifier": "group_va"
+        },
+        {
+          "name": "va_expansion_threshold",
+          "type": "float",
+          "classification": "tunable",
+          "default": 1.1,
+          "title": "Expansion Threshold",
+          "raw_group_identifier": "group_va"
+        },
+        {
+          "name": "va_contraction_threshold",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.9,
+          "title": "Contraction Threshold",
+          "raw_group_identifier": "group_va"
+        },
+        {
+          "name": "va_breath_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale VA Breathing Thresholds",
+          "raw_group_identifier": "group_va"
+        }
+      ]
+    },
+    "God Tier Features": {
+      "tier": "unordered",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "show_ghost_trails",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "POC Ghost Trails (Stepline)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "use_colored_ghost",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Colored Ghost Trails",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "ghost_atr_filter",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.05,
+          "title": "Ghost Trail Min ATR Move",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "show_va_cloud",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Developing VA Cloud",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "show_prior_va",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Prior Session VA Reference",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "va_cloud_delta_tint",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Delta-Tinted Cloud",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "show_va_reclaim_border",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "VA Reclaim/Rejection Border",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "show_stacked_imb",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Stacked Imbalances",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "show_lvn_marks",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "LVN Markers",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "show_fast_lanes",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Fast Lanes (Liquidity Voids)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "show_bubbles",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Footprint Bubbles (Point of Truth)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "lvn_threshold",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.15,
+          "title": "LVN Threshold",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "fast_lane_threshold",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.15,
+          "title": "Fast Lane Threshold (vs max vol)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "fast_lane_min_stack",
+          "type": "int",
+          "classification": "tunable",
+          "default": 2,
+          "title": "Fast Lane Min Zone Width (bins)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "void_thresh_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale LVN & Fast Lane Thresholds",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "imbalance_ratio",
+          "type": "float",
+          "classification": "tunable",
+          "default": 3.0,
+          "title": "Imbalance Threshold",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "imbalance_ratio_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale Imbalance Ratio (Volatility-Aware)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "bubble_vol_threshold",
+          "type": "float",
+          "classification": "tunable",
+          "default": 2.0,
+          "title": "Volume Threshold (StdDev)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "bubble_min_delta",
+          "type": "int",
+          "classification": "tunable",
+          "default": 50,
+          "title": "Minimum Delta to Show",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "bubble_size_mode",
+          "type": "string",
+          "classification": "structural_toggle",
+          "default": null,
+          "title": "Size Mode",
+          "raw_group_identifier": "group_god",
+          "default_unparsed": true
+        },
+        {
+          "name": "bubble_show_ratio",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Show Buy/Sell Ratio",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "max_bubbles",
+          "type": "int",
+          "classification": "tunable",
+          "default": 50,
+          "title": "Max Bubbles on Chart",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "bubble_offset",
+          "type": "int",
+          "classification": "tunable",
+          "default": 3,
+          "title": "Vertical Offset (ticks)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "bubble_color_mode",
+          "type": "string",
+          "classification": "structural_toggle",
+          "default": null,
+          "title": "Color Mode",
+          "raw_group_identifier": "group_god",
+          "default_unparsed": true
+        },
+        {
+          "name": "bubble_tier_strength",
+          "type": "float",
+          "classification": "tunable",
+          "default": 2.0,
+          "title": "Tier Strength Threshold",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "enable_smart_pruning",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Smart Bubble Pruning",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "bubble_proximity_ticks",
+          "type": "int",
+          "classification": "tunable",
+          "default": 10,
+          "title": "Key Level Proximity (ticks)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "bubble_max_age_bars",
+          "type": "int",
+          "classification": "tunable",
+          "default": 100,
+          "title": "Max Bubble Age (bars)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "bubble_age_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale Bubble Age (TF-Aware)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "bubble_thresh_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale Bubble Volume Threshold (TF-Aware)",
+          "raw_group_identifier": "group_god"
+        },
+        {
+          "name": "show_bubble_tooltips",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Enhanced Tooltips",
+          "raw_group_identifier": "group_god"
+        }
+      ]
+    },
+    "Real-Time POC": {
+      "tier": "session_and_timing",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "enable_realtime_poc",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "\ud83d\udd25 Enable Real-Time POC Updates",
+          "raw_group_identifier": "group_poc"
+        },
+        {
+          "name": "show_live_poc_marker",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Show Live POC Marker",
+          "raw_group_identifier": "group_poc"
+        }
+      ]
+    },
+    "Order Flow & Statistics": {
+      "tier": "signal_generation",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "show_delta",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Enable CVD Analysis",
+          "raw_group_identifier": "group_flow"
+        },
+        {
+          "name": "show_divergence",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Delta Divergence Signals",
+          "raw_group_identifier": "group_flow"
+        },
+        {
+          "name": "show_absorption",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Absorption Detection",
+          "raw_group_identifier": "group_flow"
+        },
+        {
+          "name": "show_exhaustion",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Exhaustion Signals",
+          "raw_group_identifier": "group_flow"
+        },
+        {
+          "name": "show_iceberg",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Iceberg Detection",
+          "raw_group_identifier": "group_flow"
+        },
+        {
+          "name": "calc_rotation",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Calculate Rotation Factor",
+          "raw_group_identifier": "group_flow"
+        },
+        {
+          "name": "show_flow_pressure",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Flow Pressure",
+          "raw_group_identifier": "group_flow"
+        },
+        {
+          "name": "show_delta_strength",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Delta Strength (CVD Momentum)",
+          "raw_group_identifier": "group_flow"
+        },
+        {
+          "name": "delta_strength_len",
+          "type": "int",
+          "classification": "tunable",
+          "default": 20,
+          "title": "Delta Strength Length",
+          "raw_group_identifier": "group_flow"
+        },
+        {
+          "name": "delta_strength_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale Delta Strength Length",
+          "raw_group_identifier": "group_flow"
+        }
+      ]
+    },
+    "Auction Pattern Detection": {
+      "tier": "signal_generation",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "show_failed_auction",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Failed Auctions",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "failed_auction_vol_threshold",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.3,
+          "title": "Failed Auction Vol %",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "failed_auction_lookback",
+          "type": "int",
+          "classification": "tunable",
+          "default": 8,
+          "title": "Breakout Lookback",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "fa_lookback_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale FA Lookback (TF-Aware)",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "fa_min_pen_atr",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.08,
+          "title": "FA Min Penetration ATR",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "fa_displacement_atr",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.25,
+          "title": "FA Displacement ATR",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "fa_confirm_bars",
+          "type": "int",
+          "classification": "tunable",
+          "default": 2,
+          "title": "FA Confirm Window",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "fa_cooldown_bars",
+          "type": "int",
+          "classification": "tunable",
+          "default": 10,
+          "title": "FA Cooldown Bars",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "show_trend_validation",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Trend Validation (Candle Colors)",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "show_zz_sweep",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "ZZ Structural Sweep Layer",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "zz_atr_len",
+          "type": "int",
+          "classification": "tunable",
+          "default": 14,
+          "title": "ZZ ATR Length",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "zz_atr_mult",
+          "type": "float",
+          "classification": "tunable",
+          "default": 1.5,
+          "title": "ZZ ATR Reversal Multiplier",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "zz_min_swing_bars",
+          "type": "int",
+          "classification": "tunable",
+          "default": 3,
+          "title": "ZZ Min Bars Between Swings",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "zz_swing_bars_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale ZZ Min Swing Bars",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "zz_sweep_thresh",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.6,
+          "title": "ZZ Sweep Rejection %",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "liq_sweep_min_pen_atr",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.08,
+          "title": "Sweep Min Penetration ATR",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "liq_sweep_displacement_atr",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.25,
+          "title": "Sweep Displacement ATR",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "liq_sweep_confirm_bars",
+          "type": "int",
+          "classification": "tunable",
+          "default": 2,
+          "title": "Sweep Confirm Window",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "liq_sweep_cooldown_bars",
+          "type": "int",
+          "classification": "tunable",
+          "default": 10,
+          "title": "Sweep Cooldown Bars",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "liq_sweep_body_reclaim",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Sweep Requires Close Reclaim",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "show_smd_on_imb",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Smart Money Flag on Imbalances",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "smd_lookback",
+          "type": "int",
+          "classification": "tunable",
+          "default": 10,
+          "title": "Smart Money Lookback",
+          "raw_group_identifier": "group_patterns"
+        },
+        {
+          "name": "smd_lookback_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale SMD Lookback (TF-Aware)",
+          "raw_group_identifier": "group_patterns"
+        }
+      ]
+    },
+    "\ud83d\udd36 Fair Value Gaps": {
+      "tier": "signal_generation",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "show_fvg",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Show Fair Value Gaps",
+          "raw_group_identifier": "group_fvg"
+        },
+        {
+          "name": "show_ifvg",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Show Inverse FVGs (IFVG)",
+          "raw_group_identifier": "group_fvg"
+        },
+        {
+          "name": "fvg_extend_bars",
+          "type": "int",
+          "classification": "tunable",
+          "default": 20,
+          "title": "FVG Extend (bars)",
+          "raw_group_identifier": "group_fvg"
+        },
+        {
+          "name": "fvg_extend_auto",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Auto-Scale FVG Extend (TF-Aware)",
+          "raw_group_identifier": "group_fvg"
+        },
+        {
+          "name": "fvg_threshold",
+          "type": "float",
+          "classification": "tunable",
+          "default": 0.3,
+          "title": "FVG Min Size (ATR multiplier)",
+          "raw_group_identifier": "group_fvg"
+        },
+        {
+          "name": "fvg_max_active",
+          "type": "int",
+          "classification": "tunable",
+          "default": 20,
+          "title": "Max Active FVGs",
+          "raw_group_identifier": "group_fvg"
+        }
+      ]
+    },
+    "\ud83d\udcd0 Market Structure": {
+      "tier": "signal_generation",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "show_market_structure",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Enable Market Structure Layer",
+          "raw_group_identifier": "group_ms"
+        },
+        {
+          "name": "show_zz_lines",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "ZigZag Connecting Line",
+          "raw_group_identifier": "group_ms"
+        },
+        {
+          "name": "show_hhll_labels",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "HH / HL / LH / LL Labels",
+          "raw_group_identifier": "group_ms"
+        },
+        {
+          "name": "show_swing_levels",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Swing Resistance / Support Lines",
+          "raw_group_identifier": "group_ms"
+        },
+        {
+          "name": "show_equilibrium",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Equilibrium Line",
+          "raw_group_identifier": "group_ms"
+        },
+        {
+          "name": "show_bos_choch",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "BOS / CHoCH Markers",
+          "raw_group_identifier": "group_ms"
+        },
+        {
+          "name": "show_ms_score",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Structure Score in Dashboard",
+          "raw_group_identifier": "group_ms"
+        },
+        {
+          "name": "zz_bos_confirm_candles",
+          "type": "int",
+          "classification": "tunable",
+          "default": 2,
+          "title": "BOS/CHoCH Confirm Candles",
+          "raw_group_identifier": "group_ms"
+        },
+        {
+          "name": "zz_use_body_break",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Body Break for BOS/CHoCH",
+          "raw_group_identifier": "group_ms"
+        },
+        {
+          "name": "show_sr_price_labels",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "S/R Price Labels on Lines",
+          "raw_group_identifier": "group_ms"
+        }
+      ]
+    },
+    "Performance Optimization": {
+      "tier": "signal_generation",
+      "group_name_unresolved": false,
+      "inputs": [
+        {
+          "name": "max_profile_rows",
+          "type": "int",
+          "classification": "tunable",
+          "default": 200,
+          "title": "Max Visible Rows",
+          "raw_group_identifier": "group_perf"
+        },
+        {
+          "name": "enable_pruning",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Map Pruning (Outliers)",
+          "raw_group_identifier": "group_perf"
+        },
+        {
+          "name": "prune_stdev",
+          "type": "float",
+          "classification": "tunable",
+          "default": 5.0,
+          "title": "Prune Threshold (StdDev)",
+          "raw_group_identifier": "group_perf"
+        },
+        {
+          "name": "enable_performance_monitoring",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Performance Monitoring",
+          "raw_group_identifier": "group_perf"
+        },
+        {
+          "name": "emergency_threshold",
+          "type": "float",
+          "classification": "tunable",
+          "default": 85.0,
+          "title": "Emergency Cleanup %",
+          "raw_group_identifier": "group_perf"
+        },
+        {
+          "name": "enable_throttling",
+          "type": "bool",
+          "classification": "structural_toggle",
+          "default": true,
+          "title": "Adaptive Throttling",
+          "raw_group_identifier": "group_perf"
+        }
+      ]
+    }
+  },
+  "excluded_cosmetic": [
+    {
+      "name": "c_bg_strong_bull",
+      "group": "\ud83c\udfaf Triple MA Trend Filter"
+    },
+    {
+      "name": "c_bg_weak_bull",
+      "group": "\ud83c\udfaf Triple MA Trend Filter"
+    },
+    {
+      "name": "c_bg_strong_bear",
+      "group": "\ud83c\udfaf Triple MA Trend Filter"
+    },
+    {
+      "name": "c_bg_weak_bear",
+      "group": "\ud83c\udfaf Triple MA Trend Filter"
+    },
+    {
+      "name": "profile_width_pct",
+      "group": "Visualization Engine"
+    },
+    {
+      "name": "use_heatmap",
+      "group": "Visualization Engine"
+    },
+    {
+      "name": "use_enhanced_heatmap",
+      "group": "Visualization Engine"
+    },
+    {
+      "name": "use_polyline",
+      "group": "Visualization Engine"
+    },
+    {
+      "name": "smooth_polyline",
+      "group": "Visualization Engine"
+    },
+    {
+      "name": "dispMode",
+      "group": "Visualization Engine"
+    },
+    {
+      "name": "showSbox",
+      "group": "Visualization Engine"
+    },
+    {
+      "name": "showLabels",
+      "group": "Visualization Engine"
+    },
+    {
+      "name": "show_profile_shape",
+      "group": "Visualization Engine"
+    },
+    {
+      "name": "c_live_poc",
+      "group": "Real-Time POC"
+    },
+    {
+      "name": "bullCol",
+      "group": "Color Settings"
+    },
+    {
+      "name": "bearCol",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_poc",
+      "group": "Color Settings"
+    },
+    {
+      "name": "pocWid",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_vah",
+      "group": "Color Settings"
+    },
+    {
+      "name": "vahWid",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_val",
+      "group": "Color Settings"
+    },
+    {
+      "name": "valWid",
+      "group": "Color Settings"
+    },
+    {
+      "name": "VAbCol",
+      "group": "Color Settings"
+    },
+    {
+      "name": "boxBg",
+      "group": "Color Settings"
+    },
+    {
+      "name": "boxWid",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_noise",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_cold",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_warm",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_hot",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_poly",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_lvn",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_fast_lane",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_ghost_rising",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_ghost_falling",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_ghost_stationary",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_prior_va",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_hh",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_hl",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_lh",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_ll",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_bos",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_choch",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_zz_line",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_swing_res",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_swing_sup",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_equilibrium",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_hist_res",
+      "group": "Color Settings"
+    },
+    {
+      "name": "c_hist_sup",
+      "group": "Color Settings"
+    },
+    {
+      "name": "show_label_hhll",
+      "group": "\ud83c\udff7\ufe0f Label Visibility"
+    },
+    {
+      "name": "show_label_bos",
+      "group": "\ud83c\udff7\ufe0f Label Visibility"
+    },
+    {
+      "name": "show_label_div",
+      "group": "\ud83c\udff7\ufe0f Label Visibility"
+    },
+    {
+      "name": "show_label_abs",
+      "group": "\ud83c\udff7\ufe0f Label Visibility"
+    },
+    {
+      "name": "show_label_exhaust",
+      "group": "\ud83c\udff7\ufe0f Label Visibility"
+    },
+    {
+      "name": "show_label_ice",
+      "group": "\ud83c\udff7\ufe0f Label Visibility"
+    },
+    {
+      "name": "show_label_smd",
+      "group": "\ud83c\udff7\ufe0f Label Visibility"
+    },
+    {
+      "name": "c_fvg_bull",
+      "group": "\ud83d\udd36 Fair Value Gaps"
+    },
+    {
+      "name": "c_fvg_bear",
+      "group": "\ud83d\udd36 Fair Value Gaps"
+    },
+    {
+      "name": "c_ifvg_bull",
+      "group": "\ud83d\udd36 Fair Value Gaps"
+    },
+    {
+      "name": "c_ifvg_bear",
+      "group": "\ud83d\udd36 Fair Value Gaps"
+    },
+    {
+      "name": "shelf_source",
+      "group": "\ud83d\udcd0 Pivot G-Tier Visuals"
+    },
+    {
+      "name": "pvt_use_auto",
+      "group": "\ud83d\udcd0 Pivot G-Tier Visuals"
+    },
+    {
+      "name": "pvt_left",
+      "group": "\ud83d\udcd0 Pivot G-Tier Visuals"
+    },
+    {
+      "name": "pvt_right",
+      "group": "\ud83d\udcd0 Pivot G-Tier Visuals"
+    },
+    {
+      "name": "pvt_max_len",
+      "group": "\ud83d\udcd0 Pivot G-Tier Visuals"
+    },
+    {
+      "name": "pvt_line_width",
+      "group": "\ud83d\udcd0 Pivot G-Tier Visuals"
+    },
+    {
+      "name": "pvt_use_renko",
+      "group": "\ud83d\udcd0 Pivot G-Tier Visuals"
+    },
+    {
+      "name": "show_pvt_hist",
+      "group": "\ud83d\udcd0 Pivot G-Tier Visuals"
+    },
+    {
+      "name": "show_chaos_channel",
+      "group": "\ud83d\udcd0 Pivot G-Tier Visuals"
+    },
+    {
+      "name": "show_enhanced_dashboard",
+      "group": "Enhanced Dashboard"
+    },
+    {
+      "name": "dashboard_mode",
+      "group": "Enhanced Dashboard"
+    },
+    {
+      "name": "show_market_state",
+      "group": "Enhanced Dashboard"
+    },
+    {
+      "name": "show_compression_status",
+      "group": "Enhanced Dashboard"
+    },
+    {
+      "name": "show_bubble_analytics",
+      "group": "Enhanced Dashboard"
+    },
+    {
+      "name": "show_performance_metrics",
+      "group": "Enhanced Dashboard"
+    }
+  ],
+  "unclassified": [],
+  "coupling_candidates": [
+    {
+      "family_a": "God Tier Features",
+      "family_b": "Auction Pattern Detection",
+      "evidence": [
+        "ghost_atr_filter and zz_atr_len appear together (line 2184)"
+      ],
+      "confidence": "heuristic \u2014 human review required, not a proven dependency"
+    }
+  ],
+  "known_overrides": {}
+}
