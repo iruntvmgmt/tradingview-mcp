@@ -2,10 +2,10 @@
 
 > **Generated file — do not hand-edit.** Rebuilt from `recon_findings.json` + `docs/known_issues.json` by `scripts/generate_status.py`. To change what this file says, either fix the underlying code and re-run recon, or edit `docs/known_issues.json` and re-run the generator.
 
-Last generated: 2026-07-06 02:27 UTC
+Last generated: 2026-07-06 14:28 UTC
 Source: `recon_findings.json` (schema v2)
 
-**19/34** capabilities recon-verified · **9** have open known issues that override that verification (see table).
+**19/35** capabilities recon-verified · **11** have open known issues that override that verification (see table).
 
 ## Capability matrix
 
@@ -16,9 +16,10 @@ Source: `recon_findings.json` (schema v2)
 | `alert_edit` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `alert_list` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `backtest_equity_curve` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
-| `backtest_run` | `dom` | verified | 🟢 Verified | — |
+| `backtest_run` | `dom` | verified | 🔴 Known issue | 🟠 recon_findings.json's selector for the backtest Summary tab (button[id="strategy-report-summary"]) does not match the actual DOM on TV Desktop 3.2.0, where the real tab id is "Strategy report" (with a space) and tabs use data-name="light-tab-0"/"light-tab-1" instead. backtest_run is currently marked verified:true in recon_findings.json but is running against a stale selector — the verified flag is unreliable for this capability until selectors are corrected and recon is rerun. |
 | `backtest_summary` | `dom` | verified | 🟢 Verified | — |
 | `backtest_trade_list` | `dom` | verified | 🟢 Verified | 🟡 Standing risk: parser relies on innerText line-position order, not stable selectors. A TV wording/line-order change could silently corrupt field mapping. Manual spot-check required after each TradingView Desktop update (see ADR-0009). |
+| `chart_set_visible_range` | `dom` | unverified | 🔴 Known issue | 🟠 DomChartBackend.set_visible_range assumes window.TradingView/tvWidget/widget object inside an iframe, but TV Desktop 3.2.0 renders the chart in the main page with zero iframes, and the real internal API (window._exposed_chartWidgetCollection.activeChartWidget) has no chart()/setVisibleRange()/range method found so far. |
 | `drawing_create` | `dom` | verified | 🟢 Verified | — |
 | `drawing_list` | `dom` | unverified | ⚪ Unverified (untested against live app) | — |
 | `drawing_remove` | `dom` | verified | 🟢 Verified | — |
@@ -48,12 +49,26 @@ Source: `recon_findings.json` (schema v2)
 
 ## Open issues (detail)
 
+### 🟠 `backtest_run` — recon_findings.json's selector for the backtest Summary tab (button[id="strategy-report-summary"]) does not match the actual DOM on TV Desktop 3.2.0, where the real tab id is "Strategy report" (with a space) and tabs use data-name="light-tab-0"/"light-tab-1" instead. backtest_run is currently marked verified:true in recon_findings.json but is running against a stale selector — the verified flag is unreliable for this capability until selectors are corrected and recon is rerun.
+
+- **Severity:** major
+- **Blocks primary goal:** yes
+- **Opened:** 2026-07-05
+- **Detail:** docs/handoff/2026-07-05-live-pipeline-attempt.md
+
 ### 🟡 `backtest_trade_list` — Standing risk: parser relies on innerText line-position order, not stable selectors. A TV wording/line-order change could silently corrupt field mapping. Manual spot-check required after each TradingView Desktop update (see ADR-0009).
 
 - **Severity:** minor
 - **Blocks primary goal:** no
 - **Opened:** 2026-07-05
 - **Detail:** docs/adr/0009-trade-list-text-position-parsing-fragility.md
+
+### 🟠 `chart_set_visible_range` — DomChartBackend.set_visible_range assumes window.TradingView/tvWidget/widget object inside an iframe, but TV Desktop 3.2.0 renders the chart in the main page with zero iframes, and the real internal API (window._exposed_chartWidgetCollection.activeChartWidget) has no chart()/setVisibleRange()/range method found so far.
+
+- **Severity:** major
+- **Blocks primary goal:** yes
+- **Opened:** 2026-07-05
+- **Detail:** docs/handoff/2026-07-05-live-pipeline-attempt.md
 
 ### 🟠 `ohlcv_read` — Dead end on both implemented paths. DOM backend punts to network path with a CapabilityUnavailable; network backend's get_ohlcv also unconditionally raises CapabilityUnavailable despite its own docstring claiming OHLCV is the one thing the network path supports. No working OHLCV read exists.
 

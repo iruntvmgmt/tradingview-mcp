@@ -1,5 +1,5 @@
 {
-  "_comment": "Hand-maintained. This is the ONLY file where humans/agents record known issues per capability. Do not duplicate this information in prose docs — STATUS.md is generated FROM this file plus recon_findings.json, so editing STATUS.md directly will be overwritten. Capability names must match keys in recon_findings.json exactly.",
+  "_comment": "Hand-maintained. This is the ONLY file where humans/agents record known issues per capability. Do not duplicate this information in prose docs \u2014 STATUS.md is generated FROM this file plus recon_findings.json, so editing STATUS.md directly will be overwritten. Capability names must match keys in recon_findings.json exactly.",
   "_schema": {
     "capability": "must match a key in recon_findings.json capabilities{}",
     "severity": "blocker | major | minor",
@@ -76,7 +76,7 @@
     {
       "capability": "settings_write",
       "severity": "minor",
-      "summary": "Fixed: checkbox write now works through DomSettingsBackend.write(). Dialog opens via CDP mouseMoved+click on gear icon ([data-qa-id=\"legend-settings-action\"]). Checkbox input is inside the label cell (inner-RLntasnw subtree), not the value cell — both list_fields and write updated to search label cell as fallback. Checkbox JS .click() confirmed to toggle state (True↔False). Full round-trip write→read confirmed 2026-07-04.",
+      "summary": "Fixed: checkbox write now works through DomSettingsBackend.write(). Dialog opens via CDP mouseMoved+click on gear icon ([data-qa-id=\"legend-settings-action\"]). Checkbox input is inside the label cell (inner-RLntasnw subtree), not the value cell \u2014 both list_fields and write updated to search label cell as fallback. Checkbox JS .click() confirmed to toggle state (True\u2194False). Full round-trip write\u2192read confirmed 2026-07-04.",
       "detail_ref": "docs/adr/0004-settings-dialog-selector-fragility.md",
       "blocks_goal": false,
       "opened": "2026-07-03",
@@ -85,7 +85,7 @@
     {
       "capability": "backtest_trade_list",
       "severity": "minor",
-      "summary": "Fixed: backtest_trade_list now returns structured records via innerText parsing. 11 trades confirmed for MA Cross Strat with all fields (trade_number, direction, entry/exit datetime/price, size, net_pnl, return_pct). Parameter change (Fast MA 9→7) produced different trade values. Previous paywall conclusion was wrong — data always available, navigation failure was the real issue.",
+      "summary": "Fixed: backtest_trade_list now returns structured records via innerText parsing. 11 trades confirmed for MA Cross Strat with all fields (trade_number, direction, entry/exit datetime/price, size, net_pnl, return_pct). Parameter change (Fast MA 9\u21927) produced different trade values. Previous paywall conclusion was wrong \u2014 data always available, navigation failure was the real issue.",
       "detail_ref": "docs/handoff/2026-07-05-pine-errors-and-trade-list.md",
       "blocks_goal": false,
       "opened": "2026-07-05",
@@ -103,11 +103,29 @@
     {
       "capability": "experiment_report",
       "severity": "minor",
-      "summary": "Fixed (two bugs): (1) the 'best iteration' selection in report() originally ignored validation/rollback outcomes — an iteration with high train PF that failed validation and was rolled back could appear as the headline number. (2) Follow-up fix: the rollback disqualification was too aggressive — any iteration_num > rollback target was excluded, permanently blocking post-rollback improvements from ever being 'best'. Now only specific iterations undone by a given rollback (determined by log event order) are disqualified.",
+      "summary": "Fixed (two bugs): (1) the 'best iteration' selection in report() originally ignored validation/rollback outcomes \u2014 an iteration with high train PF that failed validation and was rolled back could appear as the headline number. (2) Follow-up fix: the rollback disqualification was too aggressive \u2014 any iteration_num > rollback target was excluded, permanently blocking post-rollback improvements from ever being 'best'. Now only specific iterations undone by a given rollback (determined by log event order) are disqualified.",
       "detail_ref": "docs/handoff/2026-07-05-validation-check-double-append-fix.md",
       "blocks_goal": false,
       "opened": "2026-07-05",
       "status": "fixed"
+    },
+    {
+      "capability": "chart_set_visible_range",
+      "severity": "major",
+      "summary": "DomChartBackend.set_visible_range assumes window.TradingView/tvWidget/widget object inside an iframe, but TV Desktop 3.2.0 renders the chart in the main page with zero iframes, and the real internal API (window._exposed_chartWidgetCollection.activeChartWidget) has no chart()/setVisibleRange()/range method found so far.",
+      "detail_ref": "docs/handoff/2026-07-05-live-pipeline-attempt.md",
+      "blocks_goal": true,
+      "opened": "2026-07-05",
+      "status": "open"
+    },
+    {
+      "capability": "backtest_run",
+      "severity": "major",
+      "summary": "recon_findings.json's selector for the backtest Summary tab (button[id=\"strategy-report-summary\"]) does not match the actual DOM on TV Desktop 3.2.0, where the real tab id is \"Strategy report\" (with a space) and tabs use data-name=\"light-tab-0\"/\"light-tab-1\" instead. backtest_run is currently marked verified:true in recon_findings.json but is running against a stale selector \u2014 the verified flag is unreliable for this capability until selectors are corrected and recon is rerun.",
+      "detail_ref": "docs/handoff/2026-07-05-live-pipeline-attempt.md",
+      "blocks_goal": true,
+      "opened": "2026-07-05",
+      "status": "open"
     }
   ]
 }

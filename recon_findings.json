@@ -28,15 +28,42 @@
           "button[aria-label=\"{tf_aria}\"]"
         ],
         "interval_map": {
-          "1m": {"value": "1", "aria": "1 minute"},
-          "5m": {"value": "5", "aria": "5 minutes"},
-          "15m": {"value": "15", "aria": "15 minutes"},
-          "30m": {"value": "30", "aria": "30 minutes"},
-          "1h": {"value": "60", "aria": "1 hour"},
-          "4h": {"value": "240", "aria": "4 hours"},
-          "1D": {"value": "1D", "aria": "1 day"},
-          "1W": {"value": "1W", "aria": "1 week"},
-          "1M": {"value": "1M", "aria": "1 month"}
+          "1m": {
+            "value": "1",
+            "aria": "1 minute"
+          },
+          "5m": {
+            "value": "5",
+            "aria": "5 minutes"
+          },
+          "15m": {
+            "value": "15",
+            "aria": "15 minutes"
+          },
+          "30m": {
+            "value": "30",
+            "aria": "30 minutes"
+          },
+          "1h": {
+            "value": "60",
+            "aria": "1 hour"
+          },
+          "4h": {
+            "value": "240",
+            "aria": "4 hours"
+          },
+          "1D": {
+            "value": "1D",
+            "aria": "1 day"
+          },
+          "1W": {
+            "value": "1W",
+            "aria": "1 week"
+          },
+          "1M": {
+            "value": "1M",
+            "aria": "1 month"
+          }
         },
         "active_selector": "button[role=\"radio\"][aria-checked=\"true\"]",
         "dropdown_open_selectors": [
@@ -97,17 +124,43 @@
       "path": "dom",
       "verified": true,
       "detail": {
-        "tab_selectors": ["div[class*=\"strategy-tester\"]"],
+        "tab_selectors": [
+          "div[class*=\"strategy-tester\"]"
+        ],
         "row_selectors": {
-          "net_profit": ["Net Profit", "Strategy outperformance"],
-          "win_rate": ["Percent Profitable", "Win Rate"],
-          "sharpe": ["Sharpe ratio", "Sharpe"],
-          "total_trades": ["Total trades", "Total closed trades"],
-          "profit_factor": ["Profit Factor", "Profit factor"],
-          "max_drawdown": ["Max drawdown"],
-          "cagr": ["CAGR"],
-          "avg_pnl": ["Average PnL", "Avg Trade"],
-          "return_pct": ["Return on initial capital"]
+          "net_profit": [
+            "Net Profit",
+            "Strategy outperformance"
+          ],
+          "win_rate": [
+            "Percent Profitable",
+            "Win Rate"
+          ],
+          "sharpe": [
+            "Sharpe ratio",
+            "Sharpe"
+          ],
+          "total_trades": [
+            "Total trades",
+            "Total closed trades"
+          ],
+          "profit_factor": [
+            "Profit Factor",
+            "Profit factor"
+          ],
+          "max_drawdown": [
+            "Max drawdown"
+          ],
+          "cagr": [
+            "CAGR"
+          ],
+          "avg_pnl": [
+            "Average PnL",
+            "Avg Trade"
+          ],
+          "return_pct": [
+            "Return on initial capital"
+          ]
         },
         "fallback": "innertext_scan"
       }
@@ -116,10 +169,22 @@
       "path": "dom",
       "verified": true,
       "detail": {
-        "tab_selectors": ["List of trades section in Strategy Tester bottom panel"],
+        "tab_selectors": [
+          "List of trades section in Strategy Tester bottom panel"
+        ],
         "data_source": "document.body.innerText parsing (unified text block, not individual DOM elements)",
-        "columns": ["trade_number", "direction", "entry_datetime", "exit_datetime", "entry_price", "exit_price", "size", "net_pnl", "return_pct"],
-        "note": "Trade data rendered as innerText block under 'List of trades' section. Parser uses line-by-line regex matching. Confirmed 2026-07-05: 11 trades parsed, entry/exit prices match screenshot, parameter change (Fast MA 9→7) produced different trade values."
+        "columns": [
+          "trade_number",
+          "direction",
+          "entry_datetime",
+          "exit_datetime",
+          "entry_price",
+          "exit_price",
+          "size",
+          "net_pnl",
+          "return_pct"
+        ],
+        "note": "Trade data rendered as innerText block under 'List of trades' section. Parser uses line-by-line regex matching. Confirmed 2026-07-05: 11 trades parsed, entry/exit prices match screenshot, parameter change (Fast MA 9\u21927) produced different trade values."
       }
     },
     "backtest_equity_curve": {
@@ -133,7 +198,7 @@
       "path": "orchestration",
       "verified": true,
       "detail": {
-        "note": "ExperimentController.report() generates a Markdown report from logs/experiment_log.jsonl. This is pure Python orchestration — no DOM automation, no recon selectors needed. 'Best iteration' selection now filters to validation-confirmed, non-rolled-back iterations only (fix 2026-07-05)."
+        "note": "ExperimentController.report() generates a Markdown report from logs/experiment_log.jsonl. This is pure Python orchestration \u2014 no DOM automation, no recon selectors needed. 'Best iteration' selection now filters to validation-confirmed, non-rolled-back iterations only (fix 2026-07-05)."
       }
     },
     "alert_create": {
@@ -146,33 +211,49 @@
         ],
         "dialog_selector": "[data-qa-id=\"alerts-create-edit-dialog\"]",
         "field_selectors": {
-          "condition": ["[data-name=\"alert-condition\"]"],
-          "message": ["[data-name=\"alert-message\"]"]
+          "condition": [
+            "[data-name=\"alert-condition\"]"
+          ],
+          "message": [
+            "[data-name=\"alert-message\"]"
+          ]
         },
-        "confirm_selectors": ["button:has(div:text(\"Create\"))"],
-        "cancel_selectors": ["button:has(div:text(\"Cancel\"))"]
+        "confirm_selectors": [
+          "button:has(div:text(\"Create\"))"
+        ],
+        "cancel_selectors": [
+          "button:has(div:text(\"Cancel\"))"
+        ]
       }
     },
     "alert_edit": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "selectors": ["button:has(div:text(\"Edit\"))"]
+        "selectors": [
+          "button:has(div:text(\"Edit\"))"
+        ]
       }
     },
     "alert_delete": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "selectors": ["button[data-name=\"delete-alert\"]"]
+        "selectors": [
+          "button[data-name=\"delete-alert\"]"
+        ]
       }
     },
     "alert_list": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "panel_selectors": ["div[class*=\"alert-list\"]"],
-        "row_selectors": ["div[class*=\"alert-row\"]"]
+        "panel_selectors": [
+          "div[class*=\"alert-list\"]"
+        ],
+        "row_selectors": [
+          "div[class*=\"alert-row\"]"
+        ]
       }
     },
     "drawing_create": {
@@ -181,16 +262,34 @@
       "detail": {
         "toolbar_selector": "#drawing-toolbar",
         "toolbar_selectors": {
-          "trendline": ["#drawing-toolbar button[aria-label=\"Trendline\"]"],
-          "fib": ["#drawing-toolbar button[aria-label=\"Fib retracement\"]"],
-          "rectangle": ["#drawing-toolbar button[aria-label=\"Geometric shapes\"]"],
-          "cursor": ["#drawing-toolbar button[aria-label=\"Cross\"]"],
-          "text": ["#drawing-toolbar button[aria-label=\"Text\"]"],
-          "measure": ["#drawing-toolbar button[aria-label=\"Measure\"]"],
-          "remove": ["#drawing-toolbar button[aria-label=\"Remove objects\"]"]
+          "trendline": [
+            "#drawing-toolbar button[aria-label=\"Trendline\"]"
+          ],
+          "fib": [
+            "#drawing-toolbar button[aria-label=\"Fib retracement\"]"
+          ],
+          "rectangle": [
+            "#drawing-toolbar button[aria-label=\"Geometric shapes\"]"
+          ],
+          "cursor": [
+            "#drawing-toolbar button[aria-label=\"Cross\"]"
+          ],
+          "text": [
+            "#drawing-toolbar button[aria-label=\"Text\"]"
+          ],
+          "measure": [
+            "#drawing-toolbar button[aria-label=\"Measure\"]"
+          ],
+          "remove": [
+            "#drawing-toolbar button[aria-label=\"Remove objects\"]"
+          ]
         },
-        "canvas_selector": ["canvas"],
-        "container_selector": ["div.chart-container"]
+        "canvas_selector": [
+          "canvas"
+        ],
+        "container_selector": [
+          "div.chart-container"
+        ]
       }
     },
     "drawing_remove": {
@@ -207,43 +306,65 @@
       "path": "dom",
       "verified": false,
       "detail": {
-        "panel_selectors": ["div[class*=\"object-tree\"]"]
+        "panel_selectors": [
+          "div[class*=\"object-tree\"]"
+        ]
       }
     },
     "order_place": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "ticket_selectors": ["div[class*=\"order-ticket\"]"],
+        "ticket_selectors": [
+          "div[class*=\"order-ticket\"]"
+        ],
         "field_selectors": {
-          "size": ["input[data-name=\"order-size\"]"],
-          "sl": ["input[data-name=\"stop-loss\"]"],
-          "tp": ["input[data-name=\"take-profit\"]"]
+          "size": [
+            "input[data-name=\"order-size\"]"
+          ],
+          "sl": [
+            "input[data-name=\"stop-loss\"]"
+          ],
+          "tp": [
+            "input[data-name=\"take-profit\"]"
+          ]
         },
-        "submit_selectors": ["button:has(div:text(\"Place Order\"))"],
-        "open_panel_selector": ["button:has(div:text(\"Trade\"))"]
+        "submit_selectors": [
+          "button:has(div:text(\"Place Order\"))"
+        ],
+        "open_panel_selector": [
+          "button:has(div:text(\"Trade\"))"
+        ]
       }
     },
     "order_modify": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "selectors": ["button[data-name=\"modify-order\"]"]
+        "selectors": [
+          "button[data-name=\"modify-order\"]"
+        ]
       }
     },
     "order_cancel": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "selectors": ["button[data-name=\"cancel-order\"]"]
+        "selectors": [
+          "button[data-name=\"cancel-order\"]"
+        ]
       }
     },
     "order_status_read": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "positions_panel_selectors": ["div[class*=\"positions-panel\"]"],
-        "row_selectors": ["div[class*=\"position-row\"]"]
+        "positions_panel_selectors": [
+          "div[class*=\"positions-panel\"]"
+        ],
+        "row_selectors": [
+          "div[class*=\"position-row\"]"
+        ]
       }
     },
     "replay_enter": {
@@ -260,21 +381,27 @@
       "path": "dom",
       "verified": false,
       "detail": {
-        "step_selectors": ["button[aria-label=\"Step forward\"]"]
+        "step_selectors": [
+          "button[aria-label=\"Step forward\"]"
+        ]
       }
     },
     "replay_exit": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "selectors": ["button[aria-label=\"Exit replay\"]"]
+        "selectors": [
+          "button[aria-label=\"Exit replay\"]"
+        ]
       }
     },
     "replay_state_read": {
       "path": "dom",
       "verified": false,
       "detail": {
-        "indicator_selectors": ["div[class*=\"replay-indicator\"]"]
+        "indicator_selectors": [
+          "div[class*=\"replay-indicator\"]"
+        ]
       }
     },
     "screenshot": {
@@ -332,7 +459,9 @@
           "#pine-editor-dialog div[class*=\"monaco-editor\"]",
           "#pine-editor-dialog div[role=\"textbox\"]"
         ],
-        "open_tab_selectors": ["button[data-name=\"pine-dialog-button\"]"],
+        "open_tab_selectors": [
+          "button[data-name=\"pine-dialog-button\"]"
+        ],
         "open_button_selector": "button[data-name=\"pine-dialog-button\"]",
         "textarea_selectors": [
           ".monaco-editor textarea.inputarea",
@@ -374,7 +503,10 @@
       "path": "dom",
       "verified": true,
       "detail": {
-        "console_selectors": [".selectable-v4HmQr2o.error-v4HmQr2o", ".selectable-v4HmQr2o.warning-v4HmQr2o"],
+        "console_selectors": [
+          ".selectable-v4HmQr2o.error-v4HmQr2o",
+          ".selectable-v4HmQr2o.warning-v4HmQr2o"
+        ],
         "message_class": "selectable-v4HmQr2o",
         "error_class": "error-v4HmQr2o",
         "warning_class": "warning-v4HmQr2o",
@@ -388,8 +520,19 @@
       "path": "dom",
       "verified": false,
       "detail": {
-        "pane_selectors": ["div[class*=\"pine-logs\"]"],
-        "entry_selectors": ["div[class*=\"log-entry\"]"]
+        "pane_selectors": [
+          "div[class*=\"pine-logs\"]"
+        ],
+        "entry_selectors": [
+          "div[class*=\"log-entry\"]"
+        ]
+      }
+    },
+    "chart_set_visible_range": {
+      "path": "dom",
+      "verified": false,
+      "detail": {
+        "_note": "DomChartBackend.set_visible_range() assumes window.TradingView/tvWidget inside an iframe, but TV Desktop 3.2.0 renders the chart in the main page with zero iframes. The real internal API (window._exposed_chartWidgetCollection.activeChartWidget) has no chart()/setVisibleRange() method found so far (session 2026-07-05)."
       }
     }
   },

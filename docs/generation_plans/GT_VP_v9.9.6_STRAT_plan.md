@@ -8,6 +8,13 @@ Generated: 2026-07-06T02:14:01.273115+00:00 · Schema v1
 **Excluded (cosmetic):** 74
 **Unclassified (needs human review):** 0
 
+> ⚠️ **Known issue (2026-07-05):** GT_VP produced zero trades when tested on
+> SOL/USD 1m over a ~1 month window (Jun 7 – Jul 5, 2026) — likely a
+> timeframe/history mismatch given GT_VP's multi-timeframe design, not
+> necessarily a bug in the strategy or harness. Confirmed working setup
+> from a prior session: **BINANCE:ETHUSD.P on 15m or 1h with 2+ years of
+> history.** See `docs/handoff/2026-07-05-live-pipeline-attempt.md`.
+
 ## Tuning Families
 
 | Tier | Family | Inputs | Toggles | Tunables | Group Unresolved |
