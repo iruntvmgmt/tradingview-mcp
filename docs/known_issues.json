@@ -112,8 +112,8 @@
     {
       "capability": "chart_set_visible_range",
       "severity": "minor",
-      "summary": "Partial fix: set_visible_range now uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes) instead of non-existent JS API. No arbitrary date boundaries \u2014 windows are approximate. TV Desktop 3.2.0 has zero iframes; _exposed_chartWidgetCollection.activeChartWidget has only _listeners/_value, no chart()/setVisibleRange(). React fiber keys not found on DOM nodes.",
-      "detail_ref": "docs/handoff/2026-07-05-live-pipeline-attempt.md",
+      "summary": "Open: set_visible_range still uses Strategy Tester date-range presets (1D/5D/1M/3M/6M/1Y/5Y/All via data-name attributes), not absolute dates. This cannot satisfy ADR-0010 non-overlapping train/validation/holdout windows. TV Desktop 3.2.0 has zero iframes; _exposed_chartWidgetCollection.activeChartWidget has only _listeners/_value, no chart()/setVisibleRange(). Alt+G/date-picker investigation still needed.",
+      "detail_ref": "docs/handoff/2026-07-07-fix-blockers.md#absolute-date-window-control",
       "blocks_goal": true,
       "opened": "2026-07-05",
       "status": "open"
@@ -130,11 +130,11 @@
     {
       "capability": "symbol_control",
       "severity": "major",
-      "summary": "DomChartBackend.set_symbol() fails on TV Desktop 3.2.0 \u2014 selector input[data-name=\"symbol-search\"] does not match. The symbol search input's data-name attribute has changed in this version.",
-      "detail_ref": "docs/handoff/2026-07-06-set-visible-range-fix.md",
+      "summary": "Fixed: set_symbol uses JS .click() on the header symbol opener and native input setter on input[role=\"searchbox\"][placeholder*=\"Symbol\"]. Live verification changed XAUUSD \u2192 BINANCE:ETHUSD.P / ETHUSD.P.",
+      "detail_ref": "docs/handoff/2026-07-07-fix-blockers.md#set_symbol",
       "blocks_goal": true,
       "opened": "2026-07-06",
-      "status": "open"
+      "status": "fixed"
     }
   ]
 }
