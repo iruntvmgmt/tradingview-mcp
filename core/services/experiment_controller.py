@@ -63,6 +63,27 @@ from core.services.experiment_log import ExperimentLog
 
 logger = logging.getLogger(__name__)
 
+# ── Helpers ───────────────────────────────────────────────────
+
+def _to_float(value: Any) -> float:
+    """Convert a metric value to float, handling formatted strings.
+
+    TradingView backtest metrics may include commas (``1,487.60``),
+    Unicode minus signs (``\u2212``), and currency symbols.  This
+    strips non-numeric characters before parsing.
+    """
+    if isinstance(value, (int, float)):
+        return float(value)
+    if not value:
+        return 0.0
+    cleaned = str(value).replace(",", "").replace("\u2212", "-")
+    # Strip leading non-numeric (e.g. "+", "$", "€")
+    cleaned = cleaned.lstrip("+$€\u00a0 ")
+    try:
+        return float(cleaned)
+    except ValueError:
+        return 0.0
+
 # ── Constants ─────────────────────────────────────────────────
 DEFAULT_CONFIG_PATH = Path(__file__).parents[2] / "experiment_config.json"
 DEFAULT_LOG_PATH = Path(__file__).parents[2] / "logs" / "experiment_log.jsonl"
@@ -368,10 +389,13 @@ class ExperimentController:
         eligible to be considered (not a judgment of "good").
 
         Returns ``True`` if all three threshold checks pass.
+
+        Metrics values may be formatted strings (e.g. "1,487.60" or
+        "+118,677.76") — these are sanitised before conversion.
         """
         t = self._thresholds
-        pf = float(metrics.get("profit_factor", 0))
-        dd = float(metrics.get("max_drawdown", 0))
+        pf = _to_float(metrics.get("profit_factor", 0))
+        dd = _to_float(metrics.get("max_drawdown", 0))
         return pf >= t["min_profit_factor"] and dd <= t["max_acceptable_drawdown_pct"] and trade_count >= t["min_trades_for_significance"]
 
     # ── Public API ────────────────────────────────────────────
@@ -525,9 +549,9 @@ class ExperimentController:
         reject_reason = None
         if not accepted:
             reasons = []
-            if float(metrics.get("profit_factor", 0)) < self._thresholds["min_profit_factor"]:
+            if _to_float(metrics.get("profit_factor", 0)) < self._thresholds["min_profit_factor"]:
                 reasons.append(f"profit_factor {metrics.get('profit_factor')} < min {self._thresholds['min_profit_factor']}")
-            if float(metrics.get("max_drawdown", 0)) > self._thresholds["max_acceptable_drawdown_pct"]:
+            if _to_float(metrics.get("max_drawdown", 0)) > self._thresholds["max_acceptable_drawdown_pct"]:
                 reasons.append(f"max_drawdown {metrics.get('max_drawdown')} > max {self._thresholds['max_acceptable_drawdown_pct']}")
             if trade_count < self._thresholds["min_trades_for_significance"]:
                 reasons.append(f"trade_count {trade_count} < min {self._thresholds['min_trades_for_significance']}")
@@ -566,12 +590,12 @@ class ExperimentController:
             raise ValueError(f"No iteration recorded for generation {generation_id}")
 
         train_metrics = latest.get("metrics", {})
-        train_pf = float(train_metrics.get("profit_factor", 0))
+        train_pf = _to_float(train_metrics.get("profit_factor", 0))
 
         # Run backtest on VALIDATION window
         await self._set_window("validation")
         validation_metrics = await self._run_backtest_and_summary()
-        validation_pf = float(validation_metrics.get("profit_factor", 0))
+        validation_pf = _to_float(validation_metrics.get("profit_factor", 0))
 
         # Compute divergence
         if train_pf > 0:
@@ -753,17 +777,17 @@ class ExperimentController:
         # ── Current PF on train ───────────────────────────────
         await self._set_window("train")
         metrics_current = await self._run_backtest_and_summary()
-        pf_current = float(metrics_current.get("profit_factor", 0))
+        pf_current = _to_float(metrics_current.get("profit_factor", 0))
 
         # ── PF at value-down ──────────────────────────────────
         await self._settings.write(self._strategy_name, {param_name: down_value})
         metrics_down = await self._run_backtest_and_summary()
-        pf_down = float(metrics_down.get("profit_factor", 0))
+        pf_down = _to_float(metrics_down.get("profit_factor", 0))
 
         # ── PF at value-up ────────────────────────────────────
         await self._settings.write(self._strategy_name, {param_name: up_value})
         metrics_up = await self._run_backtest_and_summary()
-        pf_up = float(metrics_up.get("profit_factor", 0))
+        pf_up = _to_float(metrics_up.get("profit_factor", 0))
 
         # ── Restore current value ─────────────────────────────
         await self._settings.write(self._strategy_name, {param_name: current_value})
@@ -908,7 +932,7 @@ class ExperimentController:
             if candidates:
                 best = max(
                     candidates,
-                    key=lambda it: float(it.get("metrics", {}).get("profit_factor", 0)),
+                    key=lambda it: _to_float(it.get("metrics", {}).get("profit_factor", 0)),
                 )
                 lines.append("### Best validation-confirmed iteration")
                 lines.append("")
