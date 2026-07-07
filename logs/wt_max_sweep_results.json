@@ -1,0 +1,250 @@
+[
+  {
+    "label": "01_Baseline_Default",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "+33,665.30",
+      "sharpe": "0.187",
+      "total_trades": "Winners",
+      "profit_factor": "1.552",
+      "max_drawdown": "31,583.27",
+      "cagr": "0.00%",
+      "avg_pnl": "2,320.27",
+      "return_pct": "4.64%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_max_sweep/01_01_Baseline_Default.png",
+    "metadata": {
+      "description": "Default v5.9 config: Dynamic + Signal + Divergence, WT Signal Trend"
+    },
+    "restore": {
+      "paste_ok": true,
+      "update": {
+        "success": true,
+        "title": "Update on chart"
+      },
+      "source_match": true
+    }
+  },
+  {
+    "label": "02_All_Entries_No_Filter",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "+4,377.14",
+      "sharpe": "0.097",
+      "total_trades": "Winners",
+      "profit_factor": "1.19",
+      "max_drawdown": "30,998.29",
+      "cagr": "0.00%",
+      "avg_pnl": "863.91",
+      "return_pct": "1.81%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_max_sweep/02_02_All_Entries_No_Filter.png",
+    "metadata": {
+      "description": "Every entry signal ON, trend filter OFF \u2014 max trade frequency"
+    },
+    "restore": {
+      "paste_ok": true,
+      "update": {
+        "success": true,
+        "title": "Update on chart"
+      },
+      "source_match": true
+    }
+  },
+  {
+    "label": "03_All_Entries_WT_Signal",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221219,631.95",
+      "sharpe": "\u22120.011",
+      "total_trades": "Winners",
+      "profit_factor": "0.932",
+      "max_drawdown": "48,150.06",
+      "cagr": "0.00%",
+      "avg_pnl": "\u2212359.58",
+      "return_pct": "\u22120.68%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_max_sweep/03_03_All_Entries_WT_Signal.png",
+    "metadata": {
+      "description": "Every entry signal ON with WT Signal Trend filter"
+    },
+    "restore": {
+      "paste_ok": true,
+      "update": {
+        "success": true,
+        "title": "Update on chart"
+      },
+      "source_match": true
+    }
+  },
+  {
+    "label": "04_Divergence_Only",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "+72,596.66",
+      "sharpe": "0.334",
+      "total_trades": "Winners",
+      "profit_factor": "3.011",
+      "max_drawdown": "26,215.05",
+      "cagr": "0.00%",
+      "avg_pnl": "4,988.63",
+      "return_pct": "8.48%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_max_sweep/04_04_Divergence_Only.png",
+    "metadata": {
+      "description": "Pure divergence entries (Regular + Hidden), no trend filter"
+    },
+    "restore": {
+      "paste_ok": true,
+      "update": {
+        "success": true,
+        "title": "Update on chart"
+      },
+      "source_match": true
+    }
+  },
+  {
+    "label": "05_Cross_Only_Tight",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "+65,901.46",
+      "sharpe": "0.368",
+      "total_trades": "Winners",
+      "profit_factor": "2.167",
+      "max_drawdown": "20,283.04",
+      "cagr": "0.00%",
+      "avg_pnl": "3,280.06",
+      "return_pct": "7.87%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_max_sweep/05_05_Cross_Only_Tight.png",
+    "metadata": {
+      "description": "Only cross-based entries (Dynamic+Signal+Fib50+Zero), WT Signal Trend"
+    },
+    "restore": {
+      "paste_ok": true,
+      "update": {
+        "success": true,
+        "title": "Update on chart"
+      },
+      "source_match": true
+    }
+  },
+  {
+    "label": "06_BB_Mean_Reversion",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "+15,597.02",
+      "sharpe": "0.153",
+      "total_trades": "Winners",
+      "profit_factor": "1.664",
+      "max_drawdown": "30,683.77",
+      "cagr": "0.00%",
+      "avg_pnl": "2,544.73",
+      "return_pct": "2.80%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_max_sweep/06_06_BB_Mean_Reversion.png",
+    "metadata": {
+      "description": "BB Reversion + Dynamic Cross, WT vs BB Basis trend"
+    },
+    "restore": {
+      "paste_ok": true,
+      "update": {
+        "success": true,
+        "title": "Update on chart"
+      },
+      "source_match": true
+    }
+  },
+  {
+    "label": "07_Breakout_Mode",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221274,963.88",
+      "sharpe": "\u22120.256",
+      "total_trades": "Winners",
+      "profit_factor": "0.544",
+      "max_drawdown": "89,600.96",
+      "cagr": "0.00%",
+      "avg_pnl": "\u22123,115.44",
+      "return_pct": "\u22126.23%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_max_sweep/07_07_Breakout_Mode.png",
+    "metadata": {
+      "description": "Breakout crosses + BB crosses, WT Zero Line trend"
+    },
+    "restore": {
+      "paste_ok": true,
+      "update": {
+        "success": true,
+        "title": "Update on chart"
+      },
+      "source_match": true
+    }
+  },
+  {
+    "label": "08_Conservative_Best",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221239,401.09",
+      "sharpe": "\u22120.131",
+      "total_trades": "Winners",
+      "profit_factor": "0.742",
+      "max_drawdown": "51,418.03",
+      "cagr": "0.00%",
+      "avg_pnl": "\u22121,207.44",
+      "return_pct": "\u22122.78%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_max_sweep/08_08_Conservative_Best.png",
+    "metadata": {
+      "description": "Signal Cross + Divergence only, WT Fib Trend, tight exits"
+    },
+    "restore": {
+      "paste_ok": true,
+      "update": {
+        "success": true,
+        "title": "Update on chart"
+      },
+      "source_match": true
+    }
+  }
+]
