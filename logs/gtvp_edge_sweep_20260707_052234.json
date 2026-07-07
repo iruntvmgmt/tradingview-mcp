@@ -1,0 +1,2733 @@
+{
+  "metadata": {
+    "strategy": "GT_VP_v9.9.6_STRAT",
+    "started": "2026-07-07T05:22:34.928475+00:00",
+    "completed": "2026-07-07T05:43:47.183753+00:00",
+    "elapsed_seconds": 1272.3,
+    "objective": "daily-ish scalp-to-swing candidates with low drawdown"
+  },
+  "base_settings": {
+    "Trade Signal Mode": "All Signals",
+    "Entry Strictness": "Normal",
+    "Trade Direction": "Both",
+    "MA Filter Mode": "Off",
+    "Fallback R:R Target": 1.5,
+    "ATR Stop Multiplier": 1.0,
+    "Level Buffer ATR": 0.1,
+    "Timeout Bars": 30
+  },
+  "stage1": [
+    {
+      "label": "All Signals | Loose | Both",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Loose",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212115,760,305.00",
+        "sharpe": "\u22120.317",
+        "total_trades": "Winners",
+        "profit_factor": "1.274",
+        "max_drawdown": "351,940.00",
+        "cagr": "0.34%",
+        "avg_pnl": "6,564.12",
+        "return_pct": "9.65%"
+      },
+      "trades": [],
+      "trade_count": 17635,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.5194,
+      "profit_factor": "1.274",
+      "net_profit": "\u2212115,760,305.00",
+      "max_drawdown": "351,940.00",
+      "sharpe": "\u22120.317",
+      "avg_pnl": "6,564.12",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Loose",
+        "direction": "Both"
+      }
+    },
+    {
+      "label": "All Signals | Loose | Long Only",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Loose",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212115,520,480.00",
+        "sharpe": "\u22120.355",
+        "total_trades": "Winners",
+        "profit_factor": "1.57",
+        "max_drawdown": "409,500.00",
+        "cagr": "0.41%",
+        "avg_pnl": "13,422.84",
+        "return_pct": "11.81%"
+      },
+      "trades": [],
+      "trade_count": 8606,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.095,
+      "profit_factor": "1.57",
+      "net_profit": "\u2212115,520,480.00",
+      "max_drawdown": "409,500.00",
+      "sharpe": "\u22120.355",
+      "avg_pnl": "13,422.84",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Loose",
+        "direction": "Long Only"
+      }
+    },
+    {
+      "label": "All Signals | Loose | Short Only",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Loose",
+        "Trade Direction": "Short Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212132,251,075.00",
+        "sharpe": "\u22120.567",
+        "total_trades": "Winners",
+        "profit_factor": "0.888",
+        "max_drawdown": "860,975.00",
+        "cagr": "\u22120.07%",
+        "avg_pnl": "\u22123,347.77",
+        "return_pct": "\u22121.87%"
+      },
+      "trades": [],
+      "trade_count": 39504,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 8.6098,
+      "profit_factor": "0.888",
+      "net_profit": "\u2212132,251,075.00",
+      "max_drawdown": "860,975.00",
+      "sharpe": "\u22120.567",
+      "avg_pnl": "\u22123,347.77",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Loose",
+        "direction": "Short Only"
+      }
+    },
+    {
+      "label": "All Signals | Normal | Both",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,907,260.00",
+        "sharpe": "\u22120.344",
+        "total_trades": "Winners",
+        "profit_factor": "1.302",
+        "max_drawdown": "409,080.00",
+        "cagr": "0.32%",
+        "avg_pnl": "6,908.60",
+        "return_pct": "9.12%"
+      },
+      "trades": [],
+      "trade_count": 15475,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.0908,
+      "profit_factor": "1.302",
+      "net_profit": "\u2212106,907,260.00",
+      "max_drawdown": "409,080.00",
+      "sharpe": "\u22120.344",
+      "avg_pnl": "6,908.60",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Both"
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,570,485.00",
+        "sharpe": "\u22120.382",
+        "total_trades": "Winners",
+        "profit_factor": "1.706",
+        "max_drawdown": "369,970.00",
+        "cagr": "0.43%",
+        "avg_pnl": "15,273.06",
+        "return_pct": "12.22%"
+      },
+      "trades": [],
+      "trade_count": 6978,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.6997,
+      "profit_factor": "1.706",
+      "net_profit": "\u2212106,570,485.00",
+      "max_drawdown": "369,970.00",
+      "sharpe": "\u22120.382",
+      "avg_pnl": "15,273.06",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only"
+      }
+    },
+    {
+      "label": "All Signals | Normal | Short Only",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Short Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212132,251,170.00",
+        "sharpe": "\u22120.595",
+        "total_trades": "Winners",
+        "profit_factor": "0.852",
+        "max_drawdown": "816,860.00",
+        "cagr": "\u22120.08%",
+        "avg_pnl": "\u22124,447.40",
+        "return_pct": "\u22122.22%"
+      },
+      "trades": [],
+      "trade_count": 29737,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 8.1686,
+      "profit_factor": "0.852",
+      "net_profit": "\u2212132,251,170.00",
+      "max_drawdown": "816,860.00",
+      "sharpe": "\u22120.595",
+      "avg_pnl": "\u22124,447.40",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Short Only"
+      }
+    },
+    {
+      "label": "Structure Only | Loose | Both",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Loose",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212115,692,895.00",
+        "sharpe": "\u22120.317",
+        "total_trades": "Winners",
+        "profit_factor": "1.274",
+        "max_drawdown": "351,940.00",
+        "cagr": "0.34%",
+        "avg_pnl": "6,564.12",
+        "return_pct": "9.65%"
+      },
+      "trades": [],
+      "trade_count": 17625,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.5194,
+      "profit_factor": "1.274",
+      "net_profit": "\u2212115,692,895.00",
+      "max_drawdown": "351,940.00",
+      "sharpe": "\u22120.317",
+      "avg_pnl": "6,564.12",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Loose",
+        "direction": "Both"
+      }
+    },
+    {
+      "label": "Structure Only | Loose | Long Only",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Loose",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212115,458,420.00",
+        "sharpe": "\u22120.355",
+        "total_trades": "Winners",
+        "profit_factor": "1.57",
+        "max_drawdown": "409,500.00",
+        "cagr": "0.41%",
+        "avg_pnl": "13,422.84",
+        "return_pct": "11.81%"
+      },
+      "trades": [],
+      "trade_count": 8602,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.095,
+      "profit_factor": "1.57",
+      "net_profit": "\u2212115,458,420.00",
+      "max_drawdown": "409,500.00",
+      "sharpe": "\u22120.355",
+      "avg_pnl": "13,422.84",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Loose",
+        "direction": "Long Only"
+      }
+    },
+    {
+      "label": "Structure Only | Loose | Short Only",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Loose",
+        "Trade Direction": "Short Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212132,200,675.00",
+        "sharpe": "\u22120.567",
+        "total_trades": "Winners",
+        "profit_factor": "0.888",
+        "max_drawdown": "860,975.00",
+        "cagr": "\u22120.07%",
+        "avg_pnl": "\u22123,347.77",
+        "return_pct": "\u22121.87%"
+      },
+      "trades": [],
+      "trade_count": 39489,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 8.6098,
+      "profit_factor": "0.888",
+      "net_profit": "\u2212132,200,675.00",
+      "max_drawdown": "860,975.00",
+      "sharpe": "\u22120.567",
+      "avg_pnl": "\u22123,347.77",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Loose",
+        "direction": "Short Only"
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,854,525.00",
+        "sharpe": "\u22120.344",
+        "total_trades": "Winners",
+        "profit_factor": "1.302",
+        "max_drawdown": "409,080.00",
+        "cagr": "0.32%",
+        "avg_pnl": "6,908.60",
+        "return_pct": "9.12%"
+      },
+      "trades": [],
+      "trade_count": 15467,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.0908,
+      "profit_factor": "1.302",
+      "net_profit": "\u2212106,854,525.00",
+      "max_drawdown": "409,080.00",
+      "sharpe": "\u22120.344",
+      "avg_pnl": "6,908.60",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both"
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,578,445.00",
+        "sharpe": "\u22120.382",
+        "total_trades": "Winners",
+        "profit_factor": "1.706",
+        "max_drawdown": "369,970.00",
+        "cagr": "0.43%",
+        "avg_pnl": "15,273.06",
+        "return_pct": "12.22%"
+      },
+      "trades": [],
+      "trade_count": 6978,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.6997,
+      "profit_factor": "1.706",
+      "net_profit": "\u2212106,578,445.00",
+      "max_drawdown": "369,970.00",
+      "sharpe": "\u22120.382",
+      "avg_pnl": "15,273.06",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only"
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Short Only",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Short Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212132,275,170.00",
+        "sharpe": "\u22120.595",
+        "total_trades": "Winners",
+        "profit_factor": "0.852",
+        "max_drawdown": "816,860.00",
+        "cagr": "\u22120.08%",
+        "avg_pnl": "\u22124,447.40",
+        "return_pct": "\u22122.22%"
+      },
+      "trades": [],
+      "trade_count": 29742,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 8.1686,
+      "profit_factor": "0.852",
+      "net_profit": "\u2212132,275,170.00",
+      "max_drawdown": "816,860.00",
+      "sharpe": "\u22120.595",
+      "avg_pnl": "\u22124,447.40",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Short Only"
+      }
+    }
+  ],
+  "stage2": [
+    {
+      "label": "All Signals | Normal | Long Only | MA=Off | T=10",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 10
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,690,730.00",
+        "sharpe": "\u22120.701",
+        "total_trades": "Winners",
+        "profit_factor": "1.091",
+        "max_drawdown": "377,900.00",
+        "cagr": "0.05%",
+        "avg_pnl": "1,359.95",
+        "return_pct": "1.26%"
+      },
+      "trades": [],
+      "trade_count": 79187,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.779,
+      "profit_factor": "1.091",
+      "net_profit": "\u2212107,690,730.00",
+      "max_drawdown": "377,900.00",
+      "sharpe": "\u22120.701",
+      "avg_pnl": "1,359.95",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 10
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=Off | T=20",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 20
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,882,285.00",
+        "sharpe": "\u22120.499",
+        "total_trades": "Winners",
+        "profit_factor": "1.67",
+        "max_drawdown": "410,790.00",
+        "cagr": "0.33%",
+        "avg_pnl": "10,567.56",
+        "return_pct": "9.30%"
+      },
+      "trades": [],
+      "trade_count": 10114,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.1079,
+      "profit_factor": "1.67",
+      "net_profit": "\u2212106,882,285.00",
+      "max_drawdown": "410,790.00",
+      "sharpe": "\u22120.499",
+      "avg_pnl": "10,567.56",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 20
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=Off | T=30",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,592,375.00",
+        "sharpe": "\u22120.382",
+        "total_trades": "Winners",
+        "profit_factor": "1.706",
+        "max_drawdown": "369,970.00",
+        "cagr": "0.43%",
+        "avg_pnl": "15,273.06",
+        "return_pct": "12.22%"
+      },
+      "trades": [],
+      "trade_count": 6979,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.6997,
+      "profit_factor": "1.706",
+      "net_profit": "\u2212106,592,375.00",
+      "max_drawdown": "369,970.00",
+      "sharpe": "\u22120.382",
+      "avg_pnl": "15,273.06",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 30
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=Off | T=60",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212105,572,195.00",
+        "sharpe": "\u22120.266",
+        "total_trades": "Winners",
+        "profit_factor": "2.412",
+        "max_drawdown": "379,460.00",
+        "cagr": "0.75%",
+        "avg_pnl": "34,090.68",
+        "return_pct": "22.50%"
+      },
+      "trades": [],
+      "trade_count": 3097,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.7946,
+      "profit_factor": "2.412",
+      "net_profit": "\u2212105,572,195.00",
+      "max_drawdown": "379,460.00",
+      "sharpe": "\u22120.266",
+      "avg_pnl": "34,090.68",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 60
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=2-MA (Fast/Medium) | T=10",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 10
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,691,725.00",
+        "sharpe": "\u22120.701",
+        "total_trades": "Winners",
+        "profit_factor": "1.091",
+        "max_drawdown": "377,900.00",
+        "cagr": "0.05%",
+        "avg_pnl": "1,359.95",
+        "return_pct": "1.26%"
+      },
+      "trades": [],
+      "trade_count": 79188,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.779,
+      "profit_factor": "1.091",
+      "net_profit": "\u2212107,691,725.00",
+      "max_drawdown": "377,900.00",
+      "sharpe": "\u22120.701",
+      "avg_pnl": "1,359.95",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 10
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=2-MA (Fast/Medium) | T=20",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 20
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,857,410.00",
+        "sharpe": "\u22120.499",
+        "total_trades": "Winners",
+        "profit_factor": "1.67",
+        "max_drawdown": "410,790.00",
+        "cagr": "0.33%",
+        "avg_pnl": "10,567.56",
+        "return_pct": "9.30%"
+      },
+      "trades": [],
+      "trade_count": 10112,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.1079,
+      "profit_factor": "1.67",
+      "net_profit": "\u2212106,857,410.00",
+      "max_drawdown": "410,790.00",
+      "sharpe": "\u22120.499",
+      "avg_pnl": "10,567.56",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 20
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=2-MA (Fast/Medium) | T=30",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,580,435.00",
+        "sharpe": "\u22120.382",
+        "total_trades": "Winners",
+        "profit_factor": "1.706",
+        "max_drawdown": "369,970.00",
+        "cagr": "0.43%",
+        "avg_pnl": "15,273.06",
+        "return_pct": "12.22%"
+      },
+      "trades": [],
+      "trade_count": 6978,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.6997,
+      "profit_factor": "1.706",
+      "net_profit": "\u2212106,580,435.00",
+      "max_drawdown": "369,970.00",
+      "sharpe": "\u22120.382",
+      "avg_pnl": "15,273.06",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 30
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212105,556,275.00",
+        "sharpe": "\u22120.266",
+        "total_trades": "Winners",
+        "profit_factor": "2.412",
+        "max_drawdown": "379,460.00",
+        "cagr": "0.75%",
+        "avg_pnl": "34,090.68",
+        "return_pct": "22.50%"
+      },
+      "trades": [],
+      "trade_count": 3096,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.7946,
+      "profit_factor": "2.412",
+      "net_profit": "\u2212105,556,275.00",
+      "max_drawdown": "379,460.00",
+      "sharpe": "\u22120.266",
+      "avg_pnl": "34,090.68",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 60
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=3-MA (All Aligned) | T=10",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 10
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,679,565.00",
+        "sharpe": "\u22120.704",
+        "total_trades": "Winners",
+        "profit_factor": "1.086",
+        "max_drawdown": "377,900.00",
+        "cagr": "0.04%",
+        "avg_pnl": "1,297.17",
+        "return_pct": "1.17%"
+      },
+      "trades": [],
+      "trade_count": 83011,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.779,
+      "profit_factor": "1.086",
+      "net_profit": "\u2212107,679,565.00",
+      "max_drawdown": "377,900.00",
+      "sharpe": "\u22120.704",
+      "avg_pnl": "1,297.17",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 10
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=3-MA (All Aligned) | T=20",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 20
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,830,400.00",
+        "sharpe": "\u22120.497",
+        "total_trades": "Winners",
+        "profit_factor": "1.732",
+        "max_drawdown": "410,790.00",
+        "cagr": "0.35%",
+        "avg_pnl": "11,370.35",
+        "return_pct": "9.78%"
+      },
+      "trades": [],
+      "trade_count": 9396,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.1079,
+      "profit_factor": "1.732",
+      "net_profit": "\u2212106,830,400.00",
+      "max_drawdown": "410,790.00",
+      "sharpe": "\u22120.497",
+      "avg_pnl": "11,370.35",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 20
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=3-MA (All Aligned) | T=30",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,617,215.00",
+        "sharpe": "\u22120.386",
+        "total_trades": "Winners",
+        "profit_factor": "1.685",
+        "max_drawdown": "369,970.00",
+        "cagr": "0.42%",
+        "avg_pnl": "15,000.82",
+        "return_pct": "11.85%"
+      },
+      "trades": [],
+      "trade_count": 7107,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.6997,
+      "profit_factor": "1.685",
+      "net_profit": "\u2212106,617,215.00",
+      "max_drawdown": "369,970.00",
+      "sharpe": "\u22120.386",
+      "avg_pnl": "15,000.82",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 30
+      }
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=3-MA (All Aligned) | T=60",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212105,607,560.00",
+        "sharpe": "\u22120.271",
+        "total_trades": "Winners",
+        "profit_factor": "2.371",
+        "max_drawdown": "379,460.00",
+        "cagr": "0.73%",
+        "avg_pnl": "33,611.85",
+        "return_pct": "21.85%"
+      },
+      "trades": [],
+      "trade_count": 3142,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.7946,
+      "profit_factor": "2.371",
+      "net_profit": "\u2212105,607,560.00",
+      "max_drawdown": "379,460.00",
+      "sharpe": "\u22120.271",
+      "avg_pnl": "33,611.85",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 60
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=Off | T=10",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 10
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,689,735.00",
+        "sharpe": "\u22120.701",
+        "total_trades": "Winners",
+        "profit_factor": "1.091",
+        "max_drawdown": "377,900.00",
+        "cagr": "0.05%",
+        "avg_pnl": "1,359.95",
+        "return_pct": "1.26%"
+      },
+      "trades": [],
+      "trade_count": 79187,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.779,
+      "profit_factor": "1.091",
+      "net_profit": "\u2212107,689,735.00",
+      "max_drawdown": "377,900.00",
+      "sharpe": "\u22120.701",
+      "avg_pnl": "1,359.95",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 10
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=Off | T=20",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 20
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,917,110.00",
+        "sharpe": "\u22120.499",
+        "total_trades": "Winners",
+        "profit_factor": "1.67",
+        "max_drawdown": "410,790.00",
+        "cagr": "0.33%",
+        "avg_pnl": "10,567.56",
+        "return_pct": "9.30%"
+      },
+      "trades": [],
+      "trade_count": 10117,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.1079,
+      "profit_factor": "1.67",
+      "net_profit": "\u2212106,917,110.00",
+      "max_drawdown": "410,790.00",
+      "sharpe": "\u22120.499",
+      "avg_pnl": "10,567.56",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 20
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=Off | T=30",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,619,240.00",
+        "sharpe": "\u22120.382",
+        "total_trades": "Winners",
+        "profit_factor": "1.706",
+        "max_drawdown": "369,970.00",
+        "cagr": "0.43%",
+        "avg_pnl": "15,273.06",
+        "return_pct": "12.22%"
+      },
+      "trades": [],
+      "trade_count": 6981,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.6997,
+      "profit_factor": "1.706",
+      "net_profit": "\u2212106,619,240.00",
+      "max_drawdown": "369,970.00",
+      "sharpe": "\u22120.382",
+      "avg_pnl": "15,273.06",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 30
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=Off | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212105,602,045.00",
+        "sharpe": "\u22120.266",
+        "total_trades": "Winners",
+        "profit_factor": "2.412",
+        "max_drawdown": "379,460.00",
+        "cagr": "0.75%",
+        "avg_pnl": "34,090.68",
+        "return_pct": "22.50%"
+      },
+      "trades": [],
+      "trade_count": 3098,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.7946,
+      "profit_factor": "2.412",
+      "net_profit": "\u2212105,602,045.00",
+      "max_drawdown": "379,460.00",
+      "sharpe": "\u22120.266",
+      "avg_pnl": "34,090.68",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 60
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=2-MA (Fast/Medium) | T=10",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 10
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,722,570.00",
+        "sharpe": "\u22120.701",
+        "total_trades": "Winners",
+        "profit_factor": "1.091",
+        "max_drawdown": "377,900.00",
+        "cagr": "0.05%",
+        "avg_pnl": "1,359.95",
+        "return_pct": "1.26%"
+      },
+      "trades": [],
+      "trade_count": 79211,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.779,
+      "profit_factor": "1.091",
+      "net_profit": "\u2212107,722,570.00",
+      "max_drawdown": "377,900.00",
+      "sharpe": "\u22120.701",
+      "avg_pnl": "1,359.95",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 10
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=2-MA (Fast/Medium) | T=20",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 20
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,929,050.00",
+        "sharpe": "\u22120.499",
+        "total_trades": "Winners",
+        "profit_factor": "1.67",
+        "max_drawdown": "410,790.00",
+        "cagr": "0.33%",
+        "avg_pnl": "10,567.56",
+        "return_pct": "9.30%"
+      },
+      "trades": [],
+      "trade_count": 10119,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.1079,
+      "profit_factor": "1.67",
+      "net_profit": "\u2212106,929,050.00",
+      "max_drawdown": "410,790.00",
+      "sharpe": "\u22120.499",
+      "avg_pnl": "10,567.56",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 20
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=2-MA (Fast/Medium) | T=30",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,603,320.00",
+        "sharpe": "\u22120.382",
+        "total_trades": "Winners",
+        "profit_factor": "1.706",
+        "max_drawdown": "369,970.00",
+        "cagr": "0.43%",
+        "avg_pnl": "15,273.06",
+        "return_pct": "12.22%"
+      },
+      "trades": [],
+      "trade_count": 6980,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.6997,
+      "profit_factor": "1.706",
+      "net_profit": "\u2212106,603,320.00",
+      "max_drawdown": "369,970.00",
+      "sharpe": "\u22120.382",
+      "avg_pnl": "15,273.06",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 30
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212105,534,385.00",
+        "sharpe": "\u22120.266",
+        "total_trades": "Winners",
+        "profit_factor": "2.412",
+        "max_drawdown": "379,460.00",
+        "cagr": "0.75%",
+        "avg_pnl": "34,090.68",
+        "return_pct": "22.50%"
+      },
+      "trades": [],
+      "trade_count": 3096,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.7946,
+      "profit_factor": "2.412",
+      "net_profit": "\u2212105,534,385.00",
+      "max_drawdown": "379,460.00",
+      "sharpe": "\u22120.266",
+      "avg_pnl": "34,090.68",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 60
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=3-MA (All Aligned) | T=10",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 10
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,630,810.00",
+        "sharpe": "\u22120.704",
+        "total_trades": "Winners",
+        "profit_factor": "1.086",
+        "max_drawdown": "377,900.00",
+        "cagr": "0.04%",
+        "avg_pnl": "1,297.17",
+        "return_pct": "1.17%"
+      },
+      "trades": [],
+      "trade_count": 82974,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.779,
+      "profit_factor": "1.086",
+      "net_profit": "\u2212107,630,810.00",
+      "max_drawdown": "377,900.00",
+      "sharpe": "\u22120.704",
+      "avg_pnl": "1,297.17",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 10
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=3-MA (All Aligned) | T=20",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 20
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,789,605.00",
+        "sharpe": "\u22120.497",
+        "total_trades": "Winners",
+        "profit_factor": "1.732",
+        "max_drawdown": "410,790.00",
+        "cagr": "0.35%",
+        "avg_pnl": "11,370.35",
+        "return_pct": "9.78%"
+      },
+      "trades": [],
+      "trade_count": 9392,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.1079,
+      "profit_factor": "1.732",
+      "net_profit": "\u2212106,789,605.00",
+      "max_drawdown": "410,790.00",
+      "sharpe": "\u22120.497",
+      "avg_pnl": "11,370.35",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 20
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=3-MA (All Aligned) | T=30",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,566,470.00",
+        "sharpe": "\u22120.386",
+        "total_trades": "Winners",
+        "profit_factor": "1.685",
+        "max_drawdown": "369,970.00",
+        "cagr": "0.42%",
+        "avg_pnl": "15,000.82",
+        "return_pct": "11.85%"
+      },
+      "trades": [],
+      "trade_count": 7104,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.6997,
+      "profit_factor": "1.685",
+      "net_profit": "\u2212106,566,470.00",
+      "max_drawdown": "369,970.00",
+      "sharpe": "\u22120.386",
+      "avg_pnl": "15,000.82",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 30
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=3-MA (All Aligned) | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212105,575,720.00",
+        "sharpe": "\u22120.271",
+        "total_trades": "Winners",
+        "profit_factor": "2.371",
+        "max_drawdown": "379,460.00",
+        "cagr": "0.73%",
+        "avg_pnl": "33,611.85",
+        "return_pct": "21.85%"
+      },
+      "trades": [],
+      "trade_count": 3141,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.7946,
+      "profit_factor": "2.371",
+      "net_profit": "\u2212105,575,720.00",
+      "max_drawdown": "379,460.00",
+      "sharpe": "\u22120.271",
+      "avg_pnl": "33,611.85",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 60
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=Off | T=10",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 10
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,980,415.00",
+        "sharpe": "\u22120.617",
+        "total_trades": "Winners",
+        "profit_factor": "0.902",
+        "max_drawdown": "618,950.00",
+        "cagr": "\u22120.09%",
+        "avg_pnl": "\u22121,597.62",
+        "return_pct": "\u22122.35%"
+      },
+      "trades": [],
+      "trade_count": 67588,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 6.1895,
+      "profit_factor": "0.902",
+      "net_profit": "\u2212107,980,415.00",
+      "max_drawdown": "618,950.00",
+      "sharpe": "\u22120.617",
+      "avg_pnl": "\u22121,597.62",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "Off",
+        "timeout": 10
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=Off | T=20",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 20
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,163,530.00",
+        "sharpe": "\u22120.418",
+        "total_trades": "Winners",
+        "profit_factor": "1.207",
+        "max_drawdown": "392,760.00",
+        "cagr": "0.20%",
+        "avg_pnl": "4,029.46",
+        "return_pct": "5.64%"
+      },
+      "trades": [],
+      "trade_count": 26595,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.9276,
+      "profit_factor": "1.207",
+      "net_profit": "\u2212107,163,530.00",
+      "max_drawdown": "392,760.00",
+      "sharpe": "\u22120.418",
+      "avg_pnl": "4,029.46",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "Off",
+        "timeout": 20
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=Off | T=30",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,767,960.00",
+        "sharpe": "\u22120.344",
+        "total_trades": "Winners",
+        "profit_factor": "1.302",
+        "max_drawdown": "409,080.00",
+        "cagr": "0.32%",
+        "avg_pnl": "6,908.60",
+        "return_pct": "9.12%"
+      },
+      "trades": [],
+      "trade_count": 15454,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.0908,
+      "profit_factor": "1.302",
+      "net_profit": "\u2212106,767,960.00",
+      "max_drawdown": "409,080.00",
+      "sharpe": "\u22120.344",
+      "avg_pnl": "6,908.60",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "Off",
+        "timeout": 30
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=Off | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212105,871,685.00",
+        "sharpe": "\u22120.251",
+        "total_trades": "Winners",
+        "profit_factor": "1.627",
+        "max_drawdown": "365,500.00",
+        "cagr": "0.63%",
+        "avg_pnl": "15,546.22",
+        "return_pct": "18.50%"
+      },
+      "trades": [],
+      "trade_count": 6810,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.655,
+      "profit_factor": "1.627",
+      "net_profit": "\u2212105,871,685.00",
+      "max_drawdown": "365,500.00",
+      "sharpe": "\u22120.251",
+      "avg_pnl": "15,546.22",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "Off",
+        "timeout": 60
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=2-MA (Fast/Medium) | T=10",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 10
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,935,640.00",
+        "sharpe": "\u22120.617",
+        "total_trades": "Winners",
+        "profit_factor": "0.902",
+        "max_drawdown": "618,950.00",
+        "cagr": "\u22120.09%",
+        "avg_pnl": "\u22121,597.62",
+        "return_pct": "\u22122.35%"
+      },
+      "trades": [],
+      "trade_count": 67560,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 6.1895,
+      "profit_factor": "0.902",
+      "net_profit": "\u2212107,935,640.00",
+      "max_drawdown": "618,950.00",
+      "sharpe": "\u22120.617",
+      "avg_pnl": "\u22121,597.62",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 10
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=2-MA (Fast/Medium) | T=20",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 20
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,178,455.00",
+        "sharpe": "\u22120.418",
+        "total_trades": "Winners",
+        "profit_factor": "1.207",
+        "max_drawdown": "392,760.00",
+        "cagr": "0.20%",
+        "avg_pnl": "4,029.46",
+        "return_pct": "5.64%"
+      },
+      "trades": [],
+      "trade_count": 26599,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.9276,
+      "profit_factor": "1.207",
+      "net_profit": "\u2212107,178,455.00",
+      "max_drawdown": "392,760.00",
+      "sharpe": "\u22120.418",
+      "avg_pnl": "4,029.46",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 20
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=2-MA (Fast/Medium) | T=30",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,864,475.00",
+        "sharpe": "\u22120.344",
+        "total_trades": "Winners",
+        "profit_factor": "1.302",
+        "max_drawdown": "409,080.00",
+        "cagr": "0.32%",
+        "avg_pnl": "6,908.60",
+        "return_pct": "9.12%"
+      },
+      "trades": [],
+      "trade_count": 15468,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 4.0908,
+      "profit_factor": "1.302",
+      "net_profit": "\u2212106,864,475.00",
+      "max_drawdown": "409,080.00",
+      "sharpe": "\u22120.344",
+      "avg_pnl": "6,908.60",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 30
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=2-MA (Fast/Medium) | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212105,970,190.00",
+        "sharpe": "\u22120.251",
+        "total_trades": "Winners",
+        "profit_factor": "1.627",
+        "max_drawdown": "365,500.00",
+        "cagr": "0.63%",
+        "avg_pnl": "15,546.22",
+        "return_pct": "18.50%"
+      },
+      "trades": [],
+      "trade_count": 6816,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.655,
+      "profit_factor": "1.627",
+      "net_profit": "\u2212105,970,190.00",
+      "max_drawdown": "365,500.00",
+      "sharpe": "\u22120.251",
+      "avg_pnl": "15,546.22",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 60
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=3-MA (All Aligned) | T=10",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 10
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212108,054,920.00",
+        "sharpe": "\u22120.623",
+        "total_trades": "Winners",
+        "profit_factor": "0.908",
+        "max_drawdown": "583,575.00",
+        "cagr": "\u22120.08%",
+        "avg_pnl": "\u22121,495.35",
+        "return_pct": "\u22122.14%"
+      },
+      "trades": [],
+      "trade_count": 72261,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 5.8357,
+      "profit_factor": "0.908",
+      "net_profit": "\u2212108,054,920.00",
+      "max_drawdown": "583,575.00",
+      "sharpe": "\u22120.623",
+      "avg_pnl": "\u22121,495.35",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 10
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=3-MA (All Aligned) | T=20",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 20
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212107,228,345.00",
+        "sharpe": "\u22120.414",
+        "total_trades": "Winners",
+        "profit_factor": "1.241",
+        "max_drawdown": "392,760.00",
+        "cagr": "0.23%",
+        "avg_pnl": "4,654.12",
+        "return_pct": "6.38%"
+      },
+      "trades": [],
+      "trade_count": 23039,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.9276,
+      "profit_factor": "1.241",
+      "net_profit": "\u2212107,228,345.00",
+      "max_drawdown": "392,760.00",
+      "sharpe": "\u22120.414",
+      "avg_pnl": "4,654.12",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 20
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=3-MA (All Aligned) | T=30",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 30
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212106,896,710.00",
+        "sharpe": "\u22120.335",
+        "total_trades": "Winners",
+        "profit_factor": "1.339",
+        "max_drawdown": "362,725.00",
+        "cagr": "0.36%",
+        "avg_pnl": "7,792.54",
+        "return_pct": "10.13%"
+      },
+      "trades": [],
+      "trade_count": 13718,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.6273,
+      "profit_factor": "1.339",
+      "net_profit": "\u2212106,896,710.00",
+      "max_drawdown": "362,725.00",
+      "sharpe": "\u22120.335",
+      "avg_pnl": "7,792.54",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 30
+      }
+    },
+    {
+      "label": "Structure Only | Normal | Both | MA=3-MA (All Aligned) | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Both",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "12M",
+      "summary": {
+        "net_profit": "\u2212105,980,475.00",
+        "sharpe": "\u22120.246",
+        "total_trades": "Winners",
+        "profit_factor": "1.656",
+        "max_drawdown": "365,500.00",
+        "cagr": "0.65%",
+        "avg_pnl": "16,421.41",
+        "return_pct": "19.21%"
+      },
+      "trades": [],
+      "trade_count": 6454,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 3.655,
+      "profit_factor": "1.656",
+      "net_profit": "\u2212105,980,475.00",
+      "max_drawdown": "365,500.00",
+      "sharpe": "\u22120.246",
+      "avg_pnl": "16,421.41",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Both",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 60
+      }
+    }
+  ],
+  "validation": [
+    {
+      "label": "Structure Only | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,689,605.00",
+        "sharpe": "\u22120.708",
+        "total_trades": "Winners",
+        "profit_factor": "1.174",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.26%",
+        "avg_pnl": "959.63",
+        "return_pct": "0.65%"
+      },
+      "trades": [],
+      "trade_count": 6971,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.174",
+      "net_profit": "\u22126,689,605.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.708",
+      "avg_pnl": "959.63",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 60
+      },
+      "train": {
+        "label": "Structure Only | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+        "settings": {
+          "Trade Signal Mode": "Structure Only",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "2-MA (Fast/Medium)",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,534,385.00",
+          "sharpe": "\u22120.266",
+          "total_trades": "Winners",
+          "profit_factor": "2.412",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.75%",
+          "avg_pnl": "34,090.68",
+          "return_pct": "22.50%"
+        },
+        "trades": [],
+        "trade_count": 3096,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.412",
+        "net_profit": "\u2212105,534,385.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.266",
+        "avg_pnl": "34,090.68",
+        "metadata": {
+          "mode": "Structure Only",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "2-MA (Fast/Medium)",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.33
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,693,385.00",
+        "sharpe": "\u22120.708",
+        "total_trades": "Winners",
+        "profit_factor": "1.174",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.26%",
+        "avg_pnl": "959.63",
+        "return_pct": "0.65%"
+      },
+      "trades": [],
+      "trade_count": 6975,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.174",
+      "net_profit": "\u22126,693,385.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.708",
+      "avg_pnl": "959.63",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 60
+      },
+      "train": {
+        "label": "All Signals | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+        "settings": {
+          "Trade Signal Mode": "All Signals",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "2-MA (Fast/Medium)",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,556,275.00",
+          "sharpe": "\u22120.266",
+          "total_trades": "Winners",
+          "profit_factor": "2.412",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.75%",
+          "avg_pnl": "34,090.68",
+          "return_pct": "22.50%"
+        },
+        "trades": [],
+        "trade_count": 3096,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.412",
+        "net_profit": "\u2212105,556,275.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.266",
+        "avg_pnl": "34,090.68",
+        "metadata": {
+          "mode": "All Signals",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "2-MA (Fast/Medium)",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.33
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=Off | T=60",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,697,725.00",
+        "sharpe": "\u22120.708",
+        "total_trades": "Winners",
+        "profit_factor": "1.174",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.26%",
+        "avg_pnl": "959.63",
+        "return_pct": "0.65%"
+      },
+      "trades": [],
+      "trade_count": 6979,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.174",
+      "net_profit": "\u22126,697,725.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.708",
+      "avg_pnl": "959.63",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 60
+      },
+      "train": {
+        "label": "All Signals | Normal | Long Only | MA=Off | T=60",
+        "settings": {
+          "Trade Signal Mode": "All Signals",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "Off",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,572,195.00",
+          "sharpe": "\u22120.266",
+          "total_trades": "Winners",
+          "profit_factor": "2.412",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.75%",
+          "avg_pnl": "34,090.68",
+          "return_pct": "22.50%"
+        },
+        "trades": [],
+        "trade_count": 3097,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.412",
+        "net_profit": "\u2212105,572,195.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.266",
+        "avg_pnl": "34,090.68",
+        "metadata": {
+          "mode": "All Signals",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "Off",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.33
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=3-MA (All Aligned) | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,703,775.00",
+        "sharpe": "\u22120.74",
+        "total_trades": "Winners",
+        "profit_factor": "1.15",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.22%",
+        "avg_pnl": "839.78",
+        "return_pct": "0.56%"
+      },
+      "trades": [],
+      "trade_count": 7983,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.15",
+      "net_profit": "\u22126,703,775.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.74",
+      "avg_pnl": "839.78",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 60
+      },
+      "train": {
+        "label": "Structure Only | Normal | Long Only | MA=3-MA (All Aligned) | T=60",
+        "settings": {
+          "Trade Signal Mode": "Structure Only",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "3-MA (All Aligned)",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,575,720.00",
+          "sharpe": "\u22120.271",
+          "total_trades": "Winners",
+          "profit_factor": "2.371",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.73%",
+          "avg_pnl": "33,611.85",
+          "return_pct": "21.85%"
+        },
+        "trades": [],
+        "trade_count": 3141,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.371",
+        "net_profit": "\u2212105,575,720.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.271",
+        "avg_pnl": "33,611.85",
+        "metadata": {
+          "mode": "Structure Only",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "3-MA (All Aligned)",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.5
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=Off | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,695,765.00",
+        "sharpe": "\u22120.708",
+        "total_trades": "Winners",
+        "profit_factor": "1.174",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.26%",
+        "avg_pnl": "959.63",
+        "return_pct": "0.65%"
+      },
+      "trades": [],
+      "trade_count": 6977,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.174",
+      "net_profit": "\u22126,695,765.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.708",
+      "avg_pnl": "959.63",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 60
+      },
+      "train": {
+        "label": "Structure Only | Normal | Long Only | MA=Off | T=60",
+        "settings": {
+          "Trade Signal Mode": "Structure Only",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "Off",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,602,045.00",
+          "sharpe": "\u22120.266",
+          "total_trades": "Winners",
+          "profit_factor": "2.412",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.75%",
+          "avg_pnl": "34,090.68",
+          "return_pct": "22.50%"
+        },
+        "trades": [],
+        "trade_count": 3098,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.412",
+        "net_profit": "\u2212105,602,045.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.266",
+        "avg_pnl": "34,090.68",
+        "metadata": {
+          "mode": "Structure Only",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "Off",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.33
+    }
+  ],
+  "ranked_validation": [
+    {
+      "label": "Structure Only | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,689,605.00",
+        "sharpe": "\u22120.708",
+        "total_trades": "Winners",
+        "profit_factor": "1.174",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.26%",
+        "avg_pnl": "959.63",
+        "return_pct": "0.65%"
+      },
+      "trades": [],
+      "trade_count": 6971,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.174",
+      "net_profit": "\u22126,689,605.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.708",
+      "avg_pnl": "959.63",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 60
+      },
+      "train": {
+        "label": "Structure Only | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+        "settings": {
+          "Trade Signal Mode": "Structure Only",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "2-MA (Fast/Medium)",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,534,385.00",
+          "sharpe": "\u22120.266",
+          "total_trades": "Winners",
+          "profit_factor": "2.412",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.75%",
+          "avg_pnl": "34,090.68",
+          "return_pct": "22.50%"
+        },
+        "trades": [],
+        "trade_count": 3096,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.412",
+        "net_profit": "\u2212105,534,385.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.266",
+        "avg_pnl": "34,090.68",
+        "metadata": {
+          "mode": "Structure Only",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "2-MA (Fast/Medium)",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.33
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "2-MA (Fast/Medium)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,693,385.00",
+        "sharpe": "\u22120.708",
+        "total_trades": "Winners",
+        "profit_factor": "1.174",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.26%",
+        "avg_pnl": "959.63",
+        "return_pct": "0.65%"
+      },
+      "trades": [],
+      "trade_count": 6975,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.174",
+      "net_profit": "\u22126,693,385.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.708",
+      "avg_pnl": "959.63",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "2-MA (Fast/Medium)",
+        "timeout": 60
+      },
+      "train": {
+        "label": "All Signals | Normal | Long Only | MA=2-MA (Fast/Medium) | T=60",
+        "settings": {
+          "Trade Signal Mode": "All Signals",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "2-MA (Fast/Medium)",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,556,275.00",
+          "sharpe": "\u22120.266",
+          "total_trades": "Winners",
+          "profit_factor": "2.412",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.75%",
+          "avg_pnl": "34,090.68",
+          "return_pct": "22.50%"
+        },
+        "trades": [],
+        "trade_count": 3096,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.412",
+        "net_profit": "\u2212105,556,275.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.266",
+        "avg_pnl": "34,090.68",
+        "metadata": {
+          "mode": "All Signals",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "2-MA (Fast/Medium)",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.33
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=Off | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,695,765.00",
+        "sharpe": "\u22120.708",
+        "total_trades": "Winners",
+        "profit_factor": "1.174",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.26%",
+        "avg_pnl": "959.63",
+        "return_pct": "0.65%"
+      },
+      "trades": [],
+      "trade_count": 6977,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.174",
+      "net_profit": "\u22126,695,765.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.708",
+      "avg_pnl": "959.63",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 60
+      },
+      "train": {
+        "label": "Structure Only | Normal | Long Only | MA=Off | T=60",
+        "settings": {
+          "Trade Signal Mode": "Structure Only",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "Off",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,602,045.00",
+          "sharpe": "\u22120.266",
+          "total_trades": "Winners",
+          "profit_factor": "2.412",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.75%",
+          "avg_pnl": "34,090.68",
+          "return_pct": "22.50%"
+        },
+        "trades": [],
+        "trade_count": 3098,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.412",
+        "net_profit": "\u2212105,602,045.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.266",
+        "avg_pnl": "34,090.68",
+        "metadata": {
+          "mode": "Structure Only",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "Off",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.33
+    },
+    {
+      "label": "All Signals | Normal | Long Only | MA=Off | T=60",
+      "settings": {
+        "Trade Signal Mode": "All Signals",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "Off",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,697,725.00",
+        "sharpe": "\u22120.708",
+        "total_trades": "Winners",
+        "profit_factor": "1.174",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.26%",
+        "avg_pnl": "959.63",
+        "return_pct": "0.65%"
+      },
+      "trades": [],
+      "trade_count": 6979,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.174",
+      "net_profit": "\u22126,697,725.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.708",
+      "avg_pnl": "959.63",
+      "metadata": {
+        "mode": "All Signals",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "Off",
+        "timeout": 60
+      },
+      "train": {
+        "label": "All Signals | Normal | Long Only | MA=Off | T=60",
+        "settings": {
+          "Trade Signal Mode": "All Signals",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "Off",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,572,195.00",
+          "sharpe": "\u22120.266",
+          "total_trades": "Winners",
+          "profit_factor": "2.412",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.75%",
+          "avg_pnl": "34,090.68",
+          "return_pct": "22.50%"
+        },
+        "trades": [],
+        "trade_count": 3097,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.412",
+        "net_profit": "\u2212105,572,195.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.266",
+        "avg_pnl": "34,090.68",
+        "metadata": {
+          "mode": "All Signals",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "Off",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.33
+    },
+    {
+      "label": "Structure Only | Normal | Long Only | MA=3-MA (All Aligned) | T=60",
+      "settings": {
+        "Trade Signal Mode": "Structure Only",
+        "Entry Strictness": "Normal",
+        "Trade Direction": "Long Only",
+        "MA Filter Mode": "3-MA (All Aligned)",
+        "Fallback R:R Target": 1.5,
+        "ATR Stop Multiplier": 1.0,
+        "Level Buffer ATR": 0.1,
+        "Timeout Bars": 60
+      },
+      "window": "6M",
+      "summary": {
+        "net_profit": "\u22126,703,775.00",
+        "sharpe": "\u22120.74",
+        "total_trades": "Winners",
+        "profit_factor": "1.15",
+        "max_drawdown": "99,800.00",
+        "cagr": "0.22%",
+        "avg_pnl": "839.78",
+        "return_pct": "0.56%"
+      },
+      "trades": [],
+      "trade_count": 7983,
+      "win_rate_pct": "N/A",
+      "max_dd_pct": 0.998,
+      "profit_factor": "1.15",
+      "net_profit": "\u22126,703,775.00",
+      "max_drawdown": "99,800.00",
+      "sharpe": "\u22120.74",
+      "avg_pnl": "839.78",
+      "metadata": {
+        "mode": "Structure Only",
+        "strictness": "Normal",
+        "direction": "Long Only",
+        "ma_filter": "3-MA (All Aligned)",
+        "timeout": 60
+      },
+      "train": {
+        "label": "Structure Only | Normal | Long Only | MA=3-MA (All Aligned) | T=60",
+        "settings": {
+          "Trade Signal Mode": "Structure Only",
+          "Entry Strictness": "Normal",
+          "Trade Direction": "Long Only",
+          "MA Filter Mode": "3-MA (All Aligned)",
+          "Fallback R:R Target": 1.5,
+          "ATR Stop Multiplier": 1.0,
+          "Level Buffer ATR": 0.1,
+          "Timeout Bars": 60
+        },
+        "window": "12M",
+        "summary": {
+          "net_profit": "\u2212105,575,720.00",
+          "sharpe": "\u22120.271",
+          "total_trades": "Winners",
+          "profit_factor": "2.371",
+          "max_drawdown": "379,460.00",
+          "cagr": "0.73%",
+          "avg_pnl": "33,611.85",
+          "return_pct": "21.85%"
+        },
+        "trades": [],
+        "trade_count": 3141,
+        "win_rate_pct": "N/A",
+        "max_dd_pct": 3.7946,
+        "profit_factor": "2.371",
+        "net_profit": "\u2212105,575,720.00",
+        "max_drawdown": "379,460.00",
+        "sharpe": "\u22120.271",
+        "avg_pnl": "33,611.85",
+        "metadata": {
+          "mode": "Structure Only",
+          "strictness": "Normal",
+          "direction": "Long Only",
+          "ma_filter": "3-MA (All Aligned)",
+          "timeout": 60
+        }
+      },
+      "pf_divergence_pct": 51.5
+    }
+  ]
+}

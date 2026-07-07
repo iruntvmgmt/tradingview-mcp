@@ -47,10 +47,6 @@ def int_param(var: str, to: int) -> dict:
 def bool_toggle(var: str, to: bool) -> dict:
     return {"pattern": f"{var} = input.bool({str(not to).lower()},", "replacement": f"{var} = input.bool({str(to).lower()},", "regex": False}
 
-def enable_strategy() -> list[dict]:
-    """Always enable strategy orders."""
-    return [bool_toggle("enable_strategy", True)]
-
 def lock_defaults() -> list[dict]:
     """Lock all non-varying params to defaults."""
     return [
@@ -74,7 +70,7 @@ def build_phase1() -> list[dict]:
     variants = []
     for mode in modes:
         safe = re.sub(r"[^A-Za-z0-9]+", "_", mode).strip("_")
-        repls = enable_strategy() + lock_defaults() + [
+        repls = lock_defaults() + [
             str_param("strategy_mode", mode, "Trade Signal Mode"),
         ]
         variants.append({"label": f"S1_Mode_{safe}", "replacements": repls,
@@ -87,7 +83,7 @@ def build_phase2() -> list[dict]:
     variants = []
     for f in filters:
         safe = re.sub(r"[^A-Za-z0-9]+", "_", f).strip("_")
-        repls = enable_strategy() + lock_defaults() + [
+        repls = lock_defaults() + [
             str_param("ma_filter_mode", f, "MA Filter Mode"),
         ]
         variants.append({"label": f"S2_Filter_{safe}", "replacements": repls,
@@ -99,7 +95,7 @@ def build_phase3() -> list[dict]:
     levels = ["Loose", "Normal", "Strict"]
     variants = []
     for lvl in levels:
-        repls = enable_strategy() + lock_defaults() + [
+        repls = lock_defaults() + [
             str_param("strategy_strictness", lvl, "Entry Strictness"),
         ]
         variants.append({"label": f"S3_Strict_{lvl}", "replacements": repls,
@@ -114,7 +110,7 @@ def build_phase4() -> list[dict]:
     for rr in rr_values:
         for atr in atr_values:
             label = f"S4_RR{str(rr).replace('.','p')}_ATR{str(atr).replace('.','p')}"
-            repls = enable_strategy() + lock_defaults() + [
+            repls = lock_defaults() + [
                 float_param("strategy_rr", rr),
                 float_param("strategy_atr_stop_mult", atr),
             ]
@@ -127,7 +123,7 @@ def build_phase5() -> list[dict]:
     va_vals = [60, 70, 80]
     variants = []
     for va in va_vals:
-        repls = enable_strategy() + lock_defaults() + [
+        repls = lock_defaults() + [
             int_param("va_percentage", va),
         ]
         variants.append({"label": f"S5_VA_{va}", "replacements": repls,
@@ -139,7 +135,7 @@ def build_phase6() -> list[dict]:
     timeouts = [15, 30, 60]
     variants = []
     for t in timeouts:
-        repls = enable_strategy() + lock_defaults() + [
+        repls = lock_defaults() + [
             int_param("strategy_timeout_bars", t),
         ]
         variants.append({"label": f"S6_Timeout_{t}", "replacements": repls,
@@ -253,12 +249,12 @@ async def main():
     print(f"{'─'*80}")
 
     best_meta = global_best.get("metadata", {}) if global_best else {}
-    combo_repls = enable_strategy() + lock_defaults()
+    combo_repls = lock_defaults()
     # Just use defaults for combo — all phases locked together at defaults
     # since we can't auto-extract winners from metadata easily in a sweep
     combo_variants = [{
         "label": "S7_Baseline_Defaults",
-        "replacements": enable_strategy() + lock_defaults(),
+        "replacements": lock_defaults(),
         "metadata": {"phase": 7, "desc": "All defaults (baseline reference)"},
     }]
 
