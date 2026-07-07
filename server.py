@@ -37,6 +37,7 @@ from core.services.experiment_controller import (
 )
 from core.services.experiment_log import ExperimentLog
 from core.services.pine_family_planner import PineFamilyPlanner
+from core.services.strategy_variant_controller import StrategyVariantController
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -77,6 +78,12 @@ _ctrl_order = TVOrderController(_cdp, _recon, allow_unverified=True)
 _ctrl_replay = TVReplayController(_cdp, _recon, allow_unverified=True)
 _ctrl_settings = TVSettingsController(_cdp, _recon, allow_unverified=True)
 _ctrl_pine = TVPineScriptController(_cdp, _recon, allow_unverified=True)
+_ctrl_strategy_variant = StrategyVariantController(
+    _cdp,
+    _ctrl_pine,
+    _ctrl_backtest,
+    _ctrl_chart,
+)
 
 # ── Experiment controller ──
 try:
@@ -265,6 +272,57 @@ _register("tv_pine_compile_errors", "Read Pine Script compile errors",
 _register("tv_pine_logs", "Read Pine Logs output",
           {"type": "object", "properties": {"script_name": {"type": "string"}}, "required": ["script_name"]},
           lambda script_name: _ctrl_pine.read_logs(script_name))
+
+# ── Strategy Variant Runner ──
+_replacement_schema = {
+    "type": "object",
+    "properties": {
+        "pattern": {"type": "string"},
+        "replacement": {"type": "string"},
+        "regex": {"type": "boolean", "default": True},
+        "count": {"type": "integer", "default": 1},
+    },
+    "required": ["pattern", "replacement"],
+}
+
+_register("tv_pine_update_chart_reliable", "Wait for and click TradingView's Add/Update on chart button",
+          {"type": "object", "properties": {}},
+          lambda: _ctrl_strategy_variant.update_chart_reliable())
+
+_register("tv_strategy_variant_run", "Run one Pine strategy source variant, read Strategy Tester summary, and optionally restore the original editor source",
+          {"type": "object", "properties": {
+              "script_name": {"type": "string"},
+              "source": {"type": "string"},
+              "source_path": {"type": "string"},
+              "replacements": {"type": "array", "items": _replacement_schema, "default": []},
+              "restore": {"type": "boolean", "default": True},
+              "wait_seconds": {"type": "number", "default": 5.0},
+              "screenshot_path": {"type": "string"},
+          }, "required": ["script_name"]},
+          lambda script_name, source=None, source_path=None, replacements=None, restore=True, wait_seconds=5.0, screenshot_path=None:
+              _ctrl_strategy_variant.run_variant(script_name, source, source_path, replacements or [], bool(restore), float(wait_seconds), screenshot_path))
+
+_register("tv_strategy_sweep", "Run multiple Pine strategy variants from one base source and return Strategy Tester summaries",
+          {"type": "object", "properties": {
+              "script_name": {"type": "string"},
+              "source": {"type": "string"},
+              "source_path": {"type": "string"},
+              "variants": {"type": "array", "items": {
+                  "type": "object",
+                  "properties": {
+                      "label": {"type": "string"},
+                      "replacements": {"type": "array", "items": _replacement_schema, "default": []},
+                      "metadata": {"type": "object"},
+                      "wait_seconds": {"type": "number"},
+                  },
+                  "required": ["label"],
+              }},
+              "restore": {"type": "boolean", "default": True},
+              "wait_seconds": {"type": "number", "default": 5.0},
+              "screenshot_dir": {"type": "string"},
+          }, "required": ["script_name", "variants"]},
+          lambda script_name, variants, source=None, source_path=None, restore=True, wait_seconds=5.0, screenshot_dir=None:
+              _ctrl_strategy_variant.sweep(script_name, variants, source, source_path, bool(restore), float(wait_seconds), screenshot_dir))
 
 # ── Experiment ──
 _register("tv_experiment_start", "Start a new experiment generation",
