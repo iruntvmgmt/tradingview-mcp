@@ -1,0 +1,389 @@
+[
+  {
+    "script_name": "WaveTrend MAX",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221255,240.00",
+      "sharpe": "0.276",
+      "total_trades": "Winners",
+      "profit_factor": "1.41",
+      "max_drawdown": "14,470.00",
+      "cagr": "5.07%",
+      "avg_pnl": "241.65",
+      "return_pct": "2.56%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_cross_ground/04_04_Dynamic_HTF_EMA_Slope.png",
+    "restore": null,
+    "label": "04_Dynamic_HTF_EMA_Slope",
+    "metadata": {
+      "description": "1H EMA50 side plus EMA slope",
+      "filter_code": "researchHtfClose = request.security(syminfo.tickerid, \"60\", close, barmerge.gaps_off, barmerge.lookahead_off)\nresearchHtfEma = request.security(syminfo.tickerid, \"60\", ta.ema(close, 50), barmerge.gaps_off, barmerge.lookahead_off)\nresearchHtfEmaPrev = request.security(syminfo.tickerid, \"60\", ta.ema(close, 50)[1], barmerge.gaps_off, barmerge.lookahead_off)\nresearchLongOk = researchHtfClose > researchHtfEma and researchHtfEma >= researchHtfEmaPrev\nresearchShortOk = researchHtfClose < researchHtfEma and researchHtfEma <= researchHtfEmaPrev",
+      "trend": "None"
+    },
+    "body_metrics": {
+      "total_trades_text": "N/A",
+      "profitable_winners": "52",
+      "profitable_total": "106",
+      "win_rate_pct": "49.06",
+      "max_dd_pct": "1.41",
+      "body_has_tester": true
+    },
+    "trade_count": 106,
+    "win_rate_pct": "49.06",
+    "max_dd_pct": "1.41",
+    "net_profit": "\u221255,240.00",
+    "profit_factor": "1.41",
+    "sharpe": "0.276",
+    "max_drawdown": "14,470.00",
+    "score": -0.8567608176918295
+  },
+  {
+    "script_name": "WaveTrend MAX",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221257,870.00",
+      "sharpe": "0.211",
+      "total_trades": "Winners",
+      "profit_factor": "1.399",
+      "max_drawdown": "14,875.00",
+      "cagr": "4.01%",
+      "avg_pnl": "271.33",
+      "return_pct": "2.04%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_cross_ground/05_05_Dynamic_HTF_ATR.png",
+    "restore": null,
+    "label": "05_Dynamic_HTF_ATR",
+    "metadata": {
+      "description": "1H EMA50 side plus ATR anti-chop",
+      "filter_code": "researchHtfClose = request.security(syminfo.tickerid, \"60\", close, barmerge.gaps_off, barmerge.lookahead_off)\nresearchHtfEma = request.security(syminfo.tickerid, \"60\", ta.ema(close, 50), barmerge.gaps_off, barmerge.lookahead_off)\nresearchAtrOk = atrVal > ta.sma(atrVal, 50) * 0.85\nresearchLongOk = researchHtfClose > researchHtfEma and researchAtrOk\nresearchShortOk = researchHtfClose < researchHtfEma and researchAtrOk",
+      "trend": "None"
+    },
+    "body_metrics": {
+      "total_trades_text": "N/A",
+      "profitable_winners": "37",
+      "profitable_total": "75",
+      "win_rate_pct": "49.33",
+      "max_dd_pct": "1.46",
+      "body_has_tester": true
+    },
+    "trade_count": 75,
+    "win_rate_pct": "49.33",
+    "max_dd_pct": "1.46",
+    "net_profit": "\u221257,870.00",
+    "profit_factor": "1.399",
+    "sharpe": "0.211",
+    "max_drawdown": "14,875.00",
+    "score": -1.1409125802492341
+  },
+  {
+    "script_name": "WaveTrend MAX",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221257,870.00",
+      "sharpe": "0.211",
+      "total_trades": "Winners",
+      "profit_factor": "1.399",
+      "max_drawdown": "14,875.00",
+      "cagr": "4.01%",
+      "avg_pnl": "271.33",
+      "return_pct": "2.04%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_cross_ground/06_06_Dynamic_HTF_SQZ_Dir.png",
+    "restore": null,
+    "label": "06_Dynamic_HTF_SQZ_Dir",
+    "metadata": {
+      "description": "1H EMA50 side plus squeeze momentum direction",
+      "filter_code": "researchHtfClose = request.security(syminfo.tickerid, \"60\", close, barmerge.gaps_off, barmerge.lookahead_off)\nresearchHtfEma = request.security(syminfo.tickerid, \"60\", ta.ema(close, 50), barmerge.gaps_off, barmerge.lookahead_off)\nresearchLongOk = researchHtfClose > researchHtfEma and sqzMomentumUp\nresearchShortOk = researchHtfClose < researchHtfEma and sqzMomentumDown",
+      "trend": "None"
+    },
+    "body_metrics": {
+      "total_trades_text": "N/A",
+      "profitable_winners": "37",
+      "profitable_total": "75",
+      "win_rate_pct": "49.33",
+      "max_dd_pct": "1.46",
+      "body_has_tester": true
+    },
+    "trade_count": 75,
+    "win_rate_pct": "49.33",
+    "max_dd_pct": "1.46",
+    "net_profit": "\u221257,870.00",
+    "profit_factor": "1.399",
+    "sharpe": "0.211",
+    "max_drawdown": "14,875.00",
+    "score": -1.1409125802492341
+  },
+  {
+    "script_name": "WaveTrend MAX",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221261,450.00",
+      "sharpe": "0.021",
+      "total_trades": "Winners",
+      "profit_factor": "1.366",
+      "max_drawdown": "11,930.00",
+      "cagr": "2.09%",
+      "avg_pnl": "221.67",
+      "return_pct": "1.06%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_cross_ground/08_08_Dynamic_HTF_ATR_SQZ_Room.png",
+    "restore": null,
+    "label": "08_Dynamic_HTF_ATR_SQZ_Room",
+    "metadata": {
+      "description": "1H EMA50 side, ATR, SQZ direction, and range room",
+      "filter_code": "researchHtfClose = request.security(syminfo.tickerid, \"60\", close, barmerge.gaps_off, barmerge.lookahead_off)\nresearchHtfEma = request.security(syminfo.tickerid, \"60\", ta.ema(close, 50), barmerge.gaps_off, barmerge.lookahead_off)\nresearchAtrOk = atrVal > ta.sma(atrVal, 50) * 0.85\nresearchLongOk = researchHtfClose > researchHtfEma and researchAtrOk and sqzMomentumUp and sqzLongRoomOk\nresearchShortOk = researchHtfClose < researchHtfEma and researchAtrOk and sqzMomentumDown and sqzShortRoomOk",
+      "trend": "None"
+    },
+    "body_metrics": {
+      "total_trades_text": "N/A",
+      "profitable_winners": "23",
+      "profitable_total": "48",
+      "win_rate_pct": "47.92",
+      "max_dd_pct": "1.17",
+      "body_has_tester": true
+    },
+    "trade_count": 48,
+    "win_rate_pct": "47.92",
+    "max_dd_pct": "1.17",
+    "net_profit": "\u221261,450.00",
+    "profit_factor": "1.366",
+    "sharpe": "0.021",
+    "max_drawdown": "11,930.00",
+    "score": -1.5832262249758307
+  },
+  {
+    "script_name": "WaveTrend MAX",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221267,555.00",
+      "sharpe": "0.039",
+      "total_trades": "Winners",
+      "profit_factor": "1.361",
+      "max_drawdown": "9,855.00",
+      "cagr": "2.60%",
+      "avg_pnl": "183.40",
+      "return_pct": "1.32%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_cross_ground/07_07_Dynamic_HTF_Room.png",
+    "restore": null,
+    "label": "07_Dynamic_HTF_Room",
+    "metadata": {
+      "description": "1H EMA50 side plus range room",
+      "filter_code": "researchHtfClose = request.security(syminfo.tickerid, \"60\", close, barmerge.gaps_off, barmerge.lookahead_off)\nresearchHtfEma = request.security(syminfo.tickerid, \"60\", ta.ema(close, 50), barmerge.gaps_off, barmerge.lookahead_off)\nresearchLongOk = researchHtfClose > researchHtfEma and sqzLongRoomOk\nresearchShortOk = researchHtfClose < researchHtfEma and sqzShortRoomOk",
+      "trend": "None"
+    },
+    "body_metrics": {
+      "total_trades_text": "N/A",
+      "profitable_winners": "33",
+      "profitable_total": "72",
+      "win_rate_pct": "45.83",
+      "max_dd_pct": "0.97",
+      "body_has_tester": true
+    },
+    "trade_count": 72,
+    "win_rate_pct": "45.83",
+    "max_dd_pct": "0.97",
+    "net_profit": "\u221267,555.00",
+    "profit_factor": "1.361",
+    "sharpe": "0.039",
+    "max_drawdown": "9,855.00",
+    "score": -1.7618440229073282
+  },
+  {
+    "script_name": "WaveTrend MAX",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221270,095.00",
+      "sharpe": "\u22120.019",
+      "total_trades": "Winners",
+      "profit_factor": "1.315",
+      "max_drawdown": "11,930.00",
+      "cagr": "2.13%",
+      "avg_pnl": "177.62",
+      "return_pct": "1.08%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_cross_ground/09_09_Dynamic_Loose_Pullback.png",
+    "restore": null,
+    "label": "09_Dynamic_Loose_Pullback",
+    "metadata": {
+      "description": "Not hard against 1H trend, ATR loose, range room",
+      "filter_code": "researchHtfClose = request.security(syminfo.tickerid, \"60\", close, barmerge.gaps_off, barmerge.lookahead_off)\nresearchHtfEma = request.security(syminfo.tickerid, \"60\", ta.ema(close, 50), barmerge.gaps_off, barmerge.lookahead_off)\nresearchHtfEmaPrev = request.security(syminfo.tickerid, \"60\", ta.ema(close, 50)[1], barmerge.gaps_off, barmerge.lookahead_off)\nresearchNotHardDown = researchHtfClose > researchHtfEma or researchHtfEma >= researchHtfEmaPrev\nresearchNotHardUp = researchHtfClose < researchHtfEma or researchHtfEma <= researchHtfEmaPrev\nresearchAtrOk = atrVal > ta.sma(atrVal, 50) * 0.75\nresearchLongOk = researchNotHardDown and researchAtrOk and sqzLongRoomOk\nresearchShortOk = researchNotHardUp and researchAtrOk and sqzShortRoomOk",
+      "trend": "None"
+    },
+    "body_metrics": {
+      "total_trades_text": "N/A",
+      "profitable_winners": "28",
+      "profitable_total": "61",
+      "win_rate_pct": "45.90",
+      "max_dd_pct": "1.17",
+      "body_has_tester": true
+    },
+    "trade_count": 61,
+    "win_rate_pct": "45.90",
+    "max_dd_pct": "1.17",
+    "net_profit": "\u221270,095.00",
+    "profit_factor": "1.315",
+    "sharpe": "\u22120.019",
+    "max_drawdown": "11,930.00",
+    "score": -2.059658202697216
+  },
+  {
+    "script_name": "WaveTrend MAX",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221272,830.00",
+      "sharpe": "\u22120.085",
+      "total_trades": "Winners",
+      "profit_factor": "1.054",
+      "max_drawdown": "21,330.00",
+      "cagr": "1.56%",
+      "avg_pnl": "34.80",
+      "return_pct": "0.80%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_cross_ground/02_02_Dynamic_WTSignal.png",
+    "restore": null,
+    "label": "02_Dynamic_WTSignal",
+    "metadata": {
+      "description": "Dynamic cross plus chart WT1/WT2 trend",
+      "filter_code": "researchLongOk = true\nresearchShortOk = true",
+      "trend": "WT Signal Trend"
+    },
+    "body_metrics": {
+      "total_trades_text": "N/A",
+      "profitable_winners": "104",
+      "profitable_total": "229",
+      "win_rate_pct": "45.41",
+      "max_dd_pct": "2.11",
+      "body_has_tester": true
+    },
+    "trade_count": 229,
+    "win_rate_pct": "45.41",
+    "max_dd_pct": "2.11",
+    "net_profit": "\u221272,830.00",
+    "profit_factor": "1.054",
+    "sharpe": "\u22120.085",
+    "max_drawdown": "21,330.00",
+    "score": -2.448384598873099
+  },
+  {
+    "script_name": "WaveTrend MAX",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221272,880.00",
+      "sharpe": "\u22120.084",
+      "total_trades": "Winners",
+      "profit_factor": "1.054",
+      "max_drawdown": "21,330.00",
+      "cagr": "1.56%",
+      "avg_pnl": "34.80",
+      "return_pct": "0.80%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_cross_ground/03_03_Dynamic_HTF_EMA.png",
+    "restore": null,
+    "label": "03_Dynamic_HTF_EMA",
+    "metadata": {
+      "description": "Dynamic cross aligned with 1H EMA50 side",
+      "filter_code": "researchHtfClose = request.security(syminfo.tickerid, \"60\", close, barmerge.gaps_off, barmerge.lookahead_off)\nresearchHtfEma = request.security(syminfo.tickerid, \"60\", ta.ema(close, 50), barmerge.gaps_off, barmerge.lookahead_off)\nresearchLongOk = researchHtfClose > researchHtfEma\nresearchShortOk = researchHtfClose < researchHtfEma",
+      "trend": "None"
+    },
+    "body_metrics": {
+      "total_trades_text": "N/A",
+      "profitable_winners": "52",
+      "profitable_total": "106",
+      "win_rate_pct": "49.06",
+      "max_dd_pct": "1.41",
+      "body_has_tester": true
+    },
+    "trade_count": 106,
+    "win_rate_pct": "49.06",
+    "max_dd_pct": "1.41",
+    "net_profit": "\u221272,880.00",
+    "profit_factor": "1.054",
+    "sharpe": "\u22120.084",
+    "max_drawdown": "21,330.00",
+    "score": -2.572755326233642
+  },
+  {
+    "script_name": "WaveTrend MAX",
+    "paste_ok": true,
+    "source_match": true,
+    "update": {
+      "success": true,
+      "title": "Update on chart"
+    },
+    "summary": {
+      "net_profit": "\u221279,460.00",
+      "sharpe": "\u22120.241",
+      "total_trades": "Winners",
+      "profit_factor": "1.008",
+      "max_drawdown": "21,710.00",
+      "cagr": "0.26%",
+      "avg_pnl": "5.28",
+      "return_pct": "0.13%"
+    },
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_cross_ground/01_01_Dynamic_Raw.png",
+    "restore": null,
+    "label": "01_Dynamic_Raw",
+    "metadata": {
+      "description": "Dynamic cross only, no permission filter",
+      "filter_code": "researchLongOk = true\nresearchShortOk = true",
+      "trend": "None"
+    },
+    "body_metrics": {
+      "total_trades_text": "N/A",
+      "profitable_winners": "113",
+      "profitable_total": "251",
+      "win_rate_pct": "45.02",
+      "max_dd_pct": "2.16",
+      "body_has_tester": true
+    },
+    "trade_count": 251,
+    "win_rate_pct": "45.02",
+    "max_dd_pct": "2.16",
+    "net_profit": "\u221279,460.00",
+    "profit_factor": "1.008",
+    "sharpe": "\u22120.241",
+    "max_drawdown": "21,710.00",
+    "score": -2.9604004259187007
+  }
+]

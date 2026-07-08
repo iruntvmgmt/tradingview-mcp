@@ -1,0 +1,162 @@
+[
+  {
+    "label": "03_HTF_Slope_ATR_085",
+    "description": "HTF slope + tested ATR anti-chop",
+    "summary": {
+      "net_profit": "\u2212725.00",
+      "sharpe": "0.014",
+      "total_trades": "Winners",
+      "profit_factor": "1.05",
+      "max_drawdown": "7,800.00",
+      "cagr": "0.00%",
+      "avg_pnl": "15.22",
+      "return_pct": "0.25%"
+    },
+    "body_metrics": {
+      "total_pnl": "+2465.00",
+      "total_pnl_pct": "+0.25",
+      "max_dd_pct": "0.77",
+      "winners": "73",
+      "total_trades": "162",
+      "win_rate_pct": "45.06",
+      "body_has_tester": true
+    },
+    "total_pnl": "+2465.00",
+    "total_pnl_pct": "+0.25",
+    "max_dd_pct": "0.77",
+    "win_rate_pct": "45.06",
+    "total_trades": "162",
+    "profit_factor": "1.05",
+    "sharpe": "0.014",
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_filter_validation/03_03_HTF_Slope_ATR_085.png",
+    "score": 1.4255294121469602
+  },
+  {
+    "label": "02_HTF_Slope_ATR_075",
+    "description": "HTF slope + loose ATR anti-chop",
+    "summary": {
+      "net_profit": "\u22121,160.00",
+      "sharpe": "0.006",
+      "total_trades": "Winners",
+      "profit_factor": "1.037",
+      "max_drawdown": "8,125.00",
+      "cagr": "0.00%",
+      "avg_pnl": "10.54",
+      "return_pct": "0.20%"
+    },
+    "body_metrics": {
+      "total_pnl": "+2465.00",
+      "total_pnl_pct": "+0.25",
+      "max_dd_pct": "0.77",
+      "winners": "73",
+      "total_trades": "162",
+      "win_rate_pct": "45.06",
+      "body_has_tester": true
+    },
+    "total_pnl": "+2465.00",
+    "total_pnl_pct": "+0.25",
+    "max_dd_pct": "0.77",
+    "win_rate_pct": "45.06",
+    "total_trades": "162",
+    "profit_factor": "1.037",
+    "sharpe": "0.006",
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_filter_validation/02_02_HTF_Slope_ATR_075.png",
+    "score": 1.3950129423028763
+  },
+  {
+    "label": "01_HTF_Slope_Default",
+    "description": "Dynamic cross + 1H EMA50 side/slope",
+    "summary": {
+      "net_profit": "\u221226,260.00",
+      "sharpe": "\u22120.189",
+      "total_trades": "Winners",
+      "profit_factor": "0.846",
+      "max_drawdown": "25,005.00",
+      "cagr": "0.00%",
+      "avg_pnl": "\u221253.56",
+      "return_pct": "\u22122.27%"
+    },
+    "body_metrics": {
+      "total_pnl": "+1960.00",
+      "total_pnl_pct": "+0.20",
+      "max_dd_pct": "0.80",
+      "winners": "81",
+      "total_trades": "186",
+      "win_rate_pct": "43.55",
+      "body_has_tester": true
+    },
+    "total_pnl": "+1960.00",
+    "total_pnl_pct": "+0.20",
+    "max_dd_pct": "0.80",
+    "win_rate_pct": "43.55",
+    "total_trades": "186",
+    "profit_factor": "0.846",
+    "sharpe": "\u22120.189",
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_filter_validation/01_01_HTF_Slope_Default.png",
+    "score": 0.8576648296764728
+  },
+  {
+    "label": "04_HTF_Slope_ATR_100",
+    "description": "HTF slope + stricter ATR anti-chop",
+    "summary": {
+      "net_profit": "\u22127,745.00",
+      "sharpe": "\u22120.1",
+      "total_trades": "Winners",
+      "profit_factor": "0.897",
+      "max_drawdown": "11,490.00",
+      "cagr": "0.00%",
+      "avg_pnl": "\u221234.06",
+      "return_pct": "\u22120.45%"
+    },
+    "body_metrics": {
+      "total_pnl": "-11920.00",
+      "total_pnl_pct": "-1.19",
+      "max_dd_pct": "1.48",
+      "winners": "33",
+      "total_trades": "81",
+      "win_rate_pct": "40.74",
+      "body_has_tester": true
+    },
+    "total_pnl": "-11920.00",
+    "total_pnl_pct": "-1.19",
+    "max_dd_pct": "1.48",
+    "win_rate_pct": "40.74",
+    "total_trades": "81",
+    "profit_factor": "0.897",
+    "sharpe": "\u22120.1",
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_filter_validation/04_04_HTF_Slope_ATR_100.png",
+    "score": 0.06721345482142796
+  },
+  {
+    "label": "05_HTF_Side_NoSlope",
+    "description": "HTF side only, no slope requirement",
+    "summary": {
+      "net_profit": "\u221214,985.00",
+      "sharpe": "\u22120.273",
+      "total_trades": "Winners",
+      "profit_factor": "0.659",
+      "max_drawdown": "14,815.00",
+      "cagr": "0.00%",
+      "avg_pnl": "\u2212147.16",
+      "return_pct": "\u22121.19%"
+    },
+    "body_metrics": {
+      "total_pnl": "-11920.00",
+      "total_pnl_pct": "-1.19",
+      "max_dd_pct": "1.48",
+      "winners": "33",
+      "total_trades": "81",
+      "win_rate_pct": "40.74",
+      "body_has_tester": true
+    },
+    "total_pnl": "-11920.00",
+    "total_pnl_pct": "-1.19",
+    "max_dd_pct": "1.48",
+    "win_rate_pct": "40.74",
+    "total_trades": "81",
+    "profit_factor": "0.659",
+    "sharpe": "\u22120.273",
+    "screenshot_path": "/Users/matt/Documents/TRADINGVIEW_MCP/tv-desktop-controller/logs/wt_dynamic_filter_validation/05_05_HTF_Side_NoSlope.png",
+    "score": -0.6705512002911497
+  }
+]

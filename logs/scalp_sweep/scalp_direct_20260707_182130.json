@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "target": "$100.0\u2192$1000.0",
+    "timeframe": "15m",
+    "window": "5D",
+    "days": 5,
+    "timestamp": "20260707_182130"
+  },
+  "results": [
+    {
+      "label": "GTVP_MaxSignals_Loose_Both",
+      "error": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}",
+      "metrics": {},
+      "scoring": {
+        "score": 0,
+        "reason": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}"
+      }
+    },
+    {
+      "label": "GTVP_MaxSignals_Loose_Long",
+      "error": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}",
+      "metrics": {},
+      "scoring": {
+        "score": 0,
+        "reason": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}"
+      }
+    },
+    {
+      "label": "GTVP_MaxSignals_Loose_Short",
+      "error": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}",
+      "metrics": {},
+      "scoring": {
+        "score": 0,
+        "reason": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}"
+      }
+    },
+    {
+      "label": "GTVP_HighFreq_Normal_Both",
+      "error": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}",
+      "metrics": {},
+      "scoring": {
+        "score": 0,
+        "reason": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}"
+      }
+    },
+    {
+      "label": "GTVP_ScalpOnly_Normal_Both",
+      "error": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}",
+      "metrics": {},
+      "scoring": {
+        "score": 0,
+        "reason": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}"
+      }
+    },
+    {
+      "label": "GTVP_ScalpOnly_Loose_Both",
+      "error": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}",
+      "metrics": {},
+      "scoring": {
+        "score": 0,
+        "reason": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}"
+      }
+    },
+    {
+      "label": "GTVP_DivOnly_Loose_Both",
+      "error": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}",
+      "metrics": {},
+      "scoring": {
+        "score": 0,
+        "reason": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}"
+      }
+    },
+    {
+      "label": "GTVP_VPAOnly_Loose_Both",
+      "error": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}",
+      "metrics": {},
+      "scoring": {
+        "score": 0,
+        "reason": "[SELECTOR_RESOLUTION_ERROR] Settings write failed for field 'Trade Signal Mode': no dialog | {'field': 'Trade Signal Mode', 'study': 'GT_VP_v9.9.6_STRAT'}"
+      }
+    }
+  ],
+  "best": null
+}
